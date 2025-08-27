@@ -21,7 +21,6 @@ class LogisticsGame {
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
-        this.ghosts = new Map();
         
         this.init();
     }
@@ -339,6 +338,7 @@ class LogisticsGame {
             const prevCell = this.getCell(this.selectedRobot.row, this.selectedRobot.col);
             prevCell.classList.remove('selected');
             prevCell.style.background = 'linear-gradient(45deg, #ffeb3b, #ffc107)';
+            prevCell.style.color = '#000';
         }
         
         this.selectedRobot = robot;
@@ -454,7 +454,10 @@ class LogisticsGame {
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
         
-        // Не запускаем движение автоматически - ждем пока пользователь закончит прокладывать маршрут
+        // Автоматически начинаем движение сразу после добавления точки
+        if (!robot.isMoving) {
+            this.moveRobotAlongPath(robot);
+        }
     }
 
     willPathsIntersect(robot, targetRow, targetCol) {
@@ -589,15 +592,6 @@ class LogisticsGame {
         }
     }
 
-    startRobotMovement() {
-        // Запускаем движение всех роботов с путями
-        for (const robot of this.robots) {
-            if (robot.path.length > 0 && !robot.isMoving) {
-                this.moveRobotAlongPath(robot);
-            }
-        }
-    }
-
     async moveRobotAlongPath(robot) {
         if (robot.isMoving || robot.path.length === 0) return;
         
@@ -638,17 +632,11 @@ class LogisticsGame {
     async moveRobotToPoint(robot, targetRow, targetCol) {
         const oldCell = this.getCell(robot.row, robot.col);
         
-        // Сохраняем оригинальный вид клетки
-        const originalBackground = oldCell.style.background;
-        const originalColor = oldCell.style.color;
-        
         // Анимация движения - 2 секунды на клетку
         oldCell.classList.add('moving');
         await this.delay(2000);
         
         oldCell.classList.remove('moving');
-        
-        // Восстанавливаем оригинальный вид
         this.restoreCellAppearance(oldCell);
         
         // Обновляем позицию робота
@@ -780,13 +768,5 @@ function shareResults() {
 
 // Запуск игры
 document.addEventListener('DOMContentLoaded', () => {
-    const game = new LogisticsGame();
-    
-    // Добавляем кнопку для запуска движения
-    const startButton = document.createElement('button');
-    startButton.textContent = 'Запустить движение';
-    startButton.style.marginTop = '10px';
-    startButton.onclick = () => game.startRobotMovement();
-    
-    document.querySelector('.game-info').appendChild(startButton);
+    new LogisticsGame();
 });
