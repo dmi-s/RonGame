@@ -7,7 +7,7 @@ class LogisticsGame {
         this.winMessage = document.getElementById('win-message');
         this.finalMoves = document.getElementById('final-moves');
         
-        this.rows = 20;
+        this.rows = 10;
         this.cols = 10;
         this.selectedRobot = null;
         this.robots = [];
@@ -412,3 +412,4 @@ function shareResults() {
 document.addEventListener('DOMContentLoaded', () => {
     new LogisticsGame();
 });
+
