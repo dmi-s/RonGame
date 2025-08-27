@@ -17,7 +17,7 @@ class LogisticsGame {
         this.loadingStations = [];
         this.obstacles = [];
         this.moves = 0;
-        this.isMoving = false;
+        this.movingRobots = new Set();
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
@@ -261,7 +261,8 @@ class LogisticsGame {
             atCharging: false,
             atLoading: false,
             atFinish: false,
-            path: []
+            path: [],
+            isMoving: false
         };
         
         this.robots.push(robot);
@@ -306,8 +307,6 @@ class LogisticsGame {
         document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
         
         this.board.addEventListener('click', (e) => {
-            if (this.isMoving) return;
-            
             const cell = e.target.closest('.cell');
             if (!cell) return;
             
@@ -325,14 +324,14 @@ class LogisticsGame {
             return;
         }
         
-        if (this.selectedRobot) {
+        if (this.selectedRobot && !this.selectedRobot.isMoving) {
             this.addToPath(this.selectedRobot, row, col);
         }
     }
 
     selectRobot(row, col) {
         const robot = this.robots.find(r => r.row === row && r.col === col);
-        if (!robot) return;
+        if (!robot || robot.isMoving) return;
         
         this.selectedRobot = robot;
         this.selectedRobotElement.textContent = `Выбрано: ${robot.number}`;
@@ -351,7 +350,7 @@ class LogisticsGame {
                 const cell = this.getCell(r, c);
                 this.removeHighlights(cell);
                 
-                if (this.canMoveTo(r, c) && 
+                if (this.canMoveTo(r, c, robot) && 
                     this.isStraightLine(robot.row, robot.col, r, c) &&
                     this.isPathClear(robot.row, robot.col, r, c)) {
                     
@@ -391,7 +390,8 @@ class LogisticsGame {
         let currentCol = startCol + colStep;
         
         while (currentRow !== endRow || currentCol !== endCol) {
-            if (!this.canMoveTo(currentRow, currentCol)) {
+            const cell = this.getCell(currentRow, currentCol);
+            if (cell.classList.contains('obstacle') || cell.classList.contains('robot')) {
                 return false;
             }
             
@@ -399,7 +399,7 @@ class LogisticsGame {
             currentCol += colStep;
         }
         
-        return this.canMoveTo(endRow, endCol);
+        return !this.getCell(endRow, endCol).classList.contains('obstacle');
     }
 
     resetHighlights() {
@@ -410,10 +410,16 @@ class LogisticsGame {
         });
     }
 
-    canMoveTo(row, col) {
+    canMoveTo(row, col, currentRobot) {
         const cell = this.getCell(row, col);
-        return !cell.classList.contains('obstacle') && 
-               !cell.classList.contains('robot');
+        
+        // Проверяем, не занята ли клетка другим роботом
+        if (cell.classList.contains('robot')) {
+            const robotHere = this.robots.find(r => r.row === row && r.col === col);
+            return robotHere === currentRobot; // Можно встать на себя самого
+        }
+        
+        return !cell.classList.contains('obstacle');
     }
 
     addToPath(robot, targetRow, targetCol) {
@@ -425,14 +431,14 @@ class LogisticsGame {
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
         
-        // Автоматически начинаем движение после добавления точки
-        if (!this.isMoving) {
+        // Автоматически начинаем движение
+        if (!robot.isMoving) {
             this.moveRobotAlongPath(robot);
         }
     }
 
     visualizePath(robot) {
-        this.clearPathVisualization();
+        this.clearPathVisualization(robot);
         
         robot.path.forEach((point, index) => {
             const cell = this.getCell(point.row, point.col);
@@ -441,11 +447,21 @@ class LogisticsGame {
         });
     }
 
-    clearPathVisualization() {
+    clearPathVisualization(robot) {
         const pathCells = this.board.querySelectorAll('.path');
         pathCells.forEach(cell => {
-            cell.classList.remove('path');
-            this.restoreCellAppearance(cell);
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            // Очищаем только те клетки, которые не входят в пути других роботов
+            const isInOtherPath = this.robots.some(r => 
+                r !== robot && r.path.some(p => p.row === row && p.col === col)
+            );
+            
+            if (!isInOtherPath) {
+                cell.classList.remove('path');
+                this.restoreCellAppearance(cell);
+            }
         });
     }
 
@@ -473,15 +489,24 @@ class LogisticsGame {
     }
 
     async moveRobotAlongPath(robot) {
-        if (this.isMoving || robot.path.length === 0) return;
-        this.isMoving = true;
+        if (robot.isMoving || robot.path.length === 0) return;
+        
+        robot.isMoving = true;
+        this.movingRobots.add(robot);
         
         while (robot.path.length > 0) {
-            const point = robot.path.shift();
-            await this.moveRobotToPoint(robot, point.row, point.col);
+            const point = robot.path[0]; // Берем первую точку, но не удаляем сразу
             
-            // Обновляем подсветку после каждого движения
-            this.highlightAvailableMoves(robot);
+            // Проверяем, свободен ли путь
+            if (!this.isPathClear(robot.row, robot.col, point.row, point.col)) {
+                // Путь заблокирован, ждем
+                await this.delay(500);
+                continue;
+            }
+            
+            // Удаляем точку из пути и двигаемся
+            robot.path.shift();
+            await this.moveRobotToPoint(robot, point.row, point.col);
             
             this.checkSpecialCells(robot);
             
@@ -493,24 +518,26 @@ class LogisticsGame {
             await this.delay(100);
         }
         
-        this.isMoving = false;
-        this.clearPathVisualization();
+        robot.isMoving = false;
+        this.movingRobots.delete(robot);
+        this.clearPathVisualization(robot);
+        this.highlightAvailableMoves(robot);
     }
 
     async moveRobotToPoint(robot, targetRow, targetCol) {
         const oldCell = this.getCell(robot.row, robot.col);
-        oldCell.classList.add('moving');
         
-        // Медленная анимация - 3 секунды
-        await this.delay(3000);
+        // Анимация движения
+        oldCell.classList.add('moving');
+        await this.delay(2000); // 2 секунды на движение
         
         oldCell.classList.remove('moving');
         this.restoreCellAppearance(oldCell);
         
-        // Обновляем позицию робота
+        // Обновляем позицию робота и заряд батареи
         robot.row = targetRow;
         robot.col = targetCol;
-        robot.battery = Math.max(0, robot.battery - 2);
+        robot.battery = Math.max(0, robot.battery - 2); // -2% за клетку
         
         const newCell = this.getCell(targetRow, targetCol);
         newCell.className = 'cell robot';
@@ -526,6 +553,11 @@ class LogisticsGame {
         
         this.moves++;
         this.movesElement.textContent = `Ходы: ${this.moves}`;
+        
+        // Обновляем информацию о выбранном роботе
+        if (this.selectedRobot === robot) {
+            this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
+        }
     }
 
     checkSpecialCells(robot) {
@@ -551,9 +583,16 @@ class LogisticsGame {
     async chargeRobot(robot) {
         const cell = this.getCell(robot.row, robot.col);
         
+        // Анимация зарядки
         for (let charge = robot.battery; charge <= 100; charge += 10) {
             robot.battery = Math.min(100, charge);
             this.updateBatteryDisplay(cell, robot.battery);
+            
+            // Обновляем информацию о выбранном роботе
+            if (this.selectedRobot === robot) {
+                this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
+            }
+            
             await this.delay(1000);
         }
     }
@@ -581,7 +620,7 @@ class LogisticsGame {
         this.selectedRobot = null;
         this.robots = [];
         this.moves = 0;
-        this.isMoving = false;
+        this.movingRobots.clear();
         this.gameStarted = false;
         this.stopTimer();
         
