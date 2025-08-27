@@ -420,3 +420,20 @@ html, body {
     width: 100%;
     padding: 2px;
 }
+
+.robot-ghost {
+    background: linear-gradient(45deg, #ffeb3b, #ffc107);
+    color: #000;
+    font-weight: bold;
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7em;
+    box-shadow: 0 0 10px rgba(255, 235, 59, 0.7);
+}
+
+.charging .robot-ghost {
+    background: linear-gradient(45deg, #f39c12, #000000);
+    color: #f39c12;
+}
