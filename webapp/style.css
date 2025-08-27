@@ -77,7 +77,7 @@ button:hover {
     font-size: 0.7em;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.3s;
     position: relative;
     border-radius: 3px;
 }
@@ -93,7 +93,12 @@ button:hover {
 .charging { background: #f39c12; color: white; }
 .loading { background: #9b59b6; color: white; }
 .obstacle { background: #7f8c8d; color: white; }
-.robot { background: #e74c3c; color: white; z-index: 3; }
+.robot { 
+    background: linear-gradient(45deg, #ffeb3b, #ffc107);
+    color: #000;
+    font-weight: bold;
+    z-index: 3;
+}
 .path { 
     background: #f1c40f; 
     color: #2c3e50; 
@@ -163,27 +168,18 @@ button:hover {
 
 /* Анимации */
 @keyframes moveRobot {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(2px, 2px); }
+    100% { transform: translate(0, 0); }
 }
 
 .robot.moving {
-    animation: moveRobot 0.3s ease-in-out;
+    animation: moveRobot 0.5s ease-in-out infinite;
 }
 
-/* Подсказки */
-.cell[title]:hover::after {
-    content: attr(title);
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #333;
-    color: white;
-    padding: 5px;
-    border-radius: 3px;
-    font-size: 0.7em;
-    white-space: nowrap;
-    z-index: 100;
+/* Выбранный робот */
+.cell.robot[style*="yellow"] {
+    background: linear-gradient(45deg, #ffeb3b, #000000) !important;
+    color: #ffeb3b !important;
+    font-weight: bold;
 }
