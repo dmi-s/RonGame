@@ -3,30 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Пятнашки - Игра</title>
+    <title>Логистические роботы</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 Пятнашки</h1>
-
+        <h1>🤖 Логистические роботы</h1>
+        
         <div class="game-info">
+            <div id="selected-robot">Выбрано: нет</div>
+            <div id="battery-level">Заряд: -</div>
             <div id="moves">Ходы: 0</div>
-            <div id="timer">Время: 00:00</div>
-            <button id="shuffle-btn">Перемешать</button>
-            <button id="new-game-btn">Новая игра</button>
+            <button id="reset-btn">Новая игра</button>
         </div>
 
         <div class="game-board" id="game-board">
             <!-- Игровое поле будет сгенерировано JavaScript -->
         </div>
 
+        <div class="instructions">
+            <h3>Как играть:</h3>
+            <p>1. Кликните на робота для выбора</p>
+            <p>2. Кликните на клетки для построения маршрута</p>
+            <p>3. Роботы с зарядом <25% должны на зарядку</p>
+            <p>4. Все роботы должны попасть в свой гараж</p>
+        </div>
+
         <div class="win-message" id="win-message" style="display: none;">
-            <h2>🎉 Поздравляем! 🎉</h2>
-            <p>Вы собрали головоломку!</p>
+            <h2>🎉 Миссия выполнена! 🎉</h2>
+            <p>Все роботы доставлены!</p>
             <p>Ходов: <span id="final-moves">0</span></p>
-            <p>Время: <span id="final-time">00:00</span></p>
             <button onclick="shareResults()">Поделиться результатом</button>
         </div>
     </div>
