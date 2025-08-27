@@ -21,6 +21,7 @@ class LogisticsGame {
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
+        this.ghosts = new Map();
         
         this.init();
     }
@@ -333,6 +334,13 @@ class LogisticsGame {
         const robot = this.robots.find(r => r.row === row && r.col === col);
         if (!robot) return;
         
+        // Сбрасываем выделение у предыдущего робота
+        if (this.selectedRobot) {
+            const prevCell = this.getCell(this.selectedRobot.row, this.selectedRobot.col);
+            prevCell.classList.remove('selected');
+            prevCell.style.background = 'linear-gradient(45deg, #ffeb3b, #ffc107)';
+        }
+        
         this.selectedRobot = robot;
         this.selectedRobotElement.textContent = `Выбрано: ${robot.number}`;
         this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
@@ -340,6 +348,8 @@ class LogisticsGame {
         this.resetHighlights();
         const robotCell = this.getCell(robot.row, robot.col);
         robotCell.classList.add('selected');
+        robotCell.style.background = 'linear-gradient(45deg, #ffeb3b, #000000)';
+        robotCell.style.color = '#ffeb3b';
         
         this.highlightAvailableMoves(robot);
         this.visualizeAllPaths();
@@ -417,7 +427,6 @@ class LogisticsGame {
         const cells = this.board.querySelectorAll('.cell');
         cells.forEach(cell => {
             this.removeHighlights(cell);
-            cell.classList.remove('selected');
         });
     }
 
@@ -445,9 +454,7 @@ class LogisticsGame {
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
         
-        if (!robot.isMoving) {
-            this.moveRobotAlongPath(robot);
-        }
+        // Не запускаем движение автоматически - ждем пока пользователь закончит прокладывать маршрут
     }
 
     willPathsIntersect(robot, targetRow, targetCol) {
@@ -480,34 +487,35 @@ class LogisticsGame {
     visualizePath(robot) {
         this.clearPathVisualization(robot);
         
+        let prevPoint = { row: robot.row, col: robot.col };
+        
         for (let i = 0; i < robot.path.length; i++) {
             const point = robot.path[i];
             const cell = this.getCell(point.row, point.col);
             
             cell.classList.add('path');
             cell.textContent = i + 1;
-            cell.style.background = this.getRobotColor(robot.number);
-            cell.style.opacity = '0.7';
             
-            // Рисуем линии между точками
-            if (i === 0) {
-                this.drawLine(robot.row, robot.col, point.row, point.col, robot.number);
-            } else {
-                const prevPoint = robot.path[i - 1];
-                this.drawLine(prevPoint.row, prevPoint.col, point.row, point.col, robot.number);
-            }
+            // Рисуем линию между точками
+            this.drawLine(prevPoint.row, prevPoint.col, point.row, point.col);
+            prevPoint = point;
         }
     }
 
-    drawLine(startRow, startCol, endRow, endCol, robotNumber) {
+    drawLine(startRow, startCol, endRow, endCol) {
         const points = this.getLinePoints(startRow, startCol, endRow, endCol);
-        const color = this.getRobotColor(robotNumber);
         
         for (const point of points) {
             const cell = this.getCell(point.row, point.col);
             if (!cell.classList.contains('path') && !cell.classList.contains('robot')) {
                 cell.classList.add('path-line');
-                cell.style.setProperty('--line-color', color);
+                
+                // Определяем направление линии
+                if (startRow === endRow) {
+                    cell.classList.add('horizontal-line');
+                } else {
+                    cell.classList.add('vertical-line');
+                }
             }
         }
     }
@@ -520,22 +528,15 @@ class LogisticsGame {
         let currentRow = startRow;
         let currentCol = startCol;
         
-        while (currentRow !== endRow || currentCol !== endCol) {
+        // Идем до конечной точки включительно
+        while (true) {
             points.push({ row: currentRow, col: currentCol });
+            if (currentRow === endRow && currentCol === endCol) break;
             currentRow += rowStep;
             currentCol += colStep;
         }
         
         return points;
-    }
-
-    getRobotColor(robotNumber) {
-        const colors = [
-            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9c74f', 
-            '#90be6d', '#f9844a', '#577590', '#43aa8b', 
-            '#f8961e', '#7209b7'
-        ];
-        return colors[(robotNumber - 1) % colors.length];
     }
 
     visualizeAllPaths() {
@@ -547,7 +548,7 @@ class LogisticsGame {
     }
 
     clearPathVisualization(robot) {
-        const pathCells = this.board.querySelectorAll('.path, .path-line');
+        const pathCells = this.board.querySelectorAll('.path, .path-line, .horizontal-line, .vertical-line');
         pathCells.forEach(cell => {
             const row = parseInt(cell.dataset.row);
             const col = parseInt(cell.dataset.col);
@@ -557,10 +558,9 @@ class LogisticsGame {
             );
             
             if (!isInOtherPath) {
-                cell.classList.remove('path', 'path-line');
+                cell.classList.remove('path', 'path-line', 'horizontal-line', 'vertical-line');
                 cell.style.background = '';
                 cell.style.opacity = '';
-                cell.style.setProperty('--line-color', '');
                 this.restoreCellAppearance(cell);
             }
         });
@@ -586,6 +586,15 @@ class LogisticsGame {
         } else {
             cell.className = 'cell empty';
             cell.textContent = '';
+        }
+    }
+
+    startRobotMovement() {
+        // Запускаем движение всех роботов с путями
+        for (const robot of this.robots) {
+            if (robot.path.length > 0 && !robot.isMoving) {
+                this.moveRobotAlongPath(robot);
+            }
         }
     }
 
@@ -619,15 +628,27 @@ class LogisticsGame {
         robot.isMoving = false;
         this.movingRobots.delete(robot);
         this.clearPathVisualization(robot);
-        this.highlightAvailableMoves(robot);
+        
+        // Обновляем выделение если это выбранный робот
+        if (this.selectedRobot === robot) {
+            this.highlightAvailableMoves(robot);
+        }
     }
 
     async moveRobotToPoint(robot, targetRow, targetCol) {
         const oldCell = this.getCell(robot.row, robot.col);
         
-        // Анимация движения - 1 секунда на клетку
-        await this.animateMovement(robot, targetRow, targetCol);
+        // Сохраняем оригинальный вид клетки
+        const originalBackground = oldCell.style.background;
+        const originalColor = oldCell.style.color;
         
+        // Анимация движения - 2 секунды на клетку
+        oldCell.classList.add('moving');
+        await this.delay(2000);
+        
+        oldCell.classList.remove('moving');
+        
+        // Восстанавливаем оригинальный вид
         this.restoreCellAppearance(oldCell);
         
         // Обновляем позицию робота
@@ -637,6 +658,16 @@ class LogisticsGame {
         
         const newCell = this.getCell(targetRow, targetCol);
         newCell.className = 'cell robot';
+        
+        // Сохраняем выделение если это выбранный робот
+        if (this.selectedRobot === robot) {
+            newCell.classList.add('selected');
+            newCell.style.background = 'linear-gradient(45deg, #ffeb3b, #000000)';
+            newCell.style.color = '#ffeb3b';
+        } else {
+            newCell.style.background = 'linear-gradient(45deg, #ffeb3b, #ffc107)';
+            newCell.style.color = '#000';
+        }
         
         if (robot.hasPackage) {
             newCell.textContent = '📦' + robot.number;
@@ -653,41 +684,6 @@ class LogisticsGame {
         if (this.selectedRobot === robot) {
             this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
         }
-    }
-
-    async animateMovement(robot, targetRow, targetCol) {
-        const startCell = this.getCell(robot.row, robot.col);
-        const targetCell = this.getCell(targetRow, targetCol);
-        
-        // Создаем ghost для анимации
-        const ghost = document.createElement('div');
-        ghost.className = 'robot-ghost';
-        ghost.textContent = robot.number;
-        ghost.style.background = this.getRobotColor(robot.number);
-        ghost.style.position = 'absolute';
-        ghost.style.width = startCell.offsetWidth + 'px';
-        ghost.style.height = startCell.offsetHeight + 'px';
-        ghost.style.left = startCell.offsetLeft + 'px';
-        ghost.style.top = startCell.offsetTop + 'px';
-        ghost.style.transition = 'all 1s ease-in-out';
-        ghost.style.zIndex = '10';
-        ghost.style.borderRadius = '2px';
-        ghost.style.display = 'flex';
-        ghost.style.alignItems = 'center';
-        ghost.style.justifyContent = 'center';
-        ghost.style.fontWeight = 'bold';
-        
-        this.board.appendChild(ghost);
-        
-        // Запускаем анимацию
-        setTimeout(() => {
-            ghost.style.left = targetCell.offsetLeft + 'px';
-            ghost.style.top = targetCell.offsetTop + 'px';
-        }, 50);
-        
-        // Ждем завершения анимации
-        await this.delay(1000);
-        ghost.remove();
     }
 
     checkSpecialCells(robot) {
@@ -784,8 +780,13 @@ function shareResults() {
 
 // Запуск игры
 document.addEventListener('DOMContentLoaded', () => {
-    new LogisticsGame();
+    const game = new LogisticsGame();
+    
+    // Добавляем кнопку для запуска движения
+    const startButton = document.createElement('button');
+    startButton.textContent = 'Запустить движение';
+    startButton.style.marginTop = '10px';
+    startButton.onclick = () => game.startRobotMovement();
+    
+    document.querySelector('.game-info').appendChild(startButton);
 });
-
-
-
