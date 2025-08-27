@@ -79,20 +79,27 @@ button:hover {
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
+    border-radius: 3px;
 }
 
 .cell:hover {
     transform: scale(1.05);
+    z-index: 2;
 }
 
 /* Цвета клеток */
 .start { background: #3498db; color: white; }
 .finish { background: #27ae60; color: white; }
-.charging { background: #f39c12; }
+.charging { background: #f39c12; color: white; }
 .loading { background: #9b59b6; color: white; }
-.obstacle { background: #7f8c8d; }
-.robot { background: #e74c3c; color: white; }
-.path { background: #f1c40f; }
+.obstacle { background: #7f8c8d; color: white; }
+.robot { background: #e74c3c; color: white; z-index: 3; }
+.path { 
+    background: #f1c40f; 
+    color: #2c3e50; 
+    font-weight: bold;
+    z-index: 1;
+}
 .empty { background: #ecf0f1; }
 
 /* Батарейка */
@@ -104,6 +111,7 @@ button:hover {
     height: 12px;
     border: 1px solid #333;
     border-radius: 1px;
+    background: white;
 }
 
 .battery-level {
@@ -111,8 +119,8 @@ button:hover {
     bottom: 0;
     left: 0;
     right: 0;
-    background: red;
     transition: height 0.3s;
+    border-radius: 0 0 1px 1px;
 }
 
 .battery-red { background: #e74c3c; }
@@ -155,17 +163,27 @@ button:hover {
 
 /* Анимации */
 @keyframes moveRobot {
-    from { transform: scale(1); }
-    to { transform: scale(1.1); }
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
 
 .robot.moving {
-    animation: moveRobot 0.5s ease-in-out infinite alternate;
+    animation: moveRobot 0.3s ease-in-out;
 }
 
-.path-line {
+/* Подсказки */
+.cell[title]:hover::after {
+    content: attr(title);
     position: absolute;
-    background: #f1c40f;
-    z-index: 1;
-    pointer-events: none;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #333;
+    color: white;
+    padding: 5px;
+    border-radius: 3px;
+    font-size: 0.7em;
+    white-space: nowrap;
+    z-index: 100;
 }
