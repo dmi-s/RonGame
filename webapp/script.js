@@ -31,24 +31,25 @@ class LogisticsGame {
         this.setupEventListeners();
         this.updateScreenSize();
         window.addEventListener('resize', () => this.updateScreenSize());
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => this.updateScreenSize(), 100);
+        });
     }
 
     updateScreenSize() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
         const board = this.board;
-        const container = document.querySelector('.container');
         
-        // Автоматическое масштабирование под экран
-        const maxWidth = Math.min(window.innerWidth * 0.9, 500);
-        const maxHeight = Math.min(window.innerHeight * 0.7, 500);
-        
-        board.style.width = `${maxWidth}px`;
-        board.style.height = `${maxWidth}px`; // Квадратное поле
-        
-        // Обновляем размеры клеток
-        const cells = board.querySelectorAll('.cell');
-        cells.forEach(cell => {
-            cell.style.fontSize = `${maxWidth * 0.06}px`;
-        });
+        if (isMobile) {
+            // Для мобильных - используем 95% ширины экрана
+            const size = Math.min(window.innerWidth * 0.95, 350);
+            board.style.width = `${size}px`;
+            board.style.height = `${size}px`;
+        } else {
+            // Для десктопа - фиксированный размер
+            board.style.width = '350px';
+            board.style.height = '350px';
+        }
     }
 
     createBoard() {
@@ -68,7 +69,7 @@ class LogisticsGame {
     }
 
     setupGame() {
-        // Поле старта (синее) - верхний левый угол 2x5
+        // Поле старта
         for (let row = 0; row < 2; row++) {
             for (let col = 0; col < 5; col++) {
                 const cell = this.getCell(row, col);
@@ -77,7 +78,7 @@ class LogisticsGame {
             }
         }
 
-        // Поле финиша (зеленое) - верхний правый угол 2x5
+        // Поле финиша
         const garageNumbers = this.generateUniqueNumbers(10, 1, 10);
         let numberIndex = 0;
         
@@ -91,17 +92,93 @@ class LogisticsGame {
             }
         }
 
-        // Станции зарядки и погрузки
-        this.placeStations();
+        // Станции и препятствия
+        this.placeStationsAndObstacles();
         
-        // Препятствия (5 столбов)
-        this.placeObstacles();
-        
-        // Роботы (10 штук)
+        // Роботы
         this.createRobots();
         
-        // Обновляем таймер
         this.updateTimer();
+    }
+
+    placeStationsAndObstacles() {
+        const bottomRow = this.rows - 1;
+        
+        // Случайный порядок станций (3 зарядки, 2 погрузки)
+        const stationTypes = ['charging', 'charging', 'charging', 'loading', 'loading'];
+        this.shuffleArray(stationTypes);
+        
+        this.chargingStations = [];
+        this.loadingStations = [];
+        
+        // Размещаем станции в нижнем ряду с промежутками
+        const availableCols = [1, 2, 3, 4, 5, 6, 7, 8];
+        this.shuffleArray(availableCols);
+        
+        let colIndex = 0;
+        for (const type of stationTypes) {
+            if (colIndex >= availableCols.length) break;
+            
+            const col = availableCols[colIndex++];
+            const cell = this.getCell(bottomRow, col);
+            
+            if (type === 'charging') {
+                cell.className = 'cell charging';
+                cell.textContent = '⚡';
+                cell.dataset.originalClass = 'charging';
+                this.chargingStations.push({ row: bottomRow, col: col });
+            } else {
+                cell.className = 'cell loading';
+                cell.textContent = '📦';
+                cell.dataset.originalClass = 'loading';
+                this.loadingStations.push({ row: bottomRow, col: col });
+            }
+        }
+        
+        // Размещаем 5 столбов ТОЛЬКО в рядах 4,5,6,7
+        this.obstacles = [];
+        const obstacleRows = [4, 5, 6, 7];
+        const allPossibleObstacles = [];
+        
+        // Собираем все возможные позиции для препятствий
+        for (const row of obstacleRows) {
+            for (let col = 0; col < this.cols; col++) {
+                const cell = this.getCell(row, col);
+                // Не ставим препятствия на станции и на границах
+                if (!cell.classList.contains('charging') && 
+                    !cell.classList.contains('loading') &&
+                    col > 0 && col < this.cols - 1) {
+                    allPossibleObstacles.push({ row, col });
+                }
+            }
+        }
+        
+        this.shuffleArray(allPossibleObstacles);
+        
+        // Выбираем 5 препятствий с минимальным расстоянием
+        for (const obstacle of allPossibleObstacles) {
+            if (this.obstacles.length >= 5) break;
+            
+            const canPlace = this.canPlaceObstacle(obstacle.row, obstacle.col);
+            if (canPlace) {
+                this.obstacles.push(obstacle);
+                const cell = this.getCell(obstacle.row, obstacle.col);
+                cell.className = 'cell obstacle';
+                cell.textContent = '🚧';
+                cell.dataset.originalClass = 'obstacle';
+            }
+        }
+    }
+
+    canPlaceObstacle(row, col) {
+        // Проверяем расстояние до других препятствий (минимум 1 клетка)
+        for (const obs of this.obstacles) {
+            const distance = Math.abs(obs.row - row) + Math.abs(obs.col - col);
+            if (distance <= 1) {
+                return false;
+            }
+        }
+        return true;
     }
 
     startTimer() {
@@ -139,89 +216,17 @@ class LogisticsGame {
         return Array.from(numbers);
     }
 
-    placeStations() {
-        const bottomRow = this.rows - 1;
-        
-        // 2 станции зарядки
-        this.chargingStations = [
-            { row: bottomRow, col: 2 },
-            { row: bottomRow, col: 7 }
-        ];
-        
-        // 2 станции погрузки
-        this.loadingStations = [
-            { row: bottomRow, col: 4 },
-            { row: bottomRow, col: 5 }
-        ];
-        
-        this.chargingStations.forEach(station => {
-            const cell = this.getCell(station.row, station.col);
-            cell.className = 'cell charging';
-            cell.textContent = '⚡';
-            cell.dataset.originalClass = 'charging';
-        });
-        
-        this.loadingStations.forEach(station => {
-            const cell = this.getCell(station.row, station.col);
-            cell.className = 'cell loading';
-            cell.textContent = '📦';
-            cell.dataset.originalClass = 'loading';
-        });
-    }
-
-    placeObstacles() {
-        const availableRows = [4, 5, 6, 7];
-        const availableCells = [];
-        
-        for (let row of availableRows) {
-            for (let col = 0; col < this.cols; col++) {
-                const cell = this.getCell(row, col);
-                if (!cell.classList.contains('charging') && 
-                    !cell.classList.contains('loading')) {
-                    availableCells.push({ row, col });
-                }
-            }
-        }
-        
-        this.shuffleArray(availableCells);
-        this.obstacles = [];
-        
-        for (let i = 0; i < 5 && availableCells.length > 0; i++) {
-            const obstacle = availableCells.shift();
-            
-            const tooClose = this.obstacles.some(obs => 
-                Math.abs(obs.row - obstacle.row) <= 2 && 
-                Math.abs(obs.col - obstacle.col) <= 2
-            );
-            
-            if (!tooClose) {
-                this.obstacles.push(obstacle);
-                const cell = this.getCell(obstacle.row, obstacle.col);
-                cell.className = 'cell obstacle';
-                cell.textContent = '🚧';
-                cell.dataset.originalClass = 'obstacle';
-            }
-        }
-    }
-
     createRobots() {
         const robotNumbers = this.generateUniqueNumbers(10, 1, 10);
         
-        // 3 робота с зарядом 25-40%
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < 10; i++) {
             const row = Math.floor(i / 5);
             const col = i % 5;
             const number = robotNumbers[i];
-            const battery = Math.floor(Math.random() * 16) + 25;
-            this.createRobot(row, col, number, battery, false);
-        }
-        
-        // 7 роботов с зарядом 40-100%
-        for (let i = 3; i < 10; i++) {
-            const row = Math.floor(i / 5);
-            const col = i % 5;
-            const number = robotNumbers[i];
-            const battery = Math.floor(Math.random() * 61) + 40;
+            const battery = i < 3 ? 
+                Math.floor(Math.random() * 16) + 25 : // 25-40% для первых 3
+                Math.floor(Math.random() * 61) + 40;  // 40-100% для остальных
+            
             this.createRobot(row, col, number, battery, false);
         }
     }
@@ -296,7 +301,7 @@ class LogisticsGame {
     handleCellClick(row, col, cell) {
         if (cell.classList.contains('robot')) {
             this.selectRobot(row, col);
-            this.startTimer(); // Запускаем таймер при первом клике
+            this.startTimer();
             return;
         }
         
@@ -310,7 +315,7 @@ class LogisticsGame {
         if (!robot) return;
         
         this.selectedRobot = robot;
-        this.selectedRobotElement.textContent = `Выбрано: Робот ${robot.number}`;
+        this.selectedRobotElement.textContent = `Выбрано: ${robot.number}`;
         this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
         
         this.resetHighlights();
@@ -324,28 +329,28 @@ class LogisticsGame {
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 const cell = this.getCell(r, c);
-                cell.style.boxShadow = '';
+                this.removeHighlights(cell);
                 
                 if (this.canMoveTo(r, c) && 
                     this.isStraightLine(robot.row, robot.col, r, c) &&
                     this.isPathClear(robot.row, robot.col, r, c)) {
                     
-                    const isChargingStation = this.chargingStations.some(s => s.row === r && s.col === c);
-                    const isLoadingStation = this.loadingStations.some(s => s.row === r && s.col === c);
-                    const isGarageTarget = this.isGarageForRobot(robot, r, c);
-                    
-                    if (isChargingStation) {
-                        cell.style.boxShadow = '0 0 15px orange';
-                    } else if (isLoadingStation) {
-                        cell.style.boxShadow = '0 0 15px purple';
-                    } else if (isGarageTarget) {
-                        cell.style.boxShadow = '0 0 15px green';
+                    if (this.chargingStations.some(s => s.row === r && s.col === c)) {
+                        cell.classList.add('highlight-charging');
+                    } else if (this.loadingStations.some(s => s.row === r && s.col === c)) {
+                        cell.classList.add('highlight-loading');
+                    } else if (this.isGarageForRobot(robot, r, c)) {
+                        cell.classList.add('highlight-garage');
                     } else {
-                        cell.style.boxShadow = '0 0 10px blue';
+                        cell.classList.add('highlight-move');
                     }
                 }
             }
         }
+    }
+
+    removeHighlights(cell) {
+        cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move');
     }
 
     isGarageForRobot(robot, row, col) {
@@ -380,14 +385,15 @@ class LogisticsGame {
     resetHighlights() {
         const cells = this.board.querySelectorAll('.cell');
         cells.forEach(cell => {
-            cell.style.boxShadow = '';
+            this.removeHighlights(cell);
             cell.classList.remove('selected');
         });
     }
 
     canMoveTo(row, col) {
         const cell = this.getCell(row, col);
-        return !cell.classList.contains('obstacle') && !cell.classList.contains('robot');
+        return !cell.classList.contains('obstacle') && 
+               !cell.classList.contains('robot');
     }
 
     addToPath(robot, targetRow, targetCol) {
@@ -398,7 +404,6 @@ class LogisticsGame {
 
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
-        this.moveRobotAlongPath(robot);
     }
 
     visualizePath(robot) {
@@ -450,9 +455,6 @@ class LogisticsGame {
             const point = robot.path.shift();
             await this.moveRobotToPoint(robot, point.row, point.col);
             
-            // После каждого движения обновляем подсветку
-            this.highlightAvailableMoves(robot);
-            
             this.checkSpecialCells(robot);
             
             if (this.checkWinCondition()) {
@@ -460,7 +462,7 @@ class LogisticsGame {
                 break;
             }
             
-            await this.delay(100); // Медленное движение
+            await this.delay(100);
         }
         
         this.isMoving = false;
@@ -470,35 +472,15 @@ class LogisticsGame {
 
     async moveRobotToPoint(robot, targetRow, targetCol) {
         const oldCell = this.getCell(robot.row, robot.col);
+        oldCell.classList.add('moving');
+        
+        await this.delay(3000); // Медленное движение - 3 секунды
+        
         this.restoreCellAppearance(oldCell);
-        
-        await this.animateMovement(robot, targetRow, targetCol);
-        
         this.updateRobotPosition(robot, targetRow, targetCol);
         
         this.moves++;
         this.movesElement.textContent = `Ходы: ${this.moves}`;
-    }
-
-    async animateMovement(robot, targetRow, targetCol) {
-        const startCell = this.getCell(robot.row, robot.col);
-        const targetCell = this.getCell(targetRow, targetCol);
-        
-        const ghost = document.createElement('div');
-        ghost.className = 'ghost-robot';
-        ghost.textContent = robot.number;
-        ghost.style.position = 'absolute';
-        ghost.style.left = `${startCell.offsetLeft + startCell.offsetWidth * 0.1}px`;
-        ghost.style.top = `${startCell.offsetTop + startCell.offsetHeight * 0.1}px`;
-        this.board.appendChild(ghost);
-        
-        // Очень медленная анимация
-        ghost.style.transition = 'all 3s ease-in-out';
-        ghost.style.left = `${targetCell.offsetLeft + targetCell.offsetWidth * 0.1}px`;
-        ghost.style.top = `${targetCell.offsetTop + targetCell.offsetHeight * 0.1}px`;
-        
-        await this.delay(3000); // 3 секунды на движение
-        ghost.remove();
     }
 
     updateRobotPosition(robot, targetRow, targetCol) {
@@ -566,16 +548,6 @@ class LogisticsGame {
         this.winMessage.style.display = 'block';
         this.finalMoves.textContent = this.moves;
         this.finalTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        
-        if (window.Telegram && window.Telegram.WebApp) {
-            const results = {
-                moves: this.moves,
-                time: elapsed,
-                game: 'logistics-robots',
-                win: true
-            };
-            window.Telegram.WebApp.sendData(JSON.stringify(results));
-        }
     }
 
     resetGame() {
