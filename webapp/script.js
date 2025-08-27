@@ -4,8 +4,10 @@ class LogisticsGame {
         this.selectedRobotElement = document.getElementById('selected-robot');
         this.batteryElement = document.getElementById('battery-level');
         this.movesElement = document.getElementById('moves');
+        this.timerElement = document.getElementById('timer');
         this.winMessage = document.getElementById('win-message');
         this.finalMoves = document.getElementById('final-moves');
+        this.finalTime = document.getElementById('final-time');
         
         this.rows = 10;
         this.cols = 10;
@@ -16,6 +18,9 @@ class LogisticsGame {
         this.obstacles = [];
         this.moves = 0;
         this.isMoving = false;
+        this.gameStarted = false;
+        this.startTime = 0;
+        this.timerInterval = null;
         
         this.init();
     }
@@ -24,6 +29,26 @@ class LogisticsGame {
         this.createBoard();
         this.setupGame();
         this.setupEventListeners();
+        this.updateScreenSize();
+        window.addEventListener('resize', () => this.updateScreenSize());
+    }
+
+    updateScreenSize() {
+        const board = this.board;
+        const container = document.querySelector('.container');
+        
+        // Автоматическое масштабирование под экран
+        const maxWidth = Math.min(window.innerWidth * 0.9, 500);
+        const maxHeight = Math.min(window.innerHeight * 0.7, 500);
+        
+        board.style.width = `${maxWidth}px`;
+        board.style.height = `${maxWidth}px`; // Квадратное поле
+        
+        // Обновляем размеры клеток
+        const cells = board.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            cell.style.fontSize = `${maxWidth * 0.06}px`;
+        });
     }
 
     createBoard() {
@@ -74,6 +99,36 @@ class LogisticsGame {
         
         // Роботы (10 штук)
         this.createRobots();
+        
+        // Обновляем таймер
+        this.updateTimer();
+    }
+
+    startTimer() {
+        if (!this.gameStarted) {
+            this.gameStarted = true;
+            this.startTime = Date.now();
+            
+            this.timerInterval = setInterval(() => {
+                this.updateTimer();
+            }, 1000);
+        }
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    updateTimer() {
+        if (this.gameStarted) {
+            const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            this.timerElement.textContent = `Время: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
     }
 
     generateUniqueNumbers(count, min, max) {
@@ -115,7 +170,7 @@ class LogisticsGame {
     }
 
     placeObstacles() {
-        const availableRows = [4, 5, 6, 7]; // Только ряды 4-7
+        const availableRows = [4, 5, 6, 7];
         const availableCells = [];
         
         for (let row of availableRows) {
@@ -131,11 +186,9 @@ class LogisticsGame {
         this.shuffleArray(availableCells);
         this.obstacles = [];
         
-        // Добавляем 5 препятствий с минимальным расстоянием
         for (let i = 0; i < 5 && availableCells.length > 0; i++) {
             const obstacle = availableCells.shift();
             
-            // Проверяем расстояние до других препятствий
             const tooClose = this.obstacles.some(obs => 
                 Math.abs(obs.row - obstacle.row) <= 2 && 
                 Math.abs(obs.col - obstacle.col) <= 2
@@ -153,32 +206,23 @@ class LogisticsGame {
 
     createRobots() {
         const robotNumbers = this.generateUniqueNumbers(10, 1, 10);
-        let robotIndex = 0;
         
         // 3 робота с зарядом 25-40%
         for (let i = 0; i < 3; i++) {
-            if (robotIndex >= robotNumbers.length) break;
-            
             const row = Math.floor(i / 5);
             const col = i % 5;
-            const number = robotNumbers[robotIndex];
-            const battery = Math.floor(Math.random() * 16) + 25; // 25-40%
-            
+            const number = robotNumbers[i];
+            const battery = Math.floor(Math.random() * 16) + 25;
             this.createRobot(row, col, number, battery, false);
-            robotIndex++;
         }
         
         // 7 роботов с зарядом 40-100%
         for (let i = 3; i < 10; i++) {
-            if (robotIndex >= robotNumbers.length) break;
-            
             const row = Math.floor(i / 5);
             const col = i % 5;
-            const number = robotNumbers[robotIndex];
-            const battery = Math.floor(Math.random() * 61) + 40; // 40-100%
-            
+            const number = robotNumbers[i];
+            const battery = Math.floor(Math.random() * 61) + 40;
             this.createRobot(row, col, number, battery, false);
-            robotIndex++;
         }
     }
 
@@ -252,6 +296,7 @@ class LogisticsGame {
     handleCellClick(row, col, cell) {
         if (cell.classList.contains('robot')) {
             this.selectRobot(row, col);
+            this.startTimer(); // Запускаем таймер при первом клике
             return;
         }
         
@@ -268,11 +313,9 @@ class LogisticsGame {
         this.selectedRobotElement.textContent = `Выбрано: Робот ${robot.number}`;
         this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
         
-        // Подсветка выбранного робота
         this.resetHighlights();
         const robotCell = this.getCell(robot.row, robot.col);
-        robotCell.style.boxShadow = '0 0 15px yellow';
-        robotCell.style.border = '2px solid black';
+        robotCell.classList.add('selected');
         
         this.highlightAvailableMoves(robot);
     }
@@ -280,11 +323,13 @@ class LogisticsGame {
     highlightAvailableMoves(robot) {
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
+                const cell = this.getCell(r, c);
+                cell.style.boxShadow = '';
+                
                 if (this.canMoveTo(r, c) && 
                     this.isStraightLine(robot.row, robot.col, r, c) &&
                     this.isPathClear(robot.row, robot.col, r, c)) {
                     
-                    const cell = this.getCell(r, c);
                     const isChargingStation = this.chargingStations.some(s => s.row === r && s.col === c);
                     const isLoadingStation = this.loadingStations.some(s => s.row === r && s.col === c);
                     const isGarageTarget = this.isGarageForRobot(robot, r, c);
@@ -336,19 +381,13 @@ class LogisticsGame {
         const cells = this.board.querySelectorAll('.cell');
         cells.forEach(cell => {
             cell.style.boxShadow = '';
-            cell.style.border = '';
+            cell.classList.remove('selected');
         });
     }
 
     canMoveTo(row, col) {
         const cell = this.getCell(row, col);
-        
-        if (cell.classList.contains('obstacle') || 
-            cell.classList.contains('robot')) {
-            return false;
-        }
-        
-        return true;
+        return !cell.classList.contains('obstacle') && !cell.classList.contains('robot');
     }
 
     addToPath(robot, targetRow, targetCol) {
@@ -359,8 +398,6 @@ class LogisticsGame {
 
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
-        
-        // Автоматически начинаем движение
         this.moveRobotAlongPath(robot);
     }
 
@@ -413,6 +450,9 @@ class LogisticsGame {
             const point = robot.path.shift();
             await this.moveRobotToPoint(robot, point.row, point.col);
             
+            // После каждого движения обновляем подсветку
+            this.highlightAvailableMoves(robot);
+            
             this.checkSpecialCells(robot);
             
             if (this.checkWinCondition()) {
@@ -420,7 +460,7 @@ class LogisticsGame {
                 break;
             }
             
-            await this.delay(800); // Медленное движение
+            await this.delay(100); // Медленное движение
         }
         
         this.isMoving = false;
@@ -429,14 +469,11 @@ class LogisticsGame {
     }
 
     async moveRobotToPoint(robot, targetRow, targetCol) {
-        // Восстанавливаем старую клетку
         const oldCell = this.getCell(robot.row, robot.col);
         this.restoreCellAppearance(oldCell);
         
-        // Анимация перемещения
         await this.animateMovement(robot, targetRow, targetCol);
         
-        // Обновляем позицию робота
         this.updateRobotPosition(robot, targetRow, targetCol);
         
         this.moves++;
@@ -447,37 +484,31 @@ class LogisticsGame {
         const startCell = this.getCell(robot.row, robot.col);
         const targetCell = this.getCell(targetRow, targetCol);
         
-        // Создаем анимацию перемещения
         const ghost = document.createElement('div');
         ghost.className = 'ghost-robot';
         ghost.textContent = robot.number;
         ghost.style.position = 'absolute';
-        ghost.style.left = `${startCell.offsetLeft}px`;
-        ghost.style.top = `${startCell.offsetTop}px`;
+        ghost.style.left = `${startCell.offsetLeft + startCell.offsetWidth * 0.1}px`;
+        ghost.style.top = `${startCell.offsetTop + startCell.offsetHeight * 0.1}px`;
         this.board.appendChild(ghost);
         
-        // Анимация
-        ghost.style.transition = 'all 0.8s ease';
-        ghost.style.left = `${targetCell.offsetLeft}px`;
-        ghost.style.top = `${targetCell.offsetTop}px`;
+        // Очень медленная анимация
+        ghost.style.transition = 'all 3s ease-in-out';
+        ghost.style.left = `${targetCell.offsetLeft + targetCell.offsetWidth * 0.1}px`;
+        ghost.style.top = `${targetCell.offsetTop + targetCell.offsetHeight * 0.1}px`;
         
-        await this.delay(800);
+        await this.delay(3000); // 3 секунды на движение
         ghost.remove();
     }
 
     updateRobotPosition(robot, targetRow, targetCol) {
-        // Обновляем позицию робота
         robot.row = targetRow;
         robot.col = targetCol;
-        
-        // Уменьшаем заряд на 2% за клетку
         robot.battery = Math.max(0, robot.battery - 2);
         
-        // Обновляем новую клетку
         const newCell = this.getCell(targetRow, targetCol);
         newCell.className = 'cell robot';
         
-        // Отображаем иконку ящика если есть груз
         if (robot.hasPackage) {
             newCell.textContent = '📦' + robot.number;
         } else {
@@ -491,13 +522,11 @@ class LogisticsGame {
     checkSpecialCells(robot) {
         const cell = this.getCell(robot.row, robot.col);
         
-        // Проверка на станцию зарядки
         if (cell.classList.contains('charging')) {
             robot.atCharging = true;
             this.chargeRobot(robot);
         }
         
-        // Проверка на станцию погрузки
         if (cell.classList.contains('loading')) {
             robot.atLoading = true;
             robot.hasPackage = true;
@@ -505,7 +534,6 @@ class LogisticsGame {
             robotCell.textContent = '📦' + robot.number;
         }
         
-        // Проверка на финиш
         if (this.isGarageForRobot(robot, robot.row, robot.col)) {
             robot.atFinish = true;
         }
@@ -514,11 +542,10 @@ class LogisticsGame {
     async chargeRobot(robot) {
         const cell = this.getCell(robot.row, robot.col);
         
-        // Анимация зарядки
         for (let charge = robot.battery; charge <= 100; charge += 10) {
             robot.battery = Math.min(100, charge);
             this.updateBatteryDisplay(cell, robot.battery);
-            await this.delay(1000); // 10% в секунду
+            await this.delay(1000);
         }
     }
 
@@ -531,12 +558,19 @@ class LogisticsGame {
     }
 
     endGame() {
+        this.stopTimer();
+        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        
         this.winMessage.style.display = 'block';
         this.finalMoves.textContent = this.moves;
+        this.finalTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
         
         if (window.Telegram && window.Telegram.WebApp) {
             const results = {
                 moves: this.moves,
+                time: elapsed,
                 game: 'logistics-robots',
                 win: true
             };
@@ -549,10 +583,13 @@ class LogisticsGame {
         this.robots = [];
         this.moves = 0;
         this.isMoving = false;
+        this.gameStarted = false;
+        this.stopTimer();
         
         this.selectedRobotElement.textContent = 'Выбрано: нет';
         this.batteryElement.textContent = 'Заряд: -';
         this.movesElement.textContent = 'Ходы: 0';
+        this.timerElement.textContent = 'Время: 0:00';
         this.winMessage.style.display = 'none';
         
         this.createBoard();
@@ -571,9 +608,10 @@ class LogisticsGame {
 
 function shareResults() {
     const moves = document.getElementById('final-moves').textContent;
+    const time = document.getElementById('final-time').textContent;
     
     if (window.Telegram && window.Telegram.WebApp) {
-        const message = `🎯 Я завершил логистическую миссию за ${moves} ходов!`;
+        const message = `🎯 Я завершил логистическую миссию за ${moves} ходов и ${time} времени!`;
         window.Telegram.WebApp.sendData(message);
     }
 }
