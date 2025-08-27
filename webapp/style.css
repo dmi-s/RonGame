@@ -1,303 +1,660 @@
-body {
-    font-family: 'Arial', sans-serif;
-    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-    margin: 0;
-    padding: 5px;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-    touch-action: manipulation;
-}
-
-.container {
-    background: white;
-    border-radius: 12px;
-    padding: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-    text-align: center;
-    max-width: 100vw;
-    max-height: 100vh;
-    width: 100%;
-    overflow: auto;
-}
-
-h1 {
-    color: #2c3e50;
-    margin-bottom: 10px;
-    font-size: 1.4em;
-    padding: 0 5px;
-}
-
-.timer-container {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-    padding: 0 5px;
-}
-
-.stat-item {
-    background: #ecf0f1;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 0.8em;
-}
-
-.game-info {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 6px;
-    margin-bottom: 10px;
-    font-size: 0.8em;
-    padding: 0 5px;
-}
-
-#selected-robot, #battery-level, #moves, #timer {
-    background: #ecf0f1;
-    padding: 5px;
-    border-radius: 4px;
-    font-weight: bold;
-    font-size: 0.8em;
-    min-height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-button {
-    background: #3498db;
-    color: white;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8em;
-    transition: background 0.3s;
-    grid-column: span 2;
-    margin-top: 5px;
-}
-
-button:hover {
-    background: #2980b9;
-}
-
-.game-board {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: repeat(10, 1fr);
-    gap: 1px;
-    margin: 0 auto;
-    width: 95vw;
-    height: 95vw;
-    max-width: 350px;
-    max-height: 350px;
-    border: 2px solid #34495e;
-    background: #bdc3c7;
-    position: relative;
-}
-
-.cell {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 0.7em;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    border-radius: 2px;
-    aspect-ratio: 1/1;
-}
-
-.cell:hover {
-    transform: scale(1.03);
-    z-index: 2;
-}
-
-/* Цвета клеток */
-.start { background: #3498db; color: white; }
-.finish { background: #27ae60; color: white; }
-.charging { background: #f39c12; color: white; }
-.loading { background: #9b59b6; color: white; }
-.obstacle { background: #7f8c8d; color: white; }
-.robot { 
-    background: linear-gradient(45deg, #ffeb3b, #ffc107);
-    color: #000;
-    font-weight: bold;
-    z-index: 3;
-}
-.path { 
-    background: #f1c40f; 
-    color: #2c3e50; 
-    font-weight: bold;
-}
-.empty { background: #ecf0f1; }
-
-/* Батарейка */
-.battery {
-    position: absolute;
-    top: 1px;
-    right: 1px;
-    width: 5px;
-    height: 8px;
-    border: 1px solid #333;
-    border-radius: 1px;
-    background: white;
-}
-
-.battery-level {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    transition: height 0.3s;
-    border-radius: 0 0 1px 1px;
-}
-
-.battery-red { background: #e74c3c; }
-.battery-pink { background: #ff6b6b; }
-.battery-orange { background: #f39c12; }
-.battery-yellow { background: #f1c40f; }
-.battery-green { background: #27ae60; }
-
-.instructions {
-    margin-top: 10px;
-    padding: 8px;
-    background: #ecf0f1;
-    border-radius: 6px;
-    font-size: 0.75em;
-}
-
-.instructions h3 {
-    margin: 0 0 6px 0;
-    color: #2c3e50;
-    font-size: 0.9em;
-}
-
-.instructions p {
-    margin: 2px 0;
-    color: #7f8c8d;
-    font-size: 0.8em;
-}
-
-.win-message {
-    margin-top: 10px;
-    padding: 10px;
-    background: #d4edda;
-    border-radius: 8px;
-    border: 2px solid #28a745;
-    font-size: 0.9em;
-}
-
-.win-message h2 {
-    color: #28a745;
-    margin-bottom: 8px;
-    font-size: 1.1em;
-}
-
-.win-message button {
-    margin-top: 8px;
-    font-size: 0.8em;
-    padding: 5px 10px;
-}
-
-/* Выбранный робот */
-.cell.robot.selected {
-    background: linear-gradient(45deg, #ffeb3b, #000000) !important;
-    color: #ffeb3b !important;
-    font-weight: bold;
-    z-index: 5;
-    box-shadow: 0 0 10px yellow;
-    border: 2px solid black;
-}
-
-/* Анимация движения */
-@keyframes slowMove {
-    0% { 
-        transform: scale(1);
-        background: linear-gradient(45deg, #ffeb3b, #ffc107);
+class LogisticsGame {
+    constructor() {
+        this.board = document.getElementById('game-board');
+        this.selectedRobotElement = document.getElementById('selected-robot');
+        this.batteryElement = document.getElementById('battery-level');
+        this.movesElement = document.getElementById('moves');
+        this.timerElement = document.getElementById('timer');
+        this.winMessage = document.getElementById('win-message');
+        this.finalMoves = document.getElementById('final-moves');
+        this.finalTime = document.getElementById('final-time');
+        
+        this.rows = 10;
+        this.cols = 10;
+        this.selectedRobot = null;
+        this.robots = [];
+        this.chargingStations = [];
+        this.loadingStations = [];
+        this.obstacles = [];
+        this.moves = 0;
+        this.movingRobots = new Set();
+        this.gameStarted = false;
+        this.startTime = 0;
+        this.timerInterval = null;
+        
+        this.init();
     }
-    100% { 
-        transform: scale(1);
-        background: linear-gradient(45deg, #ffeb3b, #ffc107);
+
+    init() {
+        this.createBoard();
+        this.setupGame();
+        this.setupEventListeners();
+        this.updateScreenSize();
+        window.addEventListener('resize', () => this.updateScreenSize());
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => this.updateScreenSize(), 100);
+        });
+    }
+
+    updateScreenSize() {
+        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+        const board = this.board;
+        
+        if (isMobile) {
+            const size = Math.min(window.innerWidth * 0.95, 350);
+            board.style.width = `${size}px`;
+            board.style.height = `${size}px`;
+        } else {
+            board.style.width = '350px';
+            board.style.height = '350px';
+        }
+    }
+
+    createBoard() {
+        this.board.innerHTML = '';
+        this.board.style.gridTemplateColumns = `repeat(${this.cols}, 1fr)`;
+        this.board.style.gridTemplateRows = `repeat(${this.rows}, 1fr)`;
+        
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell empty';
+                cell.dataset.row = row;
+                cell.dataset.col = col;
+                this.board.appendChild(cell);
+            }
+        }
+    }
+
+    setupGame() {
+        // Поле старта
+        for (let row = 0; row < 2; row++) {
+            for (let col = 0; col < 5; col++) {
+                const cell = this.getCell(row, col);
+                cell.className = 'cell start';
+                cell.dataset.originalClass = 'start';
+            }
+        }
+
+        // Поле финиша
+        const garageNumbers = this.generateUniqueNumbers(10, 1, 10);
+        let numberIndex = 0;
+        
+        for (let row = 0; row < 2; row++) {
+            for (let col = 5; col < 10; col++) {
+                const cell = this.getCell(row, col);
+                cell.className = 'cell finish';
+                cell.textContent = garageNumbers[numberIndex++];
+                cell.dataset.garageNumber = cell.textContent;
+                cell.dataset.originalClass = 'finish';
+            }
+        }
+
+        // Станции и препятствия
+        this.placeStationsAndObstacles();
+        
+        // Роботы
+        this.createRobots();
+        
+        this.updateTimer();
+    }
+
+    placeStationsAndObstacles() {
+        const bottomRow = this.rows - 1;
+        
+        // Случайный порядок станций (3 зарядки, 2 погрузки)
+        const stationTypes = ['charging', 'charging', 'charging', 'loading', 'loading'];
+        this.shuffleArray(stationTypes);
+        
+        this.chargingStations = [];
+        this.loadingStations = [];
+        
+        // Доступные колонки для станций (исключаем края)
+        const availableCols = [1, 2, 3, 4, 5, 6, 7, 8];
+        this.shuffleArray(availableCols);
+        
+        // Размещаем станции с минимальным расстоянием 1 клетка
+        const placedStations = [];
+        
+        for (const type of stationTypes) {
+            for (const col of availableCols) {
+                if (placedStations.length === 0 || 
+                    placedStations.every(placed => Math.abs(placed - col) > 1)) {
+                    
+                    const cell = this.getCell(bottomRow, col);
+                    
+                    if (type === 'charging') {
+                        cell.className = 'cell charging';
+                        cell.textContent = '⚡';
+                        cell.dataset.originalClass = 'charging';
+                        this.chargingStations.push({ row: bottomRow, col: col });
+                    } else {
+                        cell.className = 'cell loading';
+                        cell.textContent = '📦';
+                        cell.dataset.originalClass = 'loading';
+                        this.loadingStations.push({ row: bottomRow, col: col });
+                    }
+                    
+                    placedStations.push(col);
+                    break;
+                }
+            }
+        }
+        
+        // Размещаем 5 столбов ТОЛЬКО в рядах 4,5,6,7 с минимальным расстоянием 2 клетки
+        this.obstacles = [];
+        const obstacleRows = [4, 5, 6, 7];
+        const allPossibleObstacles = [];
+        
+        // Собираем все возможные позиции для препятствий
+        for (const row of obstacleRows) {
+            for (let col = 0; col < this.cols; col++) {
+                const cell = this.getCell(row, col);
+                // Не ставим препятствия на станции, старте, финише и на границах
+                if (!cell.classList.contains('charging') && 
+                    !cell.classList.contains('loading') &&
+                    !cell.classList.contains('start') &&
+                    !cell.classList.contains('finish') &&
+                    col > 0 && col < this.cols - 1) {
+                    allPossibleObstacles.push({ row, col });
+                }
+            }
+        }
+        
+        this.shuffleArray(allPossibleObstacles);
+        
+        // Выбираем 5 препятствий с минимальным расстоянием 2 клетки
+        for (const obstacle of allPossibleObstacles) {
+            if (this.obstacles.length >= 5) break;
+            
+            const canPlace = this.canPlaceObstacle(obstacle.row, obstacle.col);
+            if (canPlace) {
+                this.obstacles.push(obstacle);
+                const cell = this.getCell(obstacle.row, obstacle.col);
+                cell.className = 'cell obstacle';
+                cell.textContent = '🚧';
+                cell.dataset.originalClass = 'obstacle';
+            }
+        }
+    }
+
+    canPlaceObstacle(row, col) {
+        // Проверяем расстояние до других препятствий (минимум 2 клетки)
+        for (const obs of this.obstacles) {
+            const rowDistance = Math.abs(obs.row - row);
+            const colDistance = Math.abs(obs.col - col);
+            if (rowDistance <= 1 && colDistance <= 1) {
+                return false;
+            }
+        }
+        
+        // Проверяем расстояние до станций (минимум 1 клетка)
+        const allStations = [...this.chargingStations, ...this.loadingStations];
+        for (const station of allStations) {
+            const rowDistance = Math.abs(station.row - row);
+            const colDistance = Math.abs(station.col - col);
+            if (rowDistance <= 1 && colDistance <= 1) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    startTimer() {
+        if (!this.gameStarted) {
+            this.gameStarted = true;
+            this.startTime = Date.now();
+            
+            this.timerInterval = setInterval(() => {
+                this.updateTimer();
+            }, 1000);
+        }
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    updateTimer() {
+        if (this.gameStarted) {
+            const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            this.timerElement.textContent = `Время: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+        }
+    }
+
+    generateUniqueNumbers(count, min, max) {
+        const numbers = new Set();
+        while (numbers.size < count) {
+            numbers.add(Math.floor(Math.random() * (max - min + 1)) + min);
+        }
+        return Array.from(numbers);
+    }
+
+    createRobots() {
+        const robotNumbers = this.generateUniqueNumbers(10, 1, 10);
+        
+        for (let i = 0; i < 10; i++) {
+            const row = Math.floor(i / 5);
+            const col = i % 5;
+            const number = robotNumbers[i];
+            const battery = i < 3 ? 
+                Math.floor(Math.random() * 16) + 25 :
+                Math.floor(Math.random() * 61) + 40;
+            
+            this.createRobot(row, col, number, battery, false);
+        }
+    }
+
+    createRobot(row, col, number, battery, hasPackage) {
+        const robot = {
+            number: number,
+            row: row,
+            col: col,
+            battery: battery,
+            hasPackage: hasPackage,
+            atCharging: false,
+            atLoading: false,
+            atFinish: false,
+            path: [],
+            isMoving: false
+        };
+        
+        this.robots.push(robot);
+        
+        const cell = this.getCell(row, col);
+        cell.className = 'cell robot';
+        cell.textContent = number;
+        this.updateBatteryDisplay(cell, battery);
+        cell.dataset.originalClass = 'start';
+        
+        return robot;
+    }
+
+    updateBatteryDisplay(cell, battery) {
+        const oldBattery = cell.querySelector('.battery');
+        if (oldBattery) oldBattery.remove();
+        
+        if (battery > 0) {
+            const batteryDiv = document.createElement('div');
+            batteryDiv.className = 'battery';
+            
+            const batteryLevel = document.createElement('div');
+            batteryLevel.className = 'battery-level';
+            batteryLevel.style.height = `${battery}%`;
+            
+            if (battery <= 10) batteryLevel.className += ' battery-red';
+            else if (battery <= 25) batteryLevel.className += ' battery-pink';
+            else if (battery <= 50) batteryLevel.className += ' battery-orange';
+            else if (battery <= 75) batteryLevel.className += ' battery-yellow';
+            else batteryLevel.className += ' battery-green';
+            
+            batteryDiv.appendChild(batteryLevel);
+            cell.appendChild(batteryDiv);
+        }
+    }
+
+    getCell(row, col) {
+        return this.board.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    }
+
+    setupEventListeners() {
+        document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
+        
+        this.board.addEventListener('click', (e) => {
+            const cell = e.target.closest('.cell');
+            if (!cell) return;
+            
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            this.handleCellClick(row, col, cell);
+        });
+    }
+
+    handleCellClick(row, col, cell) {
+        if (cell.classList.contains('robot')) {
+            this.selectRobot(row, col);
+            this.startTimer();
+            return;
+        }
+        
+        if (this.selectedRobot && !this.selectedRobot.isMoving) {
+            this.addToPath(this.selectedRobot, row, col);
+        }
+    }
+
+    selectRobot(row, col) {
+        const robot = this.robots.find(r => r.row === row && r.col === col);
+        if (!robot || robot.isMoving) return;
+        
+        this.selectedRobot = robot;
+        this.selectedRobotElement.textContent = `Выбрано: ${robot.number}`;
+        this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
+        
+        this.resetHighlights();
+        const robotCell = this.getCell(robot.row, robot.col);
+        robotCell.classList.add('selected');
+        
+        this.highlightAvailableMoves(robot);
+    }
+
+    highlightAvailableMoves(robot) {
+        for (let r = 0; r < this.rows; r++) {
+            for (let c = 0; c < this.cols; c++) {
+                const cell = this.getCell(r, c);
+                this.removeHighlights(cell);
+                
+                if (this.canMoveTo(r, c, robot) && 
+                    this.isStraightLine(robot.row, robot.col, r, c) &&
+                    this.isPathClear(robot.row, robot.col, r, c)) {
+                    
+                    if (this.chargingStations.some(s => s.row === r && s.col === c)) {
+                        cell.classList.add('highlight-charging');
+                    } else if (this.loadingStations.some(s => s.row === r && s.col === c)) {
+                        cell.classList.add('highlight-loading');
+                    } else if (this.isGarageForRobot(robot, r, c)) {
+                        cell.classList.add('highlight-garage');
+                    } else {
+                        cell.classList.add('highlight-move');
+                    }
+                }
+            }
+        }
+    }
+
+    removeHighlights(cell) {
+        cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move');
+    }
+
+    isGarageForRobot(robot, row, col) {
+        const cell = this.getCell(row, col);
+        return cell.classList.contains('finish') && 
+               parseInt(cell.dataset.garageNumber) === robot.number;
+    }
+
+    isStraightLine(startRow, startCol, endRow, endCol) {
+        return startRow === endRow || startCol === endCol;
+    }
+
+    isPathClear(startRow, startCol, endRow, endCol) {
+        const rowStep = endRow > startRow ? 1 : endRow < startRow ? -1 : 0;
+        const colStep = endCol > startCol ? 1 : endCol < startCol ? -1 : 0;
+        
+        let currentRow = startRow + rowStep;
+        let currentCol = startCol + colStep;
+        
+        while (currentRow !== endRow || currentCol !== endCol) {
+            const cell = this.getCell(currentRow, currentCol);
+            if (cell.classList.contains('obstacle') || cell.classList.contains('robot')) {
+                return false;
+            }
+            
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        
+        return !this.getCell(endRow, endCol).classList.contains('obstacle');
+    }
+
+    resetHighlights() {
+        const cells = this.board.querySelectorAll('.cell');
+        cells.forEach(cell => {
+            this.removeHighlights(cell);
+            cell.classList.remove('selected');
+        });
+    }
+
+    canMoveTo(row, col, currentRobot) {
+        const cell = this.getCell(row, col);
+        
+        // Проверяем, не занята ли клетка другим роботом
+        if (cell.classList.contains('robot')) {
+            const robotHere = this.robots.find(r => r.row === row && r.col === col);
+            return robotHere === currentRobot; // Можно встать на себя самого
+        }
+        
+        return !cell.classList.contains('obstacle');
+    }
+
+    addToPath(robot, targetRow, targetCol) {
+        if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol) ||
+            !this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
+            return;
+        }
+
+        robot.path.push({ row: targetRow, col: targetCol });
+        this.visualizePath(robot);
+        
+        // Автоматически начинаем движение
+        if (!robot.isMoving) {
+            this.moveRobotAlongPath(robot);
+        }
+    }
+
+    visualizePath(robot) {
+        this.clearPathVisualization(robot);
+        
+        robot.path.forEach((point, index) => {
+            const cell = this.getCell(point.row, point.col);
+            cell.classList.add('path');
+            cell.textContent = index + 1;
+        });
+    }
+
+    clearPathVisualization(robot) {
+        const pathCells = this.board.querySelectorAll('.path');
+        pathCells.forEach(cell => {
+            const row = parseInt(cell.dataset.row);
+            const col = parseInt(cell.dataset.col);
+            
+            // Очищаем только те клетки, которые не входят в пути других роботов
+            const isInOtherPath = this.robots.some(r => 
+                r !== robot && r.path.some(p => p.row === row && p.col === col)
+            );
+            
+            if (!isInOtherPath) {
+                cell.classList.remove('path');
+                this.restoreCellAppearance(cell);
+            }
+        });
+    }
+
+    restoreCellAppearance(cell) {
+        const originalClass = cell.dataset.originalClass;
+        if (originalClass) {
+            cell.className = `cell ${originalClass}`;
+            if (originalClass === 'finish') {
+                cell.textContent = cell.dataset.garageNumber;
+            } else if (originalClass === 'charging') {
+                cell.textContent = '⚡';
+            } else if (originalClass === 'loading') {
+                cell.textContent = '📦';
+            } else if (originalClass === 'obstacle') {
+                cell.textContent = '🚧';
+            } else if (originalClass === 'start') {
+                cell.textContent = '';
+            } else {
+                cell.textContent = '';
+            }
+        } else {
+            cell.className = 'cell empty';
+            cell.textContent = '';
+        }
+    }
+
+    async moveRobotAlongPath(robot) {
+        if (robot.isMoving || robot.path.length === 0) return;
+        
+        robot.isMoving = true;
+        this.movingRobots.add(robot);
+        
+        while (robot.path.length > 0) {
+            const point = robot.path[0]; // Берем первую точку, но не удаляем сразу
+            
+            // Проверяем, свободен ли путь
+            if (!this.isPathClear(robot.row, robot.col, point.row, point.col)) {
+                // Путь заблокирован, ждем
+                await this.delay(500);
+                continue;
+            }
+            
+            // Удаляем точку из пути и двигаемся
+            robot.path.shift();
+            await this.moveRobotToPoint(robot, point.row, point.col);
+            
+            this.checkSpecialCells(robot);
+            
+            if (this.checkWinCondition()) {
+                this.endGame();
+                break;
+            }
+            
+            await this.delay(100);
+        }
+        
+        robot.isMoving = false;
+        this.movingRobots.delete(robot);
+        this.clearPathVisualization(robot);
+        this.highlightAvailableMoves(robot);
+    }
+
+    async moveRobotToPoint(robot, targetRow, targetCol) {
+        const oldCell = this.getCell(robot.row, robot.col);
+        
+        // Анимация движения
+        oldCell.classList.add('moving');
+        await this.delay(2000); // 2 секунды на движение
+        
+        oldCell.classList.remove('moving');
+        this.restoreCellAppearance(oldCell);
+        
+        // Обновляем позицию робота и заряд батареи
+        robot.row = targetRow;
+        robot.col = targetCol;
+        robot.battery = Math.max(0, robot.battery - 2); // -2% за клетку
+        
+        const newCell = this.getCell(targetRow, targetCol);
+        newCell.className = 'cell robot';
+        
+        if (robot.hasPackage) {
+            newCell.textContent = '📦' + robot.number;
+        } else {
+            newCell.textContent = robot.number;
+        }
+        
+        this.updateBatteryDisplay(newCell, robot.battery);
+        newCell.dataset.originalClass = this.getCell(targetRow, targetCol).dataset.originalClass || 'empty';
+        
+        this.moves++;
+        this.movesElement.textContent = `Ходы: ${this.moves}`;
+        
+        // Обновляем информацию о выбранном роботе
+        if (this.selectedRobot === robot) {
+            this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
+        }
+    }
+
+    checkSpecialCells(robot) {
+        const cell = this.getCell(robot.row, robot.col);
+        
+        if (cell.classList.contains('charging')) {
+            robot.atCharging = true;
+            this.chargeRobot(robot);
+        }
+        
+        if (cell.classList.contains('loading')) {
+            robot.atLoading = true;
+            robot.hasPackage = true;
+            const robotCell = this.getCell(robot.row, robot.col);
+            robotCell.textContent = '📦' + robot.number;
+        }
+        
+        if (this.isGarageForRobot(robot, robot.row, robot.col)) {
+            robot.atFinish = true;
+        }
+    }
+
+    async chargeRobot(robot) {
+        const cell = this.getCell(robot.row, robot.col);
+        
+        // Анимация зарядки
+        for (let charge = robot.battery; charge <= 100; charge += 10) {
+            robot.battery = Math.min(100, charge);
+            this.updateBatteryDisplay(cell, robot.battery);
+            
+            // Обновляем информацию о выбранном роботе
+            if (this.selectedRobot === robot) {
+                this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
+            }
+            
+            await this.delay(1000);
+        }
+    }
+
+    checkWinCondition() {
+        return this.robots.every(robot => robot.atFinish);
+    }
+
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    endGame() {
+        this.stopTimer();
+        const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+        const minutes = Math.floor(elapsed / 60);
+        const seconds = elapsed % 60;
+        
+        this.winMessage.style.display = 'block';
+        this.finalMoves.textContent = this.moves;
+        this.finalTime.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    resetGame() {
+        this.selectedRobot = null;
+        this.robots = [];
+        this.moves = 0;
+        this.movingRobots.clear();
+        this.gameStarted = false;
+        this.stopTimer();
+        
+        this.selectedRobotElement.textContent = 'Выбрано: нет';
+        this.batteryElement.textContent = 'Заряд: -';
+        this.movesElement.textContent = 'Ходы: 0';
+        this.timerElement.textContent = 'Время: 0:00';
+        this.winMessage.style.display = 'none';
+        
+        this.createBoard();
+        this.setupGame();
+        this.resetHighlights();
+    }
+
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
 }
 
-.moving {
-    animation: slowMove 3s ease-in-out;
-}
-
-/* Адаптивность для очень маленьких экранов */
-@media (max-width: 320px) {
-    .game-board {
-        width: 90vw;
-        height: 90vw;
-    }
+function shareResults() {
+    const moves = document.getElementById('final-moves').textContent;
+    const time = document.getElementById('final-time').textContent;
     
-    .cell {
-        font-size: 0.6em;
-    }
-    
-    h1 {
-        font-size: 1.2em;
+    if (window.Telegram && window.Telegram.WebApp) {
+        const message = `🎯 Я завершил логистическую миссию за ${moves} ходов и ${time} времени!`;
+        window.Telegram.WebApp.sendData(message);
     }
 }
 
-/* Предотвращение выделения текста */
-* {
-    -webkit-tap-highlight-color: transparent;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
-
-/* Стили для подсветки */
-.highlight-charging {
-    box-shadow: 0 0 12px orange !important;
-}
-
-.highlight-loading {
-    box-shadow: 0 0 12px purple !important;
-}
-
-.highlight-garage {
-    box-shadow: 0 0 12px green !important;
-}
-
-.highlight-move {
-    box-shadow: 0 0 8px blue !important;
-}
-
-.moving {
-    animation: moveAnimation 2s ease-in-out;
-}
-
-@keyframes moveAnimation {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    25% {
-        transform: scale(0.9);
-        opacity: 0.8;
-    }
-    50% {
-        transform: scale(0.85);
-        opacity: 0.7;
-    }
-    75% {
-        transform: scale(0.9);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* Убедитесь, что у роботов есть transition */
-.cell.robot {
-    transition: all 0.3s ease;
-}
+// Запуск игры
+document.addEventListener('DOMContentLoaded', () => {
+    new LogisticsGame();
+});
