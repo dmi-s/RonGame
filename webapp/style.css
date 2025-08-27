@@ -489,3 +489,70 @@ html, body {
 .robot-ghost {
     animation: ghostMove 1s ease-in-out;
 }
+
+.path-line {
+    position: relative;
+    z-index: 1;
+}
+
+.horizontal-line::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #f1c40f;
+    transform: translateY(-50%);
+    z-index: -1;
+}
+
+.vertical-line::before {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #f1c40f;
+    transform: translateX(-50%);
+    z-index: -1;
+}
+
+.path {
+    z-index: 2;
+    font-weight: bold;
+    background: #f1c40f !important;
+    color: #2c3e50 !important;
+}
+
+.moving {
+    animation: moveAnimation 2s ease-in-out;
+}
+
+@keyframes moveAnimation {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(0.9);
+        opacity: 0.8;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.cell.robot {
+    background: linear-gradient(45deg, #ffeb3b, #ffc107);
+    color: #000;
+}
+
+.cell.robot.selected {
+    background: linear-gradient(45deg, #ffeb3b, #000000) !important;
+    color: #ffeb3b !important;
+    box-shadow: 0 0 10px yellow;
+    border: 2px solid black;
+}
