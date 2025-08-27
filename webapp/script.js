@@ -814,3 +814,8 @@ function shareResults() {
 document.addEventListener('DOMContentLoaded', () => {
     new LogisticsGame();
 });
+
+
+
+
+
