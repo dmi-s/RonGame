@@ -101,7 +101,8 @@ class LogisticsGame {
     }
 
     placeStationsAndObstacles() {
-        const stationRow = this.rows - 2; // Подняли на 1 ряд выше
+        const stationRow = this.rows - 1; // Станции внизу
+        const obstacleRow = this.rows - 2; // Столбы на ряд выше станций
         
         // Случайный порядок станций (2 зарядки, 2 погрузки)
         const stationTypes = ['charging', 'charging', 'loading', 'loading'];
@@ -138,21 +139,35 @@ class LogisticsGame {
                     }
                     
                     placedStations.push(col);
+                    
+                    // Ставим столб между станциями
+                    if (placedStations.length > 1) {
+                        const prevCol = placedStations[placedStations.length - 2];
+                        const obstacleCol = Math.floor((prevCol + col) / 2);
+                        if (obstacleCol !== prevCol && obstacleCol !== col) {
+                            const obstacleCell = this.getCell(obstacleRow, obstacleCol);
+                            if (!obstacleCell.classList.contains('obstacle')) {
+                                obstacleCell.className = 'cell obstacle';
+                                obstacleCell.textContent = '🚧';
+                                obstacleCell.dataset.originalClass = 'obstacle';
+                                this.obstacles.push({ row: obstacleRow, col: obstacleCol });
+                            }
+                        }
+                    }
                     break;
                 }
             }
         }
         
-        // Размещаем 5 столбов ТОЛЬКО в рядах 4,5,6,7 с минимальным расстоянием 2 клетки
-        const obstacleRows = [4, 5, 6, 7];
+        // Добавляем дополнительные столбы в рядах 4,5,6,7
+        const additionalObstacleRows = [4, 5, 6, 7];
         const allPossibleObstacles = [];
         
-        // Собираем все возможные позиции для препятствий
-        for (const row of obstacleRows) {
+        for (const row of additionalObstacleRows) {
             for (let col = 0; col < this.cols; col++) {
                 const cell = this.getCell(row, col);
-                // Не ставим препятствия на станции, старте, финише и на границах
-                if (!cell.classList.contains('charging') && 
+                if (!cell.classList.contains('obstacle') && 
+                    !cell.classList.contains('charging') && 
                     !cell.classList.contains('loading') &&
                     !cell.classList.contains('start') &&
                     !cell.classList.contains('finish') &&
@@ -164,9 +179,9 @@ class LogisticsGame {
         
         this.shuffleArray(allPossibleObstacles);
         
-        // Выбираем 5 препятствий с минимальным расстоянием 2 клетки
+        // Добавляем столбы до общего количества 8-10
         for (const obstacle of allPossibleObstacles) {
-            if (this.obstacles.length >= 5) break;
+            if (this.obstacles.length >= 8) break;
             
             const canPlace = this.canPlaceObstacle(obstacle.row, obstacle.col);
             if (canPlace) {
@@ -680,6 +695,9 @@ class LogisticsGame {
         newCell.classList.add('moving');
         await this.delay(4000); // 4 секунды на клетку
         newCell.classList.remove('moving');
+        
+        // Обновляем визуализацию пути после движения
+        this.visualizePath(robot);
     }
 
     async checkSpecialCells(robot) {
