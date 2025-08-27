@@ -7,6 +7,7 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
 }
 
 .container {
@@ -15,29 +16,32 @@ body {
     padding: 15px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     text-align: center;
-    max-width: 500px;
-    width: 100%;
+    max-width: 95vw;
+    max-height: 95vh;
+    width: auto;
+    overflow: auto;
 }
 
 h1 {
     color: #2c3e50;
     margin-bottom: 15px;
-    font-size: 1.5em;
+    font-size: clamp(1.2em, 4vw, 1.8em);
 }
 
 .game-info {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    gap: 8px;
     margin-bottom: 15px;
-    font-size: 0.9em;
+    font-size: clamp(0.8em, 3vw, 1em);
 }
 
-#selected-robot, #battery-level, #moves {
+#selected-robot, #battery-level, #moves, #timer {
     background: #ecf0f1;
-    padding: 8px;
+    padding: 6px;
     border-radius: 5px;
     font-weight: bold;
+    font-size: 0.9em;
 }
 
 button {
@@ -62,25 +66,26 @@ button:hover {
     grid-template-rows: repeat(10, 1fr);
     gap: 2px;
     margin: 0 auto;
-    max-width: 400px;
-    height: 400px;
+    max-width: min(90vw, 90vh, 500px);
+    max-height: min(90vw, 90vh, 500px);
+    width: min(90vw, 90vh, 500px);
+    height: min(90vw, 90vh, 500px);
     border: 2px solid #34495e;
     background: #bdc3c7;
     position: relative;
 }
 
 .cell {
-    width: 35px;
-    height: 35px;
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 0.7em;
+    font-size: clamp(0.6em, 2vw, 0.8em);
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     border-radius: 3px;
+    aspect-ratio: 1/1;
 }
 
 .cell:hover {
@@ -109,8 +114,8 @@ button:hover {
 
 /* Призрак робота для анимации */
 .ghost-robot {
-    width: 30px;
-    height: 30px;
+    width: 80%;
+    height: 80%;
     background: linear-gradient(45deg, #ffeb3b, #000);
     color: #ffeb3b;
     border-radius: 3px;
@@ -128,8 +133,8 @@ button:hover {
     position: absolute;
     top: 2px;
     right: 2px;
-    width: 8px;
-    height: 12px;
+    width: 6px;
+    height: 10px;
     border: 1px solid #333;
     border-radius: 1px;
     background: white;
@@ -155,17 +160,19 @@ button:hover {
     padding: 10px;
     background: #ecf0f1;
     border-radius: 8px;
-    font-size: 0.8em;
+    font-size: clamp(0.7em, 2.5vw, 0.9em);
 }
 
 .instructions h3 {
     margin: 0 0 8px 0;
     color: #2c3e50;
+    font-size: 1em;
 }
 
 .instructions p {
     margin: 3px 0;
     color: #7f8c8d;
+    font-size: 0.9em;
 }
 
 .win-message {
@@ -183,20 +190,60 @@ button:hover {
 }
 
 /* Выбранный робот */
-.cell.robot[style*="yellow"] {
+.cell.robot.selected {
     background: linear-gradient(45deg, #ffeb3b, #000000) !important;
     color: #ffeb3b !important;
     font-weight: bold;
     z-index: 5;
+    box-shadow: 0 0 15px yellow;
+    border: 2px solid black;
 }
 
 /* Анимация движения */
 .moving {
-    animation: moveAnimation 0.8s ease;
+    animation: moveAnimation 3s ease-in-out;
 }
 
 @keyframes moveAnimation {
-    0% { transform: scale(1); }
-    50% { transform: scale(0.8); }
-    100% { transform: scale(1); }
+    0% { transform: scale(1); opacity: 1; }
+    25% { transform: scale(0.9); opacity: 0.8; }
+    50% { transform: scale(0.85); opacity: 0.7; }
+    75% { transform: scale(0.9); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+        margin: 5px;
+    }
+    
+    .game-info {
+        grid-template-columns: 1fr;
+        gap: 5px;
+    }
+    
+    button {
+        grid-column: 1;
+    }
+    
+    .cell {
+        font-size: 0.6em;
+    }
+}
+
+/* Стили для таймера и статистики */
+.timer-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.stat-item {
+    background: #ecf0f1;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    font-size: 0.9em;
 }
