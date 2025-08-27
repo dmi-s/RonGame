@@ -21,6 +21,7 @@ class LogisticsGame {
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
+        this.ghosts = new Map(); // Для визуализации маршрутов
         
         this.init();
     }
@@ -41,12 +42,12 @@ class LogisticsGame {
         const board = this.board;
         
         if (isMobile) {
-            const size = Math.min(window.innerWidth * 0.95, 350);
+            const size = Math.min(window.innerWidth * 0.95, 320);
             board.style.width = `${size}px`;
             board.style.height = `${size}px`;
         } else {
-            board.style.width = '350px';
-            board.style.height = '350px';
+            board.style.width = '320px';
+            board.style.height = '320px';
         }
     }
 
@@ -262,7 +263,8 @@ class LogisticsGame {
             atLoading: false,
             atFinish: false,
             path: [],
-            isMoving: false
+            isMoving: false,
+            ghost: null
         };
         
         this.robots.push(robot);
@@ -324,14 +326,14 @@ class LogisticsGame {
             return;
         }
         
-        if (this.selectedRobot && !this.selectedRobot.isMoving) {
+        if (this.selectedRobot) {
             this.addToPath(this.selectedRobot, row, col);
         }
     }
 
     selectRobot(row, col) {
         const robot = this.robots.find(r => r.row === row && r.col === col);
-        if (!robot || robot.isMoving) return;
+        if (!robot) return;
         
         this.selectedRobot = robot;
         this.selectedRobotElement.textContent = `Выбрано: ${robot.number}`;
@@ -342,6 +344,7 @@ class LogisticsGame {
         robotCell.classList.add('selected');
         
         this.highlightAvailableMoves(robot);
+        this.visualizeAllPaths(); // Показываем все маршруты
     }
 
     highlightAvailableMoves(robot) {
@@ -391,7 +394,8 @@ class LogisticsGame {
         
         while (currentRow !== endRow || currentCol !== endCol) {
             const cell = this.getCell(currentRow, currentCol);
-            if (cell.classList.contains('obstacle') || cell.classList.contains('robot')) {
+            if (cell.classList.contains('obstacle') || 
+                (cell.classList.contains('robot') && !this.isRobotMovingTo(currentRow, currentCol))) {
                 return false;
             }
             
@@ -400,6 +404,16 @@ class LogisticsGame {
         }
         
         return !this.getCell(endRow, endCol).classList.contains('obstacle');
+    }
+
+    isRobotMovingTo(row, col) {
+        // Проверяем, движется ли какой-то робот в эту клетку
+        for (const robot of this.robots) {
+            if (robot.isMoving && robot.path.some(point => point.row === row && point.col === col)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     resetHighlights() {
@@ -428,6 +442,11 @@ class LogisticsGame {
             return;
         }
 
+        // Проверяем пересечения с другими маршрутами
+        if (this.willPathsIntersect(robot, targetRow, targetCol)) {
+            return;
+        }
+
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
         
@@ -437,18 +456,109 @@ class LogisticsGame {
         }
     }
 
+    willPathsIntersect(robot, targetRow, targetCol) {
+        // Проверяем пересечение с маршрутами других роботов
+        for (const otherRobot of this.robots) {
+            if (otherRobot !== robot && otherRobot.path.length > 0) {
+                const otherPath = otherRobot.path;
+                
+                // Проверяем пересечение линии движения с точками чужого маршрута
+                for (const point of otherPath) {
+                    if (this.isPointOnLine(robot.row, robot.col, targetRow, targetCol, point.row, point.col)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    isPointOnLine(startRow, startCol, endRow, endCol, pointRow, pointCol) {
+        if (startRow === endRow) {
+            // Горизонтальная линия
+            return pointRow === startRow && 
+                   Math.min(startCol, endCol) <= pointCol && 
+                   pointCol <= Math.max(startCol, endCol);
+        } else {
+            // Вертикальная линия
+            return pointCol === startCol && 
+                   Math.min(startRow, endRow) <= pointRow && 
+                   pointRow <= Math.max(startRow, endRow);
+        }
+    }
+
     visualizePath(robot) {
         this.clearPathVisualization(robot);
         
-        robot.path.forEach((point, index) => {
+        // Создаем линии между точками маршрута
+        let prevPoint = { row: robot.row, col: robot.col };
+        
+        for (let i = 0; i < robot.path.length; i++) {
+            const point = robot.path[i];
             const cell = this.getCell(point.row, point.col);
+            
+            // Добавляем номер шага
             cell.classList.add('path');
-            cell.textContent = index + 1;
-        });
+            cell.textContent = i + 1;
+            
+            // Создаем линию между точками
+            this.createPathLine(prevPoint.row, prevPoint.col, point.row, point.col, robot.number);
+            prevPoint = point;
+        }
+    }
+
+    createPathLine(startRow, startCol, endRow, endCol, robotNumber) {
+        // Визуализируем линию между точками
+        const linePoints = this.getLinePoints(startRow, startCol, endRow, endCol);
+        
+        for (const point of linePoints) {
+            const cell = this.getCell(point.row, point.col);
+            if (!cell.classList.contains('path')) {
+                cell.classList.add('path-line');
+                cell.style.background = this.getRobotColor(robotNumber);
+                cell.style.opacity = '0.6';
+            }
+        }
+    }
+
+    getLinePoints(startRow, startCol, endRow, endCol) {
+        const points = [];
+        const rowStep = endRow > startRow ? 1 : endRow < startRow ? -1 : 0;
+        const colStep = endCol > startCol ? 1 : endCol < startCol ? -1 : 0;
+        
+        let currentRow = startRow;
+        let currentCol = startCol;
+        
+        while (currentRow !== endRow || currentCol !== endCol) {
+            points.push({ row: currentRow, col: currentCol });
+            currentRow += rowStep;
+            currentCol += colStep;
+        }
+        points.push({ row: endRow, col: endCol });
+        
+        return points;
+    }
+
+    getRobotColor(robotNumber) {
+        const colors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#f9c74f', 
+            '#90be6d', '#f9844a', '#577590', '#43aa8b', 
+            '#f8961e', '#7209b7'
+        ];
+        return colors[(robotNumber - 1) % colors.length];
+    }
+
+    visualizeAllPaths() {
+        // Показываем маршруты всех роботов
+        for (const robot of this.robots) {
+            if (robot.path.length > 0) {
+                this.visualizePath(robot);
+            }
+        }
     }
 
     clearPathVisualization(robot) {
-        const pathCells = this.board.querySelectorAll('.path');
+        const pathCells = this.board.querySelectorAll('.path, .path-line');
         pathCells.forEach(cell => {
             const row = parseInt(cell.dataset.row);
             const col = parseInt(cell.dataset.col);
@@ -459,7 +569,9 @@ class LogisticsGame {
             );
             
             if (!isInOtherPath) {
-                cell.classList.remove('path');
+                cell.classList.remove('path', 'path-line');
+                cell.style.background = '';
+                cell.style.opacity = '';
                 this.restoreCellAppearance(cell);
             }
         });
@@ -495,16 +607,14 @@ class LogisticsGame {
         this.movingRobots.add(robot);
         
         while (robot.path.length > 0) {
-            const point = robot.path[0]; // Берем первую точку, но не удаляем сразу
+            const point = robot.path[0];
             
             // Проверяем, свободен ли путь
             if (!this.isPathClear(robot.row, robot.col, point.row, point.col)) {
-                // Путь заблокирован, ждем
                 await this.delay(500);
                 continue;
             }
             
-            // Удаляем точку из пути и двигаемся
             robot.path.shift();
             await this.moveRobotToPoint(robot, point.row, point.col);
             
@@ -527,9 +637,11 @@ class LogisticsGame {
     async moveRobotToPoint(robot, targetRow, targetCol) {
         const oldCell = this.getCell(robot.row, robot.col);
         
-        // Анимация движения
+        // Анимация движения - медленная и плавная
         oldCell.classList.add('moving');
-        await this.delay(2000); // 2 секунды на движение
+        
+        // Создаем эффект плавного перемещения
+        await this.animateMovement(robot, targetRow, targetCol);
         
         oldCell.classList.remove('moving');
         this.restoreCellAppearance(oldCell);
@@ -537,7 +649,7 @@ class LogisticsGame {
         // Обновляем позицию робота и заряд батареи
         robot.row = targetRow;
         robot.col = targetCol;
-        robot.battery = Math.max(0, robot.battery - 2); // -2% за клетку
+        robot.battery = Math.max(0, robot.battery - 2);
         
         const newCell = this.getCell(targetRow, targetCol);
         newCell.className = 'cell robot';
@@ -557,6 +669,16 @@ class LogisticsGame {
         // Обновляем информацию о выбранном роботе
         if (this.selectedRobot === robot) {
             this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
+        }
+    }
+
+    async animateMovement(robot, targetRow, targetCol) {
+        // Медленная анимация - 3 секунды
+        const steps = 30; // Количество шагов анимации
+        const delayPerStep = 100; // 100ms на шаг = 3 секунды всего
+        
+        for (let i = 0; i < steps; i++) {
+            await this.delay(delayPerStep);
         }
     }
 
@@ -588,7 +710,6 @@ class LogisticsGame {
             robot.battery = Math.min(100, charge);
             this.updateBatteryDisplay(cell, robot.battery);
             
-            // Обновляем информацию о выбранном роботе
             if (this.selectedRobot === robot) {
                 this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
             }
