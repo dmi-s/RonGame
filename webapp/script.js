@@ -48,6 +48,7 @@ class LogisticsGame {
             for (let col = 0; col < 5; col++) {
                 const cell = this.getCell(row, col);
                 cell.className = 'cell start';
+                cell.dataset.originalClass = 'start';
             }
         }
 
@@ -68,7 +69,7 @@ class LogisticsGame {
         // Станции зарядки и погрузки
         this.placeStations();
         
-        // Препятствия (5 столбов по всему полю)
+        // Препятствия (5 столбов)
         this.placeObstacles();
         
         // Роботы (10 штук)
@@ -114,71 +115,102 @@ class LogisticsGame {
     }
 
     placeObstacles() {
-        const allCells = [];
-        for (let row = 0; row < this.rows; row++) {
+        const availableRows = [4, 5, 6, 7]; // Только ряды 4-7
+        const availableCells = [];
+        
+        for (let row of availableRows) {
             for (let col = 0; col < this.cols; col++) {
                 const cell = this.getCell(row, col);
-                if (!cell.classList.contains('start') && 
-                    !cell.classList.contains('finish') &&
-                    !cell.classList.contains('charging') &&
+                if (!cell.classList.contains('charging') && 
                     !cell.classList.contains('loading')) {
-                    allCells.push({ row, col });
+                    availableCells.push({ row, col });
                 }
             }
         }
         
-        this.shuffleArray(allCells);
-        this.obstacles = allCells.slice(0, 5);
+        this.shuffleArray(availableCells);
+        this.obstacles = [];
         
-        this.obstacles.forEach(obs => {
-            const cell = this.getCell(obs.row, obs.col);
-            cell.className = 'cell obstacle';
-            cell.textContent = '🚧';
-            cell.dataset.originalClass = 'obstacle';
-        });
+        // Добавляем 5 препятствий с минимальным расстоянием
+        for (let i = 0; i < 5 && availableCells.length > 0; i++) {
+            const obstacle = availableCells.shift();
+            
+            // Проверяем расстояние до других препятствий
+            const tooClose = this.obstacles.some(obs => 
+                Math.abs(obs.row - obstacle.row) <= 2 && 
+                Math.abs(obs.col - obstacle.col) <= 2
+            );
+            
+            if (!tooClose) {
+                this.obstacles.push(obstacle);
+                const cell = this.getCell(obstacle.row, obstacle.col);
+                cell.className = 'cell obstacle';
+                cell.textContent = '🚧';
+                cell.dataset.originalClass = 'obstacle';
+            }
+        }
     }
 
     createRobots() {
         const robotNumbers = this.generateUniqueNumbers(10, 1, 10);
         let robotIndex = 0;
         
-        for (let row = 0; row < 2; row++) {
-            for (let col = 0; col < 5; col++) {
-                if (robotIndex >= robotNumbers.length) break;
-                
-                const number = robotNumbers[robotIndex];
-                const battery = Math.floor(Math.random() * 101);
-                
-                const robot = {
-                    number: number,
-                    row: row,
-                    col: col,
-                    battery: battery,
-                    hasPackage: false,
-                    atCharging: false,
-                    atLoading: false,
-                    atFinish: false,
-                    path: []
-                };
-                
-                this.robots.push(robot);
-                
-                const cell = this.getCell(row, col);
-                cell.className = 'cell robot';
-                cell.textContent = number;
-                this.updateBatteryDisplay(cell, battery);
-                cell.dataset.originalClass = 'start';
-                
-                robotIndex++;
-            }
+        // 3 робота с зарядом 25-40%
+        for (let i = 0; i < 3; i++) {
+            if (robotIndex >= robotNumbers.length) break;
+            
+            const row = Math.floor(i / 5);
+            const col = i % 5;
+            const number = robotNumbers[robotIndex];
+            const battery = Math.floor(Math.random() * 16) + 25; // 25-40%
+            
+            this.createRobot(row, col, number, battery, false);
+            robotIndex++;
         }
+        
+        // 7 роботов с зарядом 40-100%
+        for (let i = 3; i < 10; i++) {
+            if (robotIndex >= robotNumbers.length) break;
+            
+            const row = Math.floor(i / 5);
+            const col = i % 5;
+            const number = robotNumbers[robotIndex];
+            const battery = Math.floor(Math.random() * 61) + 40; // 40-100%
+            
+            this.createRobot(row, col, number, battery, false);
+            robotIndex++;
+        }
+    }
+
+    createRobot(row, col, number, battery, hasPackage) {
+        const robot = {
+            number: number,
+            row: row,
+            col: col,
+            battery: battery,
+            hasPackage: hasPackage,
+            atCharging: false,
+            atLoading: false,
+            atFinish: false,
+            path: []
+        };
+        
+        this.robots.push(robot);
+        
+        const cell = this.getCell(row, col);
+        cell.className = 'cell robot';
+        cell.textContent = number;
+        this.updateBatteryDisplay(cell, battery);
+        cell.dataset.originalClass = 'start';
+        
+        return robot;
     }
 
     updateBatteryDisplay(cell, battery) {
         const oldBattery = cell.querySelector('.battery');
         if (oldBattery) oldBattery.remove();
         
-        if (battery > 0) { // Только если есть заряд
+        if (battery > 0) {
             const batteryDiv = document.createElement('div');
             batteryDiv.className = 'battery';
             
@@ -305,7 +337,6 @@ class LogisticsGame {
         cells.forEach(cell => {
             cell.style.boxShadow = '';
             cell.style.border = '';
-            cell.title = '';
         });
     }
 
@@ -328,6 +359,8 @@ class LogisticsGame {
 
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
+        
+        // Автоматически начинаем движение
         this.moveRobotAlongPath(robot);
     }
 
@@ -387,7 +420,7 @@ class LogisticsGame {
                 break;
             }
             
-            await this.delay(500); // Увеличили задержку для медленного движения
+            await this.delay(800); // Медленное движение
         }
         
         this.isMoving = false;
@@ -414,15 +447,31 @@ class LogisticsGame {
         const startCell = this.getCell(robot.row, robot.col);
         const targetCell = this.getCell(targetRow, targetCol);
         
-        startCell.classList.add('moving');
-        await this.delay(500); // Увеличили время анимации
-        startCell.classList.remove('moving');
+        // Создаем анимацию перемещения
+        const ghost = document.createElement('div');
+        ghost.className = 'ghost-robot';
+        ghost.textContent = robot.number;
+        ghost.style.position = 'absolute';
+        ghost.style.left = `${startCell.offsetLeft}px`;
+        ghost.style.top = `${startCell.offsetTop}px`;
+        this.board.appendChild(ghost);
+        
+        // Анимация
+        ghost.style.transition = 'all 0.8s ease';
+        ghost.style.left = `${targetCell.offsetLeft}px`;
+        ghost.style.top = `${targetCell.offsetTop}px`;
+        
+        await this.delay(800);
+        ghost.remove();
     }
 
     updateRobotPosition(robot, targetRow, targetCol) {
         // Обновляем позицию робота
         robot.row = targetRow;
         robot.col = targetCol;
+        
+        // Уменьшаем заряд на 2% за клетку
+        robot.battery = Math.max(0, robot.battery - 2);
         
         // Обновляем новую клетку
         const newCell = this.getCell(targetRow, targetCol);
@@ -445,8 +494,7 @@ class LogisticsGame {
         // Проверка на станцию зарядки
         if (cell.classList.contains('charging')) {
             robot.atCharging = true;
-            robot.battery = 100;
-            this.updateBatteryDisplay(cell, robot.battery);
+            this.chargeRobot(robot);
         }
         
         // Проверка на станцию погрузки
@@ -460,6 +508,17 @@ class LogisticsGame {
         // Проверка на финиш
         if (this.isGarageForRobot(robot, robot.row, robot.col)) {
             robot.atFinish = true;
+        }
+    }
+
+    async chargeRobot(robot) {
+        const cell = this.getCell(robot.row, robot.col);
+        
+        // Анимация зарядки
+        for (let charge = robot.battery; charge <= 100; charge += 10) {
+            robot.battery = Math.min(100, charge);
+            this.updateBatteryDisplay(cell, robot.battery);
+            await this.delay(1000); // 10% в секунду
         }
     }
 
