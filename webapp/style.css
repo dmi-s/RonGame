@@ -99,7 +99,6 @@ button:hover {
     color: #000;
     font-weight: bold;
     z-index: 3;
-    transition: transform 0.5s ease;
 }
 .path { 
     background: #f1c40f; 
@@ -108,23 +107,20 @@ button:hover {
 }
 .empty { background: #ecf0f1; }
 
-/* Призрак робота */
+/* Призрак робота для анимации */
 .ghost-robot {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background: linear-gradient(45deg, #ffeb3b, #000);
-    color: #ffeb3b;
     width: 30px;
     height: 30px;
+    background: linear-gradient(45deg, #ffeb3b, #000);
+    color: #ffeb3b;
     border-radius: 3px;
     display: flex;
     justify-content: center;
     align-items: center;
     font-weight: bold;
     font-size: 0.8em;
-    z-index: 4;
+    z-index: 10;
+    pointer-events: none;
 }
 
 /* Батарейка */
@@ -192,4 +188,15 @@ button:hover {
     color: #ffeb3b !important;
     font-weight: bold;
     z-index: 5;
+}
+
+/* Анимация движения */
+.moving {
+    animation: moveAnimation 0.8s ease;
+}
+
+@keyframes moveAnimation {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.8); }
+    100% { transform: scale(1); }
 }
