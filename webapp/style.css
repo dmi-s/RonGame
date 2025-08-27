@@ -1,3 +1,4 @@
+/* style.css */
 body {
     font-family: 'Arial', sans-serif;
     background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
@@ -94,10 +95,10 @@ button:hover {
     grid-template-rows: repeat(10, 1fr);
     gap: 1px;
     margin: 0 auto;
-    width: 95vw;
-    max-width: 320px;
-    height: 95vw;
-    max-height: 320px;
+    width: 95vmin;
+    height: 95vmin;
+    max-width: 95vmin;
+    max-height: 95vmin;
     border: 2px solid #34495e;
     background: #bdc3c7;
     position: relative;
@@ -122,7 +123,7 @@ button:hover {
 }
 
 /* Цвета клеток */
-.start { background: #3498db; color: white; }
+.start { background: #ecf0f1; color: #2c3e50; }
 .finish { background: #27ae60; color: white; }
 .charging { background: #f39c12; color: white; }
 .loading { background: #9b59b6; color: white; }
@@ -222,7 +223,7 @@ button:hover {
 
 /* Анимация движения */
 .moving {
-    animation: moveAnimation 2s ease-in-out;
+    animation: moveAnimation 4s ease-in-out;
 }
 
 @keyframes moveAnimation {
@@ -297,10 +298,8 @@ button:hover {
 /* Адаптивность для очень маленьких экранов */
 @media (max-width: 320px) {
     .game-board {
-        width: 90vw;
-        height: 90vw;
-        max-width: 280px;
-        max-height: 280px;
+        width: 90vmin;
+        height: 90vmin;
     }
     
     .cell {
@@ -319,10 +318,8 @@ button:hover {
 
 @media (max-width: 280px) {
     .game-board {
-        width: 85vw;
-        height: 85vw;
-        max-width: 250px;
-        max-height: 250px;
+        width: 85vmin;
+        height: 85vmin;
     }
     
     .cell {
@@ -378,10 +375,8 @@ html, body {
     }
     
     .game-board {
-        width: 90vw;
-        height: 90vw;
-        max-width: 300px;
-        max-height: 300px;
+        width: 90vmin;
+        height: 90vmin;
     }
     
     .instructions {
@@ -405,10 +400,8 @@ html, body {
     }
     
     .game-board {
-        width: 70vh;
-        height: 70vh;
-        max-width: 280px;
-        max-height: 280px;
+        width: 70vmin;
+        height: 70vmin;
     }
 }
 
@@ -437,7 +430,3 @@ html, body {
     background: linear-gradient(45deg, #f39c12, #000000);
     color: #f39c12;
 }
-
-
-
-
