@@ -66,6 +66,7 @@ button:hover {
     height: 400px;
     border: 2px solid #34495e;
     background: #bdc3c7;
+    position: relative;
 }
 
 .cell {
@@ -77,7 +78,7 @@ button:hover {
     font-size: 0.7em;
     font-weight: bold;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s ease;
     position: relative;
     border-radius: 3px;
 }
@@ -98,14 +99,33 @@ button:hover {
     color: #000;
     font-weight: bold;
     z-index: 3;
+    transition: transform 0.5s ease;
 }
 .path { 
     background: #f1c40f; 
     color: #2c3e50; 
     font-weight: bold;
-    z-index: 1;
 }
 .empty { background: #ecf0f1; }
+
+/* Призрак робота */
+.ghost-robot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(45deg, #ffeb3b, #000);
+    color: #ffeb3b;
+    width: 30px;
+    height: 30px;
+    border-radius: 3px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 0.8em;
+    z-index: 4;
+}
 
 /* Батарейка */
 .battery {
@@ -166,20 +186,10 @@ button:hover {
     font-size: 1.2em;
 }
 
-/* Анимации */
-@keyframes moveRobot {
-    0% { transform: translate(0, 0); }
-    50% { transform: translate(2px, 2px); }
-    100% { transform: translate(0, 0); }
-}
-
-.robot.moving {
-    animation: moveRobot 0.5s ease-in-out infinite;
-}
-
 /* Выбранный робот */
 .cell.robot[style*="yellow"] {
     background: linear-gradient(45deg, #ffeb3b, #000000) !important;
     color: #ffeb3b !important;
     font-weight: bold;
+    z-index: 5;
 }
