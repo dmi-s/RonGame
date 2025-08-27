@@ -4,17 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Логистические роботы</title>
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
     <div class="container">
         <h1>🤖 Логистические роботы</h1>
         
+        <div class="timer-container">
+            <div id="timer">Время: 0:00</div>
+            <div id="moves">Ходы: 0</div>
+        </div>
+        
         <div class="game-info">
             <div id="selected-robot">Выбрано: нет</div>
             <div id="battery-level">Заряд: -</div>
-            <div id="moves">Ходы: 0</div>
             <button id="reset-btn">Новая игра</button>
         </div>
 
@@ -26,7 +30,7 @@
             <h3>Как играть:</h3>
             <p>1. Кликните на робота для выбора</p>
             <p>2. Кликните на клетки для построения маршрута</p>
-            <p>3. Роботы с зарядом <25% должны ехать на зарядку</p>
+            <p>3. Роботы с зарядом <25% должны на зарядку</p>
             <p>4. Все роботы должны попасть в свой гараж</p>
         </div>
 
@@ -34,10 +38,11 @@
             <h2>🎉 Миссия выполнена! 🎉</h2>
             <p>Все роботы доставлены!</p>
             <p>Ходов: <span id="final-moves">0</span></p>
+            <p>Время: <span id="final-time">0:00</span></p>
             <button onclick="shareResults()">Поделиться результатом</button>
         </div>
     </div>
 
-    <script src="script.js?v=3"></script>
+    <script src="script.js?v=4"></script>
 </body>
 </html>
