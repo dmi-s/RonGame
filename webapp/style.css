@@ -368,7 +368,7 @@ html, body {
     max-width: 100%;
 }
 
-/* Улучшенное отображение на очень узких экранах */
+/* Улучшенное отображение на очень узких экранов */
 @media (max-height: 600px) {
     .container {
         padding: 5px;
@@ -412,4 +412,50 @@ html, body {
     align-items: center;
     width: 100%;
     padding: 2px;
+}
+
+/* Стили для анимации движения роботов */
+.robot-ghost {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    border-radius: 2px;
+    font-size: 0.65em;
+    box-shadow: 0 0 10px rgba(255, 235, 59, 0.7);
+    position: absolute;
+    z-index: 100;
+    transition: all 4s ease-in-out;
+}
+
+/* Анимация загрузки */
+.loading-animation {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* Анимация зарядки */
+.charging-animation {
+    animation: glow 1s infinite alternate;
+}
+
+@keyframes glow {
+    from { box-shadow: 0 0 5px #f39c12; }
+    to { box-shadow: 0 0 15px #f39c12; }
+}
+
+/* Анимация успеха */
+.success-animation {
+    animation: success 0.5s ease-in-out;
+}
+
+@keyframes success {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 }
