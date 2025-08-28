@@ -780,7 +780,6 @@
         if (!robot.isMoving) {
             this.moveRobotAlongPath(robot);
         } else {
-            // Разрешаем добавлять точки в путь, даже если робот в движении
             this.unlockAllCells();
             for (const p of robot.path) {
                 const pts = this.getLinePoints(robot.row, robot.col, p.row, p.col);
@@ -1051,4 +1050,5 @@ document.addEventListener('DOMContentLoaded', () => {
     </script>
 </body>
 </html>
+
 
