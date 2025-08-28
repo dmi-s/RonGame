@@ -19,7 +19,7 @@ class LogisticsGame {
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
-        this.lockedCells = new Set(); // Занятые траектории
+        this.lockedCells = new Set();
         this.init();
     }
 
@@ -63,7 +63,6 @@ class LogisticsGame {
     }
 
     setupGame() {
-        // Стартовая зона 2x5
         for (let row = 0; row < 2; row++) {
             for (let col = 0; col < 5; col++) {
                 const cell = this.getCell(row, col);
@@ -71,7 +70,6 @@ class LogisticsGame {
                 cell.dataset.originalClass = 'start';
             }
         }
-        // Зона выгрузки 2x5
         const garageNumbers = this.generateUniqueNumbers(10, 1, 10);
         let idx = 0;
         for (let row = 0; row < 2; row++) {
@@ -83,9 +81,7 @@ class LogisticsGame {
                 cell.dataset.originalClass = 'finish';
             }
         }
-        // Станции и препятствия
         this.placeStationsAndObstacles();
-        // Роботы
         this.createRobots();
         this.updateTimer();
     }
@@ -117,7 +113,6 @@ class LogisticsGame {
             }
         }
 
-        // Столбы в рядах 4, 5, 6
         const obstacleRows = [4, 5, 6];
         const allPossible = [];
         for (const row of obstacleRows) {
@@ -387,7 +382,6 @@ class LogisticsGame {
         const oldCell = this.getCell(robot.row, robot.col);
         const newCell = this.getCell(r, c);
 
-        // Анимация
         oldCell.classList.remove('robot', 'selected');
         this.restoreCellAppearance(oldCell);
 
