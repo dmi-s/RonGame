@@ -337,15 +337,15 @@
                 this.loadingStations = [];
                 this.obstacles = [];
 
-                // --- ИСПРАВЛЕНИЕ ЛОГИКИ НИЖНЕГО РЯДА ---
-                // 1. Определяем все возможные колонки (0-9)
-                const allColumns = Array.from({ length: this.cols }, (_, i) => i);
+                // --- ИСПРАВЛЕНИЕ ЛОГИКИ НИЖНЕГО РЯДА (БЕЗ УГЛОВ) ---
+                // 1. Определяем возможные колонки (1-8), исключая угловые (0 и 9)
+                const possibleColumns = Array.from({ length: this.cols - 2 }, (_, i) => i + 1); // [1, 2, 3, 4, 5, 6, 7, 8]
 
                 // 2. Перемешиваем колонки для случайного выбора
-                this.shuffleArray(allColumns);
+                this.shuffleArray(possibleColumns);
 
-                // 3. Выбираем 4 различные колонки
-                const selectedColumns = allColumns.slice(0, 4);
+                // 3. Выбираем 4 различные колонки из возможных
+                const selectedColumns = possibleColumns.slice(0, 4);
                 // Убеждаемся, что выбранные колонки уникальны
                 const uniqueSelectedColumns = [...new Set(selectedColumns)].slice(0, 4);
 
@@ -366,10 +366,10 @@
                         // Расстояние между центрами соседних станций >= 2
                         if (Math.abs(sortedColumns[i] - sortedColumns[i + 1]) < 2) {
                             isValid = false;
-                            // Перемешиваем и выбираем новые колонки
-                            this.shuffleArray(allColumns);
+                            // Перемешиваем и выбираем новые колонки из возможных
+                            this.shuffleArray(possibleColumns);
                             // Обновляем выбранные колонки
-                            const newSelected = allColumns.slice(0, 4);
+                            const newSelected = possibleColumns.slice(0, 4);
                             uniqueSelectedColumns.splice(0, 4, ...[...new Set(newSelected)].slice(0, 4));
                             break;
                         }
@@ -378,14 +378,14 @@
                 }
 
                 // 6. Размещаем станции на доске
-                // Если не удалось найти хорошее расположение, используем фиксированное
+                // Если не удалось найти хорошее расположение, используем фиксированное (без углов)
                 let finalColumns;
                 if (isValid && uniqueSelectedColumns.length === 4) {
                     finalColumns = uniqueSelectedColumns;
                 } else {
-                    console.warn("Не удалось разместить станции с соблюдением минимального расстояния, используем резервный вариант.");
-                    // Используем колонки 1, 3, 6, 8 - гарантированно подходят
-                    finalColumns = [1, 3, 6, 8];
+                    console.warn("Не удалось разместить станции с соблюдением минимального расстояния, используем резервный вариант (без углов).");
+                    // Используем колонки 2, 4, 5, 7 - гарантированно подходят и не в углах
+                    finalColumns = [2, 4, 5, 7];
                     // Убеждаемся, что типы перемешаны
                     this.shuffleArray(stationTypes);
                 }
@@ -409,7 +409,7 @@
                     }
                 }
 
-                // 7. Заполняем ВСЕ ОСТАЛЬНЫЕ клетки нижнего ряда стенами
+                // 7. Заполняем ВСЕ ОСТАЛЬНЫЕ клетки нижнего ряда стенами (включая угловые 0 и 9)
                 for (let col = 0; col < this.cols; col++) {
                     // Проверяем, занята ли колонка станцией
                     const isChargingStation = this.chargingStations.some(station => station.col === col);
