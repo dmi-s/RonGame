@@ -1,3 +1,4 @@
+/* style.css */
 body {
     font-family: 'Arial', sans-serif;
     background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
@@ -10,7 +11,6 @@ body {
     overflow-x: hidden;
     touch-action: manipulation;
 }
-
 .container {
     background: white;
     border-radius: 12px;
@@ -22,14 +22,12 @@ body {
     margin: 5px;
     box-sizing: border-box;
 }
-
 h1 {
     color: #2c3e50;
     margin-bottom: 8px;
     font-size: 1.3em;
     padding: 0 5px;
 }
-
 .timer-container {
     display: flex;
     justify-content: space-between;
@@ -37,7 +35,6 @@ h1 {
     padding: 0 5px;
     gap: 5px;
 }
-
 .stat-item {
     background: #ecf0f1;
     padding: 4px 8px;
@@ -47,7 +44,6 @@ h1 {
     flex: 1;
     min-width: 0;
 }
-
 .game-info {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -56,7 +52,6 @@ h1 {
     font-size: 0.75em;
     padding: 0 5px;
 }
-
 #selected-robot, #battery-level, #moves, #timer {
     background: #ecf0f1;
     padding: 4px;
@@ -69,7 +64,6 @@ h1 {
     justify-content: center;
     min-width: 0;
 }
-
 button {
     background: #3498db;
     color: white;
@@ -83,11 +77,9 @@ button {
     margin-top: 5px;
     width: 100%;
 }
-
 button:hover {
     background: #2980b9;
 }
-
 .game-board {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
@@ -102,7 +94,6 @@ button:hover {
     background: #bdc3c7;
     position: relative;
 }
-
 .cell {
     display: flex;
     justify-content: center;
@@ -115,12 +106,10 @@ button:hover {
     border-radius: 2px;
     aspect-ratio: 1/1;
 }
-
 .cell:hover {
     transform: scale(1.03);
     z-index: 2;
 }
-
 /* Цвета клеток */
 .start { background: #ecf0f1; color: #2c3e50; }
 .finish { background: #27ae60; color: white; }
@@ -132,6 +121,7 @@ button:hover {
     color: #000;
     font-weight: bold;
     z-index: 3;
+    transition: all 0.3s ease;
 }
 .path {
     background: #f1c40f;
@@ -139,7 +129,6 @@ button:hover {
     font-weight: bold;
 }
 .empty { background: #ecf0f1; }
-
 /* Батарейка */
 .battery {
     position: absolute;
@@ -164,7 +153,6 @@ button:hover {
 .battery-orange { background: #f39c12; }
 .battery-yellow { background: #f1c40f; }
 .battery-green { background: #27ae60; }
-
 .instructions {
     margin-top: 10px;
     padding: 8px;
@@ -172,20 +160,17 @@ button:hover {
     border-radius: 6px;
     font-size: 0.7em;
 }
-
 .instructions h3 {
     margin: 0 0 5px 0;
     color: #2c3e50;
     font-size: 0.85em;
 }
-
 .instructions p {
     margin: 2px 0;
     color: #7f8c8d;
     font-size: 0.75em;
     line-height: 1.2;
 }
-
 .win-message {
     margin-top: 10px;
     padding: 8px;
@@ -194,25 +179,21 @@ button:hover {
     border: 2px solid #28a745;
     font-size: 0.8em;
 }
-
 .win-message h2 {
     color: #28a745;
     margin-bottom: 6px;
     font-size: 1em;
     margin: 0;
 }
-
 .win-message p {
     margin: 2px 0;
     font-size: 0.75em;
 }
-
 .win-message button {
     margin-top: 6px;
     font-size: 0.75em;
     padding: 4px 8px;
 }
-
 /* Выбранный робот */
 .cell.robot.selected {
     background: linear-gradient(45deg, #ffeb3b, #000000) !important;
@@ -222,8 +203,7 @@ button:hover {
     box-shadow: 0 0 8px yellow;
     border: 1px solid black;
 }
-
-/* Подсветка доступных клеток */
+/* Стили для подсветки */
 .highlight-charging {
     box-shadow: 0 0 8px orange !important;
 }
@@ -236,8 +216,7 @@ button:hover {
 .highlight-move {
     box-shadow: 0 0 6px blue !important;
 }
-
-/* Мигание приоритетных целей */
+/* Приоритетная мигающая подсветка */
 .priority-blinking {
     animation: priority-blink 1s infinite;
 }
@@ -246,7 +225,6 @@ button:hover {
     50% { opacity: 0.3; }
     100% { opacity: 1; }
 }
-
 .priority-blinking.highlight-charging {
     box-shadow: 0 0 12px #ff9900 !important;
 }
@@ -256,7 +234,6 @@ button:hover {
 .priority-blinking.highlight-garage {
     box-shadow: 0 0 12px #00ff00 !important;
 }
-
 /* Линии траектории */
 .path-line {
     position: relative;
@@ -284,7 +261,12 @@ button:hover {
     transform: translateX(-50%);
     z-index: -1;
 }
-
+.path {
+    z-index: 2;
+    font-weight: bold;
+    background: #f1c40f !important;
+    color: #2c3e50 !important;
+}
 /* Адаптивность */
 @media (max-width: 320px) {
     .game-board {
@@ -314,7 +296,6 @@ button:hover {
         font-size: 1em;
     }
 }
-
 /* Предотвращение выделения текста */
 * {
     -webkit-tap-highlight-color: transparent;
@@ -324,36 +305,50 @@ button:hover {
     user-select: none;
     box-sizing: border-box;
 }
-
-/* Улучшенная прокрутка */
+/* Улучшенная прокрутка для мобильных */
 .container {
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
     max-height: 100vh;
 }
-
 /* Фикс для iOS */
 @supports (-webkit-touch-callout: none) {
     .container {
         padding-bottom: 20px;
     }
 }
-
-/* Убираем отступы */
+/* Убираем стандартные отступы */
 html, body {
     margin: 0;
     padding: 0;
     width: 100%;
     height: 100%;
 }
-
-/* Портрет и ландшафт */
+/* Гарантируем, что ничего не выходит за границы */
+* {
+    max-width: 100%;
+}
+/* Улучшенное отображение на очень узких экранах */
+@media (max-height: 600px) {
+    .container {
+        padding: 5px;
+    }
+    .game-board {
+        width: 90vmin;
+        height: 90vmin;
+    }
+    .instructions {
+        display: none;
+    }
+}
+/* Портретная ориентация */
 @media (orientation: portrait) {
     .container {
         margin: 2px;
         padding: 8px;
     }
 }
+/* Ландшафтная ориентация */
 @media (orientation: landscape) {
     .container {
         max-width: 95vh;
@@ -364,16 +359,7 @@ html, body {
         height: 70vmin;
     }
 }
-
-/* Анимации */
-.charging-animation {
-    animation: glow 1s infinite alternate;
-}
-@keyframes glow {
-    from { box-shadow: 0 0 5px #f39c12; }
-    to { box-shadow: 0 0 15px #f39c12; }
-}
-
+/* Анимация загрузки */
 .loading-animation {
     animation: pulse 1s infinite;
 }
@@ -381,4 +367,12 @@ html, body {
     0% { opacity: 1; }
     50% { opacity: 0.5; }
     100% { opacity: 1; }
+}
+/* Анимация зарядки */
+.charging-animation {
+    animation: glow 1s infinite alternate;
+}
+@keyframes glow {
+    from { box-shadow: 0 0 5px #f39c12; }
+    to { box-shadow: 0 0 15px #f39c12; }
 }
