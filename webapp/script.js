@@ -1,4 +1,3 @@
-// script.js
 class LogisticsGame {
     constructor() {
         this.board = document.getElementById('game-board');
@@ -22,7 +21,7 @@ class LogisticsGame {
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
-        this.lockedCells = new Set(); // Заблокированные клетки траекторий
+        this.lockedCells = new Set();
         
         this.init();
     }
@@ -102,9 +101,8 @@ class LogisticsGame {
     }
 
     placeStationsAndObstacles() {
-        const stationRow = this.rows - 1; // Станции внизу
+        const stationRow = this.rows - 1;
         
-        // Случайный порядок станций (2 зарядки, 2 погрузки)
         const stationTypes = ['charging', 'charging', 'loading', 'loading'];
         this.shuffleArray(stationTypes);
         
@@ -112,11 +110,9 @@ class LogisticsGame {
         this.loadingStations = [];
         this.obstacles = [];
         
-        // Доступные колонки для станций (исключаем края)
         const availableCols = [1, 2, 3, 4, 5, 6, 7, 8];
         this.shuffleArray(availableCols);
         
-        // Размещаем станции с минимальным расстоянием 1 клетка
         const placedStations = [];
         
         for (const type of stationTypes) {
@@ -144,7 +140,7 @@ class LogisticsGame {
             }
         }
         
-        // Добавляем столбы только в рядах 4,5,6
+        // Столбы только в рядах 4,5,6
         const obstacleRows = [4, 5, 6];
         const allPossibleObstacles = [];
         
@@ -163,7 +159,6 @@ class LogisticsGame {
         
         this.shuffleArray(allPossibleObstacles);
         
-        // Добавляем 8-10 столбов
         for (const obstacle of allPossibleObstacles) {
             if (this.obstacles.length >= 8) break;
             
@@ -179,7 +174,6 @@ class LogisticsGame {
     }
 
     canPlaceObstacle(row, col) {
-        // Проверяем расстояние до других препятствий (минимум 2 клетки)
         for (const obs of this.obstacles) {
             const rowDistance = Math.abs(obs.row - row);
             const colDistance = Math.abs(obs.col - col);
@@ -187,7 +181,6 @@ class LogisticsGame {
                 return false;
             }
         }
-        
         return true;
     }
 
@@ -328,13 +321,19 @@ class LogisticsGame {
     }
 
     handleCellClick(row, col, cell) {
+        console.log('Click on cell:', row, col, cell.classList.toString());
+        
         if (cell.classList.contains('robot')) {
-            this.selectRobot(row, col);
-            this.startTimer();
+            const robot = this.robots.find(r => r.row === row && r.col === col);
+            if (robot && !robot.isMoving) {
+                this.selectRobot(row, col);
+                this.startTimer();
+            }
             return;
         }
         
         if (this.selectedRobot && !this.selectedRobot.isMoving) {
+            console.log('Adding to path for robot:', this.selectedRobot.number);
             this.addToPath(this.selectedRobot, row, col);
         }
     }
@@ -343,7 +342,6 @@ class LogisticsGame {
         const robot = this.robots.find(r => r.row === row && r.col === col);
         if (!robot || robot.isMoving) return;
         
-        // Сбрасываем выделение у предыдущего робота
         if (this.selectedRobot) {
             const prevCell = this.getCell(this.selectedRobot.row, this.selectedRobot.col);
             prevCell.classList.remove('selected');
@@ -365,6 +363,8 @@ class LogisticsGame {
     }
 
     highlightAvailableMoves(robot) {
+        console.log('Highlighting moves for robot:', robot.number);
+        
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 const cell = this.getCell(r, c);
@@ -454,10 +454,20 @@ class LogisticsGame {
     }
 
     addToPath(robot, targetRow, targetCol) {
-        if (robot.isMoving) return;
+        console.log('Adding path point:', targetRow, targetCol, 'for robot:', robot.number);
         
-        if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol) ||
-            !this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
+        if (robot.isMoving) {
+            console.log('Robot is moving, cannot add path');
+            return;
+        }
+        
+        if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol)) {
+            console.log('Not straight line');
+            return;
+        }
+        
+        if (!this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
+            console.log('Path not clear');
             return;
         }
 
@@ -470,7 +480,7 @@ class LogisticsGame {
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
         
-        // Начинаем движение
+        console.log('Starting movement for robot:', robot.number);
         this.moveRobotAlongPath(robot);
     }
 
@@ -486,7 +496,6 @@ class LogisticsGame {
             cell.classList.add('path');
             cell.textContent = i + 1;
             
-            // Рисуем линию между точками
             this.drawLine(prevPoint.row, prevPoint.col, point.row, point.col);
             prevPoint = point;
         }
@@ -570,6 +579,7 @@ class LogisticsGame {
     async moveRobotAlongPath(robot) {
         if (robot.isMoving || robot.path.length === 0) return;
         
+        console.log('Starting movement along path for robot:', robot.number);
         robot.isMoving = true;
         this.movingRobots.add(robot);
         
@@ -577,23 +587,22 @@ class LogisticsGame {
             const point = robot.path[0];
             
             if (!this.isPathClear(robot.row, robot.col, point.row, point.col)) {
-                await this.delay(500);
+                await this.delay(100);
                 continue;
             }
             
             const currentPoint = robot.path.shift();
             await this.moveRobotToPoint(robot, currentPoint.row, currentPoint.col);
             
-            this.checkSpecialCells(robot);
+            await this.checkSpecialCells(robot);
             
             if (this.checkWinCondition()) {
                 this.endGame();
                 break;
             }
             
-            // Разблокируем пройденные клетки
+            // Обновляем блокировку клеток
             this.unlockAllCells();
-            // Блокируем клетки оставшегося пути
             for (const pathPoint of robot.path) {
                 const points = this.getLinePoints(robot.row, robot.col, pathPoint.row, pathPoint.col);
                 for (const point of points) {
@@ -601,7 +610,6 @@ class LogisticsGame {
                 }
             }
             
-            // Обновляем доступные ходы
             if (this.selectedRobot === robot) {
                 this.highlightAvailableMoves(robot);
             }
@@ -617,12 +625,16 @@ class LogisticsGame {
         if (this.selectedRobot === robot) {
             this.highlightAvailableMoves(robot);
         }
+        
+        console.log('Finished movement for robot:', robot.number);
     }
 
     async moveRobotToPoint(robot, targetRow, targetCol) {
+        console.log('Moving robot to point:', targetRow, targetCol);
+        
         const oldCell = this.getCell(robot.row, robot.col);
         
-        // Анимация движения
+        // Создаем ghost для анимации
         const ghost = document.createElement('div');
         ghost.className = 'robot-ghost';
         ghost.textContent = robot.hasPackage ? '📦' + robot.number : robot.number;
@@ -632,7 +644,7 @@ class LogisticsGame {
         ghost.style.left = oldCell.offsetLeft + 'px';
         ghost.style.top = oldCell.offsetTop + 'px';
         ghost.style.zIndex = '100';
-        ghost.style.transition = 'all 4s ease-in-out';
+        ghost.style.transition = 'all 1s ease-in-out';
         
         if (this.selectedRobot === robot) {
             ghost.style.background = 'linear-gradient(45deg, #ffeb3b, #000000)';
@@ -644,13 +656,15 @@ class LogisticsGame {
         
         this.board.appendChild(ghost);
         
-        await this.delay(50);
+        // Ждем следующего кадра
+        await new Promise(resolve => requestAnimationFrame(resolve));
         
         const targetCell = this.getCell(targetRow, targetCol);
         ghost.style.left = targetCell.offsetLeft + 'px';
         ghost.style.top = targetCell.offsetTop + 'px';
         
-        await this.delay(4000);
+        // Ждем завершения анимации
+        await this.delay(1000);
         ghost.remove();
         
         // Обновляем позицию робота
@@ -717,8 +731,10 @@ class LogisticsGame {
         const cell = this.getCell(robot.row, robot.col);
         cell.classList.add('charging-animation');
         
-        while (robot.battery < 100 && robot.atCharging) {
-            robot.battery = Math.min(100, robot.battery + 10);
+        let chargeLevel = robot.battery;
+        while (chargeLevel < 100 && robot.atCharging) {
+            chargeLevel = Math.min(100, chargeLevel + 10);
+            robot.battery = chargeLevel;
             this.updateBatteryDisplay(cell, robot.battery);
             
             if (this.selectedRobot === robot) {
@@ -736,7 +752,7 @@ class LogisticsGame {
         cell.textContent = '⏳';
         cell.classList.add('loading-animation');
         
-        await this.delay(5000);
+        await this.delay(2000);
         
         robot.hasPackage = true;
         cell.textContent = '📦' + robot.number;
@@ -815,3 +831,5 @@ function shareResults() {
 document.addEventListener('DOMContentLoaded', () => {
     new LogisticsGame();
 });
+
+                                 
