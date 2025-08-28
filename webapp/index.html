@@ -10,6 +10,9 @@
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
             user-select: none;
         }
         body {
@@ -281,6 +284,24 @@
                 this.createBoard();
                 this.setupGame();
                 this.setupEventListeners();
+                this.updateScreenSize();
+                window.addEventListener('resize', () => this.updateScreenSize());
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => this.updateScreenSize(), 100);
+                });
+            }
+
+            updateScreenSize() {
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                const board = this.board;
+                if (isMobile) {
+                    const size = Math.min(window.innerWidth * 0.95, 320);
+                    board.style.width = `${size}px`;
+                    board.style.height = `${size}px`;
+                } else {
+                    board.style.width = '320px';
+                    board.style.height = '320px';
+                }
             }
 
             createBoard() {
@@ -491,40 +512,17 @@
 
             highlightAvailableMoves(robot) {
                 this.resetHighlights();
-                let targets = [];
-                if (robot.battery < 25) {
-                    targets = this.chargingStations.filter(s => !this.isCellLocked(s.row, s.col));
-                } else if (!robot.hasPackage) {
-                    targets = this.loadingStations.filter(s => !this.isCellLocked(s.row, s.col));
-                } else {
-                    const g = this.findGarage(robot);
-                    if (g) targets = [g];
-                }
-                targets.forEach(t => {
-                    const cell = this.getCell(t.row, t.col);
-                    cell.classList.add('priority-blinking');
-                    if (this.chargingStations.some(s => s.row === t.row && s.col === t.col)) cell.classList.add('highlight-charging');
-                    else if (this.loadingStations.some(s => s.row === t.row && s.col === t.col)) cell.classList.add('highlight-loading');
-                    else if (this.isGarageForRobot(robot, t.row, t.col)) cell.classList.add('highlight-garage');
-                });
                 for (let r = 0; r < this.rows; r++) {
                     for (let c = 0; c < this.cols; c++) {
                         if (this.canMoveTo(r, c, robot) && this.isStraightLine(robot.row, robot.col, r, c) && this.isPathClear(robot.row, robot.col, r, c)) {
                             const cell = this.getCell(r, c);
-                            if (targets.some(t => t.row === r && t.col === c)) continue;
-                            cell.classList.add('highlight-move');
+                            if (this.chargingStations.some(s => s.row === r && s.col === c)) cell.classList.add('highlight-charging');
+                            else if (this.loadingStations.some(s => s.row === r && s.col === c)) cell.classList.add('highlight-loading');
+                            else if (this.isGarageForRobot(robot, r, c)) cell.classList.add('highlight-garage');
+                            else cell.classList.add('highlight-move');
                         }
                     }
                 }
-            }
-
-            findGarage(robot) {
-                for (let r = 0; r < 2; r++) {
-                    for (let c = 5; c < 10; c++) {
-                        if (this.isGarageForRobot(robot, r, c)) return { row: r, col: c };
-                    }
-                }
-                return null;
             }
 
             isGarageForRobot(robot, r, c) {
@@ -555,7 +553,7 @@
 
             resetHighlights() {
                 this.board.querySelectorAll('.cell').forEach(cell => {
-                    cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move', 'priority-blinking');
+                    cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move');
                 });
             }
 
@@ -745,16 +743,6 @@
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 
-            endGame() {
-                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
-                const min = Math.floor(elapsed / 60);
-                const sec = elapsed % 60;
-                this.winMessage.style.display = 'block';
-                this.finalMoves.textContent = this.moves;
-                this.finalTime.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
-                this.stopTimer();
-            }
-
             startTimer() {
                 if (!this.gameStarted) {
                     this.gameStarted = true;
@@ -770,6 +758,16 @@
 
             stopTimer() {
                 if (this.timerInterval) clearInterval(this.timerInterval);
+            }
+
+            endGame() {
+                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                const min = Math.floor(elapsed / 60);
+                const sec = elapsed % 60;
+                this.winMessage.style.display = 'block';
+                this.finalMoves.textContent = this.moves;
+                this.finalTime.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
+                this.stopTimer();
             }
 
             resetGame() {
