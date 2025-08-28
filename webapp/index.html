@@ -5,208 +5,216 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Логистические роботы</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            user-select: none;
-        }
+        /* style.css */
+body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow-x: hidden;
+    touch-action: manipulation;
+}
 
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow-x: hidden;
-            touch-action: manipulation;
-            padding: 10px;
-        }
+.container {
+    background: white;
+    border-radius: 12px;
+    padding: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 100vw;
+    width: 100%;
+    margin: 5px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            max-width: 100%;
-            width: 100%;
-            margin: 0 auto;
-        }
+.stats-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 0 5px;
+    gap: 5px;
+    width: 100%;
+    max-width: 500px;
+}
 
-        .stats-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+.stat-item {
+    background: #ecf0f1;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: min(0.75em, 3.5vw);
+    flex: 1;
+    min-width: 0;
+}
 
-        .stat-item {
-            background: #ecf0f1;
-            padding: 10px 12px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            flex: 1;
-            min-width: 120px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+.game-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    padding: 2px;
+}
 
-        .game-wrapper {
-            position: relative;
-            width: 100%;
-            margin: 0 auto 15px auto;
-            overflow: hidden;
-        }
+.game-board {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(13, 1fr);
+    gap: 1px;
+    width: min(95vmin, 95vh, 500px);
+    height: min(95vmin, 95vh, 500px);
+    border: 2px solid #34495e;
+    background: #bdc3c7;
+    position: relative;
+}
 
-        .game-board {
-            display: grid;
-            gap: 1px;
-            margin: 0 auto;
-            background: #bdc3c7;
-            position: relative;
-            border: 2px solid #34495e;
-            /* Размер будет установлен через JavaScript */
-        }
+.cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: min(0.65em, 3vw);
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    border-radius: 2px;
+    aspect-ratio: 1/1;
+}
 
-        .cell {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            border-radius: 2px;
-            aspect-ratio: 1/1;
-            /* Размер шрифта будет установлен через JavaScript */
-        }
+.cell:hover {
+    transform: scale(1.03);
+    z-index: 2;
+}
 
-        .start { background: #ecf0f1; color: #2c3e50; }
-        .finish { background: #27ae60; color: white; }
-        .charging { 
-            background: #f39c12; 
-            color: white;
-            animation: charging-pulse 2s infinite;
-        }
-        .loading { 
-            background: #9b59b6; 
-            color: white;
-            animation: loading-pulse 2s infinite;
-        }
-        .obstacle { 
-            background: #000;
-            background-image: linear-gradient(45deg, #ffd700 25%, transparent 25%, transparent 75%, #ffd700 75%, #ffd700),
-                             linear-gradient(45deg, #ffd700 25%, transparent 25%, transparent 75%, #ffd700 75%, #ffd700);
-            background-size: 10px 10px;
-            background-position: 0 0, 5px 5px;
-            color: white;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-        }
-        .empty { background: #ecf0f1; }
-        .wall {
-            background: #000;
-            background-image: linear-gradient(45deg, #ffd700 25%, transparent 25%, transparent 75%, #ffd700 75%, #ffd700),
-                             linear-gradient(45deg, #ffd700 25%, transparent 25%, transparent 75%, #ffd700 75%, #ffd700);
-            background-size: 10px 10px;
-            background-position: 0 0, 5px 5px;
-            color: white;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-        }
+/* Цвета клеток */
+.start { background: #ecf0f1; color: #2c3e50; }
+.finish { background: #27ae60; color: white; }
+.charging { background: #f39c12; color: white; }
+.loading { background: #9b59b6; color: white; }
+.obstacle { background: #7f8c8d; color: white; }
+.wall { background: #7f8c8d; color: white; }
+.robot {
+    background: linear-gradient(45deg, #ffeb3b, #ffc107);
+    color: #000;
+    font-weight: bold;
+    z-index: 3;
+    transition: all 0.3s ease;
+}
+.path {
+    background: #f1c40f;
+    color: #2c3e50;
+    font-weight: bold;
+}
+.empty { background: #ecf0f1; }
 
-        button {
-            background: #3498db;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s;
-            margin-top: 10px;
-            width: 100%;
-            max-width: 200px;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.2);
-        }
+button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: min(0.75em, 3.5vw);
+    transition: background 0.3s;
+    margin-top: 10px;
+    width: 100%;
+    max-width: 500px;
+}
 
-        button:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-        }
+button:hover {
+    background: #2980b9;
+}
 
-        @keyframes charging-pulse {
-            0% { background-color: #f39c12; }
-            50% { background-color: #e67e22; }
-            100% { background-color: #f39c12; }
-        }
+/* Адаптивность для очень маленьких экранов */
+@media (max-width: 320px) {
+    .cell {
+        font-size: min(0.55em, 2.8vw);
+    }
+    
+    .stat-item {
+        font-size: min(0.7em, 3.2vw);
+        padding: 3px 6px;
+    }
+}
 
-        @keyframes loading-pulse {
-            0% { background-color: #9b59b6; }
-            50% { background-color: #8e44ad; }
-            100% { background-color: #9b59b6; }
-        }
+@media (max-width: 280px) {
+    .cell {
+        font-size: min(0.5em, 2.5vw);
+    }
+}
 
-        /* Адаптивность для мобильных устройств */
-        @media (max-width: 768px) {
-            .container {
-                padding: 10px;
-                margin: 5px;
-            }
-            
-            .stats-container {
-                flex-direction: column;
-                gap: 8px;
-            }
-            
-            .stat-item {
-                min-width: auto;
-                padding: 8px 10px;
-                font-size: 13px;
-            }
-            
-            button {
-                padding: 10px 16px;
-                font-size: 14px;
-                max-width: 180px;
-            }
-        }
+/* Предотвращение выделения текста */
+* {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+    box-sizing: border-box;
+}
 
-        @media (max-width: 480px) {
-            .stat-item {
-                font-size: 12px;
-                padding: 6px 8px;
-            }
-            
-            button {
-                padding: 8px 14px;
-                font-size: 13px;
-                max-width: 160px;
-            }
-        }
+/* Улучшенная прокрутка для мобильных */
+.container {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    max-height: 100vh;
+}
 
-        /* Портретная ориентация */
-        @media (orientation: portrait) {
-            .game-wrapper {
-                max-width: 95vw;
-            }
-        }
+/* Фикс для iOS */
+@supports (-webkit-touch-callout: none) {
+    .container {
+        padding-bottom: 20px;
+    }
+}
 
-        /* Ландшафтная ориентация */
-        @media (orientation: landscape) {
-            .game-wrapper {
-                max-width: 80vh;
-            }
-            
-            .stats-container {
-                flex-direction: row;
-            }
-        }
+/* Убираем стандартные отступы */
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+}
+
+/* Гарантируем, что ничего не выходит за границы */
+* {
+    max-width: 100%;
+}
+
+/* Портретная ориентация */
+@media (orientation: portrait) {
+    .container {
+        margin: 2px;
+        padding: 8px;
+    }
+    
+    .game-board {
+        width: min(90vmin, 90vh, 500px);
+        height: min(90vmin, 90vh, 500px);
+    }
+}
+
+/* Ландшафтная ориентация */
+@media (orientation: landscape) {
+    .container {
+        max-width: 95vh;
+        margin: 5px auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 10px;
+    }
+    
+    .game-board {
+        width: min(70vmin, 70vh, 400px);
+        height: min(70vmin, 70vh, 400px);
+    }
+}
     </style>
 </head>
 <body>
@@ -215,11 +223,11 @@
             <div id="moves" class="stat-item">Ходы: 0</div>
             <div id="timer" class="stat-item">Время: 0:00</div>
         </div>
-        
+
         <div class="game-wrapper">
             <div class="game-board" id="game-board"></div>
         </div>
-        
+
         <button id="reset-btn">Новая игра</button>
     </div>
 
@@ -229,7 +237,7 @@
                 this.board = document.getElementById('game-board');
                 this.movesElement = document.getElementById('moves');
                 this.timerElement = document.getElementById('timer');
-                this.rows = 13; // Увеличили количество рядов до 13
+                this.rows = 13;
                 this.cols = 10;
                 this.chargingStations = [];
                 this.loadingStations = [];
@@ -238,13 +246,13 @@
                 this.gameStarted = false;
                 this.startTime = 0;
                 this.timerInterval = null;
-                
+
                 // ПЕРЕМЕННАЯ: количество столбов
-                this.OBSTACLES_COUNT = 8;
-                
+                this.OBSTACLES_COUNT = 9;
+
                 this.cellSize = 0;
                 this.fontSize = 0;
-                
+
                 this.init();
             }
 
@@ -254,7 +262,7 @@
                 this.setupEventListeners();
                 this.updateScreenSize();
                 this.updateTimer();
-                
+
                 // Обработчики изменения размера экрана
                 window.addEventListener('resize', () => this.updateScreenSize());
                 window.addEventListener('orientationchange', () => {
@@ -264,27 +272,27 @@
 
             updateScreenSize() {
                 const isMobile = window.innerWidth <= 768;
-                const wrapper = this.board.parentElement;
                 const maxWidth = isMobile ? window.innerWidth * 0.92 : 500;
-                
+
                 // Рассчитываем размер клетки
                 this.cellSize = Math.min(maxWidth / this.cols, 40);
                 this.fontSize = Math.max(this.cellSize * 0.35, 10);
-                
+
                 // Устанавливаем размеры поля
                 this.board.style.width = `${this.cellSize * this.cols}px`;
                 this.board.style.height = `${this.cellSize * this.rows}px`;
                 this.board.style.gridTemplateColumns = `repeat(${this.cols}, ${this.cellSize}px)`;
                 this.board.style.gridTemplateRows = `repeat(${this.rows}, ${this.cellSize}px)`;
-                
+
                 // Устанавливаем размер шрифта для всех клеток
                 const cells = this.board.querySelectorAll('.cell');
                 cells.forEach(cell => {
                     cell.style.fontSize = `${this.fontSize}px`;
                 });
-                
+
                 // Центрируем поле на мобильных устройствах
                 if (isMobile) {
+                    const wrapper = this.board.parentElement;
                     wrapper.style.margin = '0 auto';
                     wrapper.style.maxWidth = `${this.cellSize * this.cols}px`;
                 }
@@ -350,7 +358,7 @@
                 for (let i = 0; i < 4; i++) {
                     let col = availableCols[i];
                     const type = stationTypes[i];
-                    
+
                     // Проверяем минимальное расстояние 1 клетка между станциями
                     let isValid = true;
                     for (const placedCol of placedStations) {
@@ -359,7 +367,7 @@
                             break;
                         }
                     }
-                    
+
                     if (isValid) {
                         const cell = this.getCell(stationRow, col);
                         if (type === 'charging') {
@@ -388,9 +396,9 @@
                 }
 
                 // Добавляем столбы в рядах 4-12 (столбы могут быть у края)
-                const obstacleRows = [4, 5, 6, 7, 8, 9, 10, 11];
+                const obstacleRows = [4, 5, 6, 7, 8, 9, 10, 11, 12];
                 const grid = [];
-                
+
                 // Все возможные позиции включая края
                 for (const row of obstacleRows) {
                     for (let col = 0; col < this.cols; col++) {
@@ -401,26 +409,26 @@
                 // Размещаем столбы
                 let attempts = 0;
                 const maxAttempts = 1000;
-                
+
                 while (this.obstacles.length < this.OBSTACLES_COUNT && attempts < maxAttempts) {
                     this.obstacles = [];
                     const shuffledGrid = [...grid];
                     this.shuffleArray(shuffledGrid);
-                    
+
                     for (const pos of shuffledGrid) {
                         if (this.obstacles.length >= this.OBSTACLES_COUNT) break;
-                        
+
                         let valid = true;
                         for (const existing of this.obstacles) {
                             const manhattanDistance = Math.abs(pos.row - existing.row) + Math.abs(pos.col - existing.col);
                             const chebyshevDistance = Math.max(Math.abs(pos.row - existing.row), Math.abs(pos.col - existing.col));
-                            
+
                             if (manhattanDistance < 3 || chebyshevDistance < 2) {
                                 valid = false;
                                 break;
                             }
                         }
-                        
+
                         if (valid) {
                             for (const station of [...this.chargingStations, ...this.loadingStations]) {
                                 const manhattanDistance = Math.abs(pos.row - station.row) + Math.abs(pos.col - station.col);
@@ -430,7 +438,7 @@
                                 }
                             }
                         }
-                        
+
                         if (valid) {
                             this.obstacles.push(pos);
                         }
@@ -440,7 +448,7 @@
 
                 // Fallback
                 if (this.obstacles.length < this.OBSTACLES_COUNT) {
-                    const remaining = grid.filter(pos => 
+                    const remaining = grid.filter(pos =>
                         !this.obstacles.some(o => o.row === pos.row && o.col === pos.col)
                     );
                     this.obstacles = [...this.obstacles, ...remaining.slice(0, this.OBSTACLES_COUNT - this.obstacles.length)];
