@@ -1,4 +1,3 @@
-/* style.css */
 body {
     font-family: 'Arial', sans-serif;
     background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
@@ -340,7 +339,7 @@ button:hover {
     }
 }
 
-/* Гарантия границ */
+/* Убираем отступы */
 html, body {
     margin: 0;
     padding: 0;
