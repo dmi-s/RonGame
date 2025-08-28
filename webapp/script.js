@@ -670,7 +670,7 @@ class LogisticsGame {
     async moveRobotToPoint(robot, targetRow, targetCol) {
         // Проверка низкого заряда
         if (robot.battery < 25 && !robot.atCharging) {
-            robot.path = []; // Сбрасываем траекторию
+            robot.path = []; // Сбрасываем траекториу
             this.clearPathVisualization(robot);
             this.unlockAllCells();
             robot.isMoving = false;
@@ -691,10 +691,15 @@ class LogisticsGame {
         ghost.className = 'robot-ghost';
         ghost.textContent = robot.hasPackage ? '📦' + robot.number : robot.number;
         ghost.style.position = 'absolute';
-        ghost.style.width = oldCell.offsetWidth + 'px';
-        ghost.style.height = oldCell.offsetHeight + 'px';
-        ghost.style.left = oldCell.offsetLeft + 'px';
-        ghost.style.top = oldCell.offsetTop + 'px';
+        
+        // Получаем правильные координаты относительно игрового поля
+        const boardRect = this.board.getBoundingClientRect();
+        const cellSize = boardRect.width / this.cols;
+        
+        ghost.style.width = cellSize + 'px';
+        ghost.style.height = cellSize + 'px';
+        ghost.style.left = (robot.col * cellSize) + 'px';
+        ghost.style.top = (robot.row * cellSize) + 'px';
         ghost.style.zIndex = '100';
         ghost.style.transition = 'all 4s ease-in-out';
         
@@ -711,9 +716,9 @@ class LogisticsGame {
         // Ждем следующего кадра
         await new Promise(resolve => requestAnimationFrame(resolve));
         
-        const targetCell = this.getCell(targetRow, targetCol);
-        ghost.style.left = targetCell.offsetLeft + 'px';
-        ghost.style.top = targetCell.offsetTop + 'px';
+        // Устанавливаем конечную позицию
+        ghost.style.left = (targetCol * cellSize) + 'px';
+        ghost.style.top = (targetRow * cellSize) + 'px';
         
         // Ждем завершения анимации
         await this.delay(4000);
