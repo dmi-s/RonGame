@@ -6,6 +6,17 @@
     <title>Логистические роботы</title>
     <style>
         /* style.css */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box; /* Учитываем padding и border в размерах */
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
         body {
             font-family: 'Arial', sans-serif;
             background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
@@ -14,102 +25,112 @@
             min-height: 100vh;
             display: flex;
             justify-content: center;
-            align-items: flex-start;
-            overflow-x: hidden;
+            align-items: flex-start; /* Выравнивание сверху, а не по центру */
+            overflow: hidden; /* Запрещаем прокрутку body */
             touch-action: manipulation;
         }
+
         .container {
             background: white;
             border-radius: 12px;
-            padding: 10px;
+            padding: 8px; /* Уменьшено padding */
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
             text-align: center;
-            max-width: 100vw;
-            width: 100%;
-            margin: 5px;
-            box-sizing: border-box;
+            width: 100vw; /* Занимает всю ширину экрана */
+            max-width: 100%; /* Но не больше 100% */
+            max-height: 100vh; /* Ограничиваем высоту контейнера */
+            margin: 4px 0; /* Отступы сверху/снизу, 0 по бокам */
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow: hidden; /* Скрываем переполнение внутри контейнера */
         }
+
         .stats-container {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 8px;
-            padding: 0 5px;
-            gap: 5px;
+            margin-bottom: 6px; /* Уменьшен отступ */
+            padding: 0 4px; /* Уменьшен padding */
+            gap: 4px; /* Уменьшен зазор */
             width: 100%;
             max-width: 500px;
         }
+
         .stat-item {
             background: #ecf0f1;
-            padding: 4px 8px;
+            padding: 3px 6px; /* Уменьшено padding */
             border-radius: 4px;
             font-weight: bold;
-            font-size: min(0.75em, 3.5vw);
+            font-size: min(0.7em, 3vw); /* Адаптивный размер шрифта */
             flex: 1;
             min-width: 0;
+            white-space: nowrap; /* Предотвращает перенос текста */
+            overflow: hidden;
+            text-overflow: ellipsis; /* Добавляет многоточие при переполнении */
         }
+
         .game-wrapper {
             display: flex;
             justify-content: center;
             align-items: center;
             width: 100%;
-            padding: 2px;
+            padding: 1px; /* Минимальный padding */
+            overflow: hidden; /* Важно: скрывает переполнение */
         }
+
+        /* Ключевое изменение для размеров поля */
         .game-board {
             display: grid;
             grid-template-columns: repeat(10, 1fr);
             grid-template-rows: repeat(13, 1fr);
             gap: 1px;
-            width: min(95vmin, 95vh, 500px);
-            height: min(95vmin, 95vh, 650px); /* Увеличена высота для 13 рядов */
+            /* Используем clamp для более точного контроля */
+            width: min(94vw, 94vh * (10/13), 480px); /* Ширина: 94vw или пропорциональная высота, максимум 480px */
+            height: min(94vh, 94vw * (13/10), 624px); /* Высота: 94vh или пропорциональная ширина, максимум 624px (13/10 * 480) */
+            max-width: 100%; /* Дополнительная страховка */
+            max-height: 100%; /* Дополнительная страховка */
             border: 2px solid #34495e;
             background: #bdc3c7;
             position: relative;
+            overflow: hidden; /* Скрывает переполнение содержимого поля */
+            aspect-ratio: 10 / 13; /* Сохраняет пропорции 10x13 */
         }
+
+
         .cell {
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: min(0.65em, 3vw);
+            /* Адаптивный размер шрифта, связанный с размером поля */
+            font-size: calc(min(94vw, 94vh * (10/13), 480px) / 10 * 0.4);
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease; /* Ускорена анимация */
             position: relative;
-            border-radius: 2px;
-            aspect-ratio: 1/1;
-            /* background: #ecf0f1; Убираем общий фон */
+            border-radius: 1px; /* Уменьшен радиус */
+            /* aspect-ratio управляется grid */
+            background: #ecf0f1; /* Фон по умолчанию */
         }
+
         .cell:hover {
-            transform: scale(1.03);
-            z-index: 2;
+             transform: scale(0.95); /* Легкое сжатие вместо увеличения */
+             opacity: 0.9; /* Немного прозрачности */
+             z-index: 2;
         }
+
         /* Цвета клеток */
         .start { background: #ecf0f1; color: #2c3e50; }
         .finish { background: #27ae60; color: white; }
         .charging { background: #f39c12; color: white; }
         .loading { background: #9b59b6; color: white; }
-        
-        /* Стиль для столбов и стен с диагональными полосами */
-        .obstacle, .wall {
-            background-image:
-                repeating-linear-gradient(
-                    45deg,
-                    #000 0%,
-                    #000 10%,
-                    #ffff00 10%,
-                    #ffff00 20%
-                );
-            color: white; /* Или другой цвет текста, если он нужен */
-        }
-        
+        .obstacle { background: #7f8c8d; color: white; }
+        .wall { background: #7f8c8d; color: white; }
         .robot {
             background: linear-gradient(45deg, #ffeb3b, #ffc107);
             color: #000;
             font-weight: bold;
             z-index: 3;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
         }
         .path {
             background: #f1c40f;
@@ -117,95 +138,78 @@
             font-weight: bold;
         }
         .empty { background: #ecf0f1; }
+
         button {
             background: #3498db;
             color: white;
             border: none;
-            padding: 6px 10px;
+            padding: 5px 8px; /* Уменьшено padding */
             border-radius: 4px;
             cursor: pointer;
             font-size: min(0.75em, 3.5vw);
             transition: background 0.3s;
-            margin-top: 10px;
+            margin-top: 8px; /* Уменьшен отступ */
             width: 100%;
             max-width: 500px;
         }
+
         button:hover {
             background: #2980b9;
         }
-        /* Адаптивность для очень маленьких экранов */
-        @media (max-width: 320px) {
-            .cell {
-                font-size: min(0.55em, 2.8vw);
+
+        /* Адаптивность */
+        @media (max-width: 400px) {
+            .container {
+                padding: 6px;
+                margin: 2px 0;
+            }
+            .stats-container {
+                margin-bottom: 4px;
+                padding: 0 3px;
+                gap: 3px;
             }
             .stat-item {
-                font-size: min(0.7em, 3.2vw);
-                padding: 3px 6px;
+                padding: 2px 4px;
+                font-size: min(0.65em, 2.8vw);
             }
-        }
-        @media (max-width: 280px) {
             .cell {
-                font-size: min(0.5em, 2.5vw);
+                font-size: calc(min(92vw, 92vh * (10/13), 400px) / 10 * 0.38);
+                border-radius: 1px;
+            }
+            button {
+                padding: 4px 6px;
+                margin-top: 6px;
+                font-size: min(0.7em, 3.2vw);
             }
         }
-        /* Предотвращение выделения текста */
-        * {
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            user-select: none;
-            box-sizing: border-box;
+
+        @media (max-height: 700px) and (orientation: landscape) {
+             .container {
+                 padding: 5px;
+                 margin: 2px 0;
+             }
+             .stats-container {
+                 margin-bottom: 3px;
+             }
+             .stat-item {
+                 padding: 2px 4px;
+                 font-size: min(0.6em, 2.5vw);
+             }
+             .game-board {
+                 /* Ещё более строгие ограничения для ландшафта на маленьких экранах */
+                 width: min(85vw, 85vh * (10/13), 350px);
+                 height: min(85vh, 85vw * (13/10), 455px);
+             }
+             .cell {
+                 font-size: calc(min(85vw, 85vh * (10/13), 350px) / 10 * 0.35);
+             }
+             button {
+                 padding: 3px 5px;
+                 margin-top: 5px;
+                 font-size: min(0.65em, 2.8vw);
+             }
         }
-        /* Улучшенная прокрутка для мобильных */
-        .container {
-            -webkit-overflow-scrolling: touch;
-            overflow-y: auto;
-            max-height: 100vh;
-        }
-        /* Фикс для iOS */
-        @supports (-webkit-touch-callout: none) {
-            .container {
-                padding-bottom: 20px;
-            }
-        }
-        /* Убираем стандартные отступы */
-        html, body {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-        }
-        /* Гарантируем, что ничего не выходит за границы */
-        * {
-            max-width: 100%;
-        }
-        /* Портретная ориентация */
-        @media (orientation: portrait) {
-            .container {
-                margin: 2px;
-                padding: 8px;
-            }
-            .game-board {
-                width: min(90vmin, 90vh, 500px);
-                height: min(90vmin, 90vh, 650px);
-            }
-        }
-        /* Ландшафтная ориентация */
-        @media (orientation: landscape) {
-            .container {
-                max-width: 95vh;
-                margin: 5px auto;
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-                padding: 10px;
-            }
-            .game-board {
-                width: min(70vmin, 70vh, 400px);
-                height: min(70vmin, 70vh, 520px); /* Пропорционально увеличена высота */
-            }
-        }
+
     </style>
 </head>
 <body>
@@ -215,6 +219,7 @@
             <div id="timer" class="stat-item">Время: 0:00</div>
         </div>
         <div class="game-wrapper">
+            <!-- Поле игры -->
             <div class="game-board" id="game-board"></div>
         </div>
         <button id="reset-btn">Новая игра</button>
@@ -234,54 +239,20 @@
                 this.gameStarted = false;
                 this.startTime = 0;
                 this.timerInterval = null;
-                // ПЕРЕМЕННАЯ: количество столбов
                 this.OBSTACLES_COUNT = 9;
-                this.cellSize = 0;
-                this.fontSize = 0;
                 this.init();
             }
+
             init() {
                 this.createBoard();
                 this.setupGame();
                 this.setupEventListeners();
-                this.updateScreenSize();
-                this.updateTimer();
-                // Обработчики изменения размера экрана
-                window.addEventListener('resize', () => this.updateScreenSize());
-                window.addEventListener('orientationchange', () => {
-                    setTimeout(() => this.updateScreenSize(), 100);
-                });
+                 // Добавим обработчик изменения размера окна для лучшей адаптации
+                 window.addEventListener('resize', () => {
+                     // Можно добавить дополнительную логику при необходимости
+                 });
             }
-            updateScreenSize() {
-                const isMobile = window.innerWidth <= 768;
-                // const maxWidth = isMobile ? window.innerWidth * 0.92 : 500;
-                // Улучшенное определение максимального размера с учетом высоты
-                const maxWidth = Math.min(window.innerWidth * 0.92, 500);
-                const maxHeight = Math.min(window.innerHeight * 0.7, 650); // Ограничение по высоте экрана
 
-                // Рассчитываем размер клетки, учитывая как ширину, так и высоту
-                const cellWidth = maxWidth / this.cols;
-                const cellHeight = maxHeight / this.rows;
-                this.cellSize = Math.min(cellWidth, cellHeight, 50); // Ограничение сверху 50px
-
-                this.fontSize = Math.max(this.cellSize * 0.35, 10);
-                // Устанавливаем размеры поля
-                this.board.style.width = `${this.cellSize * this.cols}px`;
-                this.board.style.height = `${this.cellSize * this.rows}px`;
-                this.board.style.gridTemplateColumns = `repeat(${this.cols}, ${this.cellSize}px)`;
-                this.board.style.gridTemplateRows = `repeat(${this.rows}, ${this.cellSize}px)`;
-                // Устанавливаем размер шрифта для всех клеток
-                const cells = this.board.querySelectorAll('.cell');
-                cells.forEach(cell => {
-                    cell.style.fontSize = `${this.fontSize}px`;
-                });
-                // Центрируем поле на мобильных устройствах
-                // if (isMobile) {
-                //     const wrapper = this.board.parentElement;
-                //     wrapper.style.margin = '0 auto';
-                //     wrapper.style.maxWidth = `${this.cellSize * this.cols}px`;
-                // }
-            }
             createBoard() {
                 this.board.innerHTML = '';
                 for (let row = 0; row < this.rows; row++) {
@@ -294,14 +265,14 @@
                     }
                 }
             }
+
             setupGame() {
-                // Сбрасываем счетчики
                 this.moves = 0;
                 this.movesElement.textContent = 'Ходы: 0';
                 this.stopTimer();
                 this.gameStarted = false;
                 this.startTime = 0;
-                // Создаем стартовую зону (первые 2 ряда)
+
                 for (let row = 0; row < 2; row++) {
                     for (let col = 0; col < 5; col++) {
                         const cell = this.getCell(row, col);
@@ -309,7 +280,7 @@
                         cell.dataset.originalClass = 'start';
                     }
                 }
-                // Создаем зону финиша (первые 2 ряда)
+
                 for (let row = 0; row < 2; row++) {
                     for (let col = 5; col < 10; col++) {
                         const cell = this.getCell(row, col);
@@ -317,79 +288,51 @@
                         cell.dataset.originalClass = 'finish';
                     }
                 }
+
                 this.placeStationsAndObstacles();
-                this.updateScreenSize(); // Обновляем размеры после создания поля
             }
+
             placeStationsAndObstacles() {
-                const stationRow = this.rows - 1; // Станции в последнем ряду (12)
+                const stationRow = this.rows - 1;
                 this.chargingStations = [];
                 this.loadingStations = [];
                 this.obstacles = [];
 
-                // --- Обязательное размещение станций ---
-                // Выбираем 4 уникальные позиции из 10 колонок
-                const allCols = Array.from({ length: this.cols }, (_, i) => i); // [0,1,2,...,9]
-                this.shuffleArray(allCols);
-
-                // Назначаем типы станций для первых 4 позиций
-                const assignedTypes = ['charging', 'charging', 'loading', 'loading'];
-                // Перемешиваем типы для случайного распределения
-                this.shuffleArray(assignedTypes);
+                const availableCols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+                this.shuffleArray(availableCols);
+                const stationTypes = ['charging', 'charging', 'loading', 'loading'];
+                this.shuffleArray(stationTypes);
 
                 const placedStations = [];
                 for (let i = 0; i < 4; i++) {
-                    const col = allCols[i];
-                    const type = assignedTypes[i];
-                    placedStations.push({ col, type });
-                }
-
-                // Проверяем минимальное расстояние 1 клетка между станциями
-                let isValidPlacement = false;
-                let attempts = 0;
-                const maxAttempts = 100;
-
-                while (!isValidPlacement && attempts < maxAttempts) {
-                    isValidPlacement = true;
-                    placedStations.sort((a, b) => a.col - b.col); // Сортируем по колонкам для проверки
-
-                    for (let i = 0; i < placedStations.length - 1; i++) {
-                        if (Math.abs(placedStations[i].col - placedStations[i+1].col) <= 1) {
-                            isValidPlacement = false;
-                            // Если недостаточно места, перемешиваем позиции и типы и пробуем снова
-                            this.shuffleArray(allCols);
-                            for (let j = 0; j < 4; j++) {
-                                placedStations[j].col = allCols[j];
-                            }
-                            this.shuffleArray(assignedTypes);
-                            for (let j = 0; j < 4; j++) {
-                                placedStations[j].type = assignedTypes[j];
-                            }
+                    let col = availableCols[i];
+                    const type = stationTypes[i];
+                    let isValid = true;
+                    for (const placedCol of placedStations) {
+                        if (Math.abs(col - placedCol) <= 1) {
+                            isValid = false;
                             break;
                         }
                     }
-                    attempts++;
-                }
-
-                // Размещаем станции на доске
-                for (const station of placedStations) {
-                    const cell = this.getCell(stationRow, station.col);
-                    if (station.type === 'charging') {
-                        cell.className = 'cell charging';
-                        cell.textContent = '⚡';
-                        cell.dataset.originalClass = 'charging';
-                        this.chargingStations.push({ row: stationRow, col: station.col });
-                    } else {
-                        cell.className = 'cell loading';
-                        cell.textContent = '📦';
-                        cell.dataset.originalClass = 'loading';
-                        this.loadingStations.push({ row: stationRow, col: station.col });
+                    if (isValid) {
+                        const cell = this.getCell(stationRow, col);
+                        if (type === 'charging') {
+                            cell.className = 'cell charging';
+                            cell.textContent = '⚡';
+                            cell.dataset.originalClass = 'charging';
+                            this.chargingStations.push({ row: stationRow, col: col });
+                        } else {
+                            cell.className = 'cell loading';
+                            cell.textContent = '📦';
+                            cell.dataset.originalClass = 'loading';
+                            this.loadingStations.push({ row: stationRow, col: col });
+                        }
+                        placedStations.push(col);
                     }
                 }
-                // --- Конец обязательного размещения станций ---
 
-                // Заполняем весь нижний ряд стенами (кроме станций)
                 for (let col = 0; col < this.cols; col++) {
-                    if (!placedStations.some(s => s.col === col)) {
+                    if (!placedStations.includes(col)) {
                         const cell = this.getCell(stationRow, col);
                         cell.className = 'cell wall';
                         cell.textContent = '';
@@ -397,43 +340,39 @@
                     }
                 }
 
-                // Добавляем столбы в рядах 4-9 (по вашему запросу)
+                // Столбы только в рядах 4, 5, 6, 7, 8, 9
                 const obstacleRows = [4, 5, 6, 7, 8, 9];
                 const grid = [];
-                // Все возможные позиции включая края
                 for (const row of obstacleRows) {
                     for (let col = 0; col < this.cols; col++) {
                         grid.push({ row, col });
                     }
                 }
-                // Размещаем столбы
-                let obstacleAttempts = 0;
-                const maxObstacleAttempts = 1000;
-                while (this.obstacles.length < this.OBSTACLES_COUNT && obstacleAttempts < maxObstacleAttempts) {
+
+                let attempts = 0;
+                const maxAttempts = 1000;
+                while (this.obstacles.length < this.OBSTACLES_COUNT && attempts < maxAttempts) {
                     this.obstacles = [];
                     const shuffledGrid = [...grid];
                     this.shuffleArray(shuffledGrid);
-                    nextCandidate:
                     for (const pos of shuffledGrid) {
                         if (this.obstacles.length >= this.OBSTACLES_COUNT) break;
                         let valid = true;
-                        // Проверка расстояния до других столбов
                         for (const existing of this.obstacles) {
                             const manhattanDistance = Math.abs(pos.row - existing.row) + Math.abs(pos.col - existing.col);
                             const chebyshevDistance = Math.max(Math.abs(pos.row - existing.row), Math.abs(pos.col - existing.col));
                             if (manhattanDistance < 3 || chebyshevDistance < 2) {
                                 valid = false;
-                                continue nextCandidate; // Переход к следующему кандидату
+                                break;
                             }
                         }
-                        // Проверка расстояния до станций
                         if (valid) {
                             for (const station of [...this.chargingStations, ...this.loadingStations]) {
                                 const manhattanDistance = Math.abs(pos.row - station.row) + Math.abs(pos.col - station.col);
-                                // Уменьшаем требование к расстоянию до станций, если они в другом ряду
+                                // Уменьшаем требование к расстоянию до станций, если они в другом ряду (ряд 12)
                                 if (manhattanDistance < 2) { // Было < 3
                                     valid = false;
-                                    continue nextCandidate;
+                                    break;
                                 }
                             }
                         }
@@ -441,16 +380,16 @@
                             this.obstacles.push(pos);
                         }
                     }
-                    obstacleAttempts++;
+                    attempts++;
                 }
-                // Fallback: если не удалось разместить все, размещаем в оставшихся позициях
+
                 if (this.obstacles.length < this.OBSTACLES_COUNT) {
                     const remaining = grid.filter(pos =>
                         !this.obstacles.some(o => o.row === pos.row && o.col === pos.col)
                     );
                     this.obstacles.push(...remaining.slice(0, this.OBSTACLES_COUNT - this.obstacles.length));
                 }
-                // Визуализируем столбы
+
                 for (const obs of this.obstacles) {
                     const cell = this.getCell(obs.row, obs.col);
                     cell.className = 'cell obstacle';
@@ -458,6 +397,7 @@
                     cell.dataset.originalClass = 'obstacle';
                 }
             }
+
             startTimer() {
                 if (!this.gameStarted) {
                     this.gameStarted = true;
@@ -465,12 +405,14 @@
                     this.timerInterval = setInterval(() => this.updateTimer(), 1000);
                 }
             }
+
             stopTimer() {
                 if (this.timerInterval) {
                     clearInterval(this.timerInterval);
                     this.timerInterval = null;
                 }
             }
+
             updateTimer() {
                 if (this.gameStarted) {
                     const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
@@ -479,17 +421,26 @@
                     this.timerElement.textContent = `Время: ${minutes}:${seconds.toString().padStart(2, '0')}`;
                 }
             }
+
             getCell(row, col) {
                 return this.board.querySelector(`[data-row="${row}"][data-col="${col}"]`);
             }
+
             setupEventListeners() {
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
-                this.board.addEventListener('click', () => this.startTimer());
+                // Запуск таймера по первому клику на поле
+                const startGame = () => {
+                    this.startTimer();
+                    this.board.removeEventListener('click', startGame);
+                };
+                this.board.addEventListener('click', startGame);
             }
+
             resetGame() {
                 this.createBoard();
                 this.setupGame();
             }
+
             shuffleArray(array) {
                 for (let i = array.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -498,6 +449,7 @@
                 return array;
             }
         }
+
         document.addEventListener('DOMContentLoaded', () => {
             new LogisticsGame();
         });
