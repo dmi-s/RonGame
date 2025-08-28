@@ -102,7 +102,6 @@ class LogisticsGame {
 
     placeStationsAndObstacles() {
         const stationRow = this.rows - 1; // Станции внизу
-        const obstacleRow = this.rows - 2; // Столбы на ряд выше станций
         
         // Случайный порядок станций (2 зарядки, 2 погрузки)
         const stationTypes = ['charging', 'charging', 'loading', 'loading'];
@@ -140,17 +139,18 @@ class LogisticsGame {
                     
                     placedStations.push(col);
                     
-                    // Ставим столб между станциями
+                    // Ставим столбы МЕЖДУ станциями в том же ряду
                     if (placedStations.length > 1) {
                         const prevCol = placedStations[placedStations.length - 2];
                         const obstacleCol = Math.floor((prevCol + col) / 2);
                         if (obstacleCol !== prevCol && obstacleCol !== col) {
-                            const obstacleCell = this.getCell(obstacleRow, obstacleCol);
-                            if (!obstacleCell.classList.contains('obstacle')) {
+                            const obstacleCell = this.getCell(stationRow, obstacleCol);
+                            if (!obstacleCell.classList.contains('charging') && 
+                                !obstacleCell.classList.contains('loading')) {
                                 obstacleCell.className = 'cell obstacle';
                                 obstacleCell.textContent = '🚧';
                                 obstacleCell.dataset.originalClass = 'obstacle';
-                                this.obstacles.push({ row: obstacleRow, col: obstacleCol });
+                                this.obstacles.push({ row: stationRow, col: obstacleCol });
                             }
                         }
                     }
@@ -278,7 +278,8 @@ class LogisticsGame {
             atLoading: false,
             atFinish: false,
             path: [],
-            isMoving: false
+            isMoving: false,
+            currentTargetIndex: 0
         };
         
         this.robots.push(robot);
@@ -458,8 +459,18 @@ class LogisticsGame {
     }
 
     addToPath(robot, targetRow, targetCol) {
-        if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol) ||
-            !this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
+        // Проверяем только прямую линию от последней точки пути
+        let startRow = robot.row;
+        let startCol = robot.col;
+        
+        if (robot.path.length > 0) {
+            const lastPoint = robot.path[robot.path.length - 1];
+            startRow = lastPoint.row;
+            startCol = lastPoint.col;
+        }
+        
+        if (!this.isStraightLine(startRow, startCol, targetRow, targetCol) ||
+            !this.isPathClear(startRow, startCol, targetRow, targetCol)) {
             return;
         }
 
@@ -617,6 +628,7 @@ class LogisticsGame {
         while (robot.path.length > 0) {
             const point = robot.path[0];
             
+            // Проверяем путь от текущей позиции до следующей точки
             if (!this.isPathClear(robot.row, robot.col, point.row, point.col)) {
                 await this.delay(500);
                 continue;
@@ -814,8 +826,3 @@ function shareResults() {
 document.addEventListener('DOMContentLoaded', () => {
     new LogisticsGame();
 });
-
-
-
-
-
