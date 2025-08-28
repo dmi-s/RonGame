@@ -181,6 +181,10 @@
                 this.gameStarted = false;
                 this.startTime = 0;
                 this.timerInterval = null;
+                
+                // ПЕРЕМЕННАЯ: количество столбов (можно менять от 4 до 8)
+                this.OBSTACLES_COUNT = 6; // Измените на 5 или 6 по желанию
+                
                 this.init();
             }
 
@@ -241,7 +245,7 @@
                 this.loadingStations = [];
                 this.obstacles = [];
 
-                // Создаем случайное расположение для 4 станций
+                // Создаем случайное расположение для 4 станций с минимальным расстоянием 1 клетка
                 const availableCols = [1, 2, 3, 4, 5, 6, 7, 8];
                 this.shuffleArray(availableCols);
 
@@ -251,22 +255,54 @@
 
                 const placedStations = [];
                 for (let i = 0; i < 4; i++) {
-                    const col = availableCols[i];
+                    let col = availableCols[i];
                     const type = stationTypes[i];
                     
-                    const cell = this.getCell(stationRow, col);
-                    if (type === 'charging') {
-                        cell.className = 'cell charging';
-                        cell.textContent = '⚡';
-                        cell.dataset.originalClass = 'charging';
-                        this.chargingStations.push({ row: stationRow, col: col });
-                    } else {
-                        cell.className = 'cell loading';
-                        cell.textContent = '📦';
-                        cell.dataset.originalClass = 'loading';
-                        this.loadingStations.push({ row: stationRow, col: col });
+                    // Проверяем минимальное расстояние 1 клетка между станциями
+                    let isValid = true;
+                    for (const placedCol of placedStations) {
+                        if (Math.abs(col - placedCol) <= 1) { // Минимум 1 клетка между станциями
+                            isValid = false;
+                            break;
+                        }
                     }
-                    placedStations.push(col);
+                    
+                    // Если не подходит, ищем другую позицию
+                    if (!isValid) {
+                        for (let j = i + 1; j < availableCols.length; j++) {
+                            const alternativeCol = availableCols[j];
+                            let alternativeValid = true;
+                            for (const placedCol of placedStations) {
+                                if (Math.abs(alternativeCol - placedCol) <= 1) {
+                                    alternativeValid = false;
+                                    break;
+                                }
+                            }
+                            if (alternativeValid) {
+                                col = alternativeCol;
+                                // Меняем местами в массиве
+                                [availableCols[i], availableCols[j]] = [availableCols[j], availableCols[i]];
+                                isValid = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (isValid) {
+                        const cell = this.getCell(stationRow, col);
+                        if (type === 'charging') {
+                            cell.className = 'cell charging';
+                            cell.textContent = '⚡';
+                            cell.dataset.originalClass = 'charging';
+                            this.chargingStations.push({ row: stationRow, col: col });
+                        } else {
+                            cell.className = 'cell loading';
+                            cell.textContent = '📦';
+                            cell.dataset.originalClass = 'loading';
+                            this.loadingStations.push({ row: stationRow, col: col });
+                        }
+                        placedStations.push(col);
+                    }
                 }
 
                 // Заполняем ВЕСЬ нижний ряд стенами (включая углы)
@@ -279,7 +315,7 @@
                     }
                 }
 
-                // Добавляем 4 столба в рядах 4, 5, 6
+                // Добавляем столбы в рядах 4, 5, 6
                 const obstacleRows = [4, 5, 6];
                 
                 // Создаем сетку всех возможных позиций
@@ -294,13 +330,13 @@
                 let attempts = 0;
                 const maxAttempts = 1000;
                 
-                while (this.obstacles.length < 4 && attempts < maxAttempts) {
+                while (this.obstacles.length < this.OBSTACLES_COUNT && attempts < maxAttempts) {
                     this.obstacles = [];
                     const shuffledGrid = [...grid];
                     this.shuffleArray(shuffledGrid);
                     
                     for (const pos of shuffledGrid) {
-                        if (this.obstacles.length >= 4) break;
+                        if (this.obstacles.length >= this.OBSTACLES_COUNT) break;
                         
                         let valid = true;
                         for (const existing of this.obstacles) {
@@ -319,7 +355,7 @@
                             }
                         }
                         
-                        // Проверяем расстояние до станций
+                        // Проверяем расстояние до станций (минимум 2 клетки)
                         if (valid) {
                             for (const station of [...this.chargingStations, ...this.loadingStations]) {
                                 const manhattanDistance = Math.abs(pos.row - station.row) + Math.abs(pos.col - station.col);
@@ -337,9 +373,9 @@
                     attempts++;
                 }
 
-                // Если не удалось разместить, используем fallback - просто берем первые 4 позиции
-                if (this.obstacles.length < 4) {
-                    this.obstacles = grid.slice(0, 4);
+                // Если не удалось разместить, используем fallback - просто берем первые позиции
+                if (this.obstacles.length < this.OBSTACLES_COUNT) {
+                    this.obstacles = grid.slice(0, this.OBSTACLES_COUNT);
                 }
 
                 // Визуализируем столбы
@@ -350,19 +386,9 @@
                     cell.dataset.originalClass = 'obstacle';
                 }
 
-                // Отладочная информация о расстояниях
+                // Отладочная информация
                 console.log('Размещено столбов:', this.obstacles.length);
-                for (let i = 0; i < this.obstacles.length; i++) {
-                    for (let j = i + 1; j < this.obstacles.length; j++) {
-                        const a = this.obstacles[i];
-                        const b = this.obstacles[j];
-                        const rowDiff = Math.abs(a.row - b.row);
-                        const colDiff = Math.abs(a.col - b.col);
-                        const manhattan = rowDiff + colDiff;
-                        const chebyshev = Math.max(rowDiff, colDiff);
-                        console.log(`Столб ${i+1} и ${j+1}: rowDiff=${rowDiff}, colDiff=${colDiff}, Manhattan=${manhattan}, Chebyshev=${chebyshev}`);
-                    }
-                }
+                console.log('Количество попыток:', attempts);
             }
 
             startTimer() {
