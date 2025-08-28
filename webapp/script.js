@@ -365,6 +365,46 @@ class LogisticsGame {
     highlightAvailableMoves(robot) {
         console.log('Highlighting moves for robot:', robot.number);
         
+        // Сначала сбросим все подсветки
+        this.resetHighlights();
+        
+        // Определяем приоритетные цели
+        let priorityTargets = [];
+        
+        if (robot.battery < 25 && !robot.atCharging) {
+            // Низкий заряд - подсвечиваем станции зарядки
+            priorityTargets = this.chargingStations.filter(station => 
+                !this.isCellLocked(station.row, station.col) &&
+                this.isPathClear(robot.row, robot.col, station.row, station.col)
+            );
+        } else if (!robot.hasPackage && !robot.atLoading) {
+            // Нет груза - подсвечиваем станции погрузки
+            priorityTargets = this.loadingStations.filter(station => 
+                !this.isCellLocked(station.row, station.col) &&
+                this.isPathClear(robot.row, robot.col, station.row, station.col)
+            );
+        } else if (robot.hasPackage && !robot.atFinish) {
+            // Есть груз - подсвечиваем свой гараж
+            const garageCell = this.findGarageForRobot(robot);
+            if (garageCell && this.isPathClear(robot.row, robot.col, garageCell.row, garageCell.col)) {
+                priorityTargets = [garageCell];
+            }
+        }
+        
+        // Подсвечиваем приоритетные цели миганием
+        priorityTargets.forEach(target => {
+            const cell = this.getCell(target.row, target.col);
+            cell.classList.add('priority-blinking');
+            
+            if (this.chargingStations.some(s => s.row === target.row && s.col === target.col)) {
+                cell.classList.add('highlight-charging');
+            } else if (this.loadingStations.some(s => s.row === target.row && s.col === target.col)) {
+                cell.classList.add('highlight-loading');
+            } else if (this.isGarageForRobot(robot, target.row, target.col)) {
+                cell.classList.add('highlight-garage');
+            }
+        });
+        
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
                 const cell = this.getCell(r, c);
@@ -389,8 +429,20 @@ class LogisticsGame {
         }
     }
 
+    findGarageForRobot(robot) {
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const cell = this.getCell(row, col);
+                if (this.isGarageForRobot(robot, row, col)) {
+                    return { row, col };
+                }
+            }
+        }
+        return null;
+    }
+
     removeHighlights(cell) {
-        cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move');
+        cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move', 'priority-blinking');
     }
 
     isGarageForRobot(robot, row, col) {
@@ -632,6 +684,23 @@ class LogisticsGame {
     async moveRobotToPoint(robot, targetRow, targetCol) {
         console.log('Moving robot to point:', targetRow, targetCol);
         
+        // Проверка низкого заряда
+        if (robot.battery < 25 && !robot.atCharging) {
+            console.log('Low battery! Stopping movement.');
+            robot.path = []; // Сбрасываем траекторию
+            this.clearPathVisualization(robot);
+            this.unlockAllCells();
+            robot.isMoving = false;
+            this.movingRobots.delete(robot);
+            
+            // Подсвечиваем станции зарядки
+            if (this.selectedRobot === robot) {
+                this.highlightAvailableMoves(robot);
+            }
+            
+            return;
+        }
+        
         const oldCell = this.getCell(robot.row, robot.col);
         
         // Создаем ghost для анимации
@@ -644,7 +713,7 @@ class LogisticsGame {
         ghost.style.left = oldCell.offsetLeft + 'px';
         ghost.style.top = oldCell.offsetTop + 'px';
         ghost.style.zIndex = '100';
-        ghost.style.transition = 'all 1s ease-in-out';
+        ghost.style.transition = 'all 4s ease-in-out';
         
         if (this.selectedRobot === robot) {
             ghost.style.background = 'linear-gradient(45deg, #ffeb3b, #000000)';
@@ -664,14 +733,14 @@ class LogisticsGame {
         ghost.style.top = targetCell.offsetTop + 'px';
         
         // Ждем завершения анимации
-        await this.delay(1000);
+        await this.delay(4000);
         ghost.remove();
         
         // Обновляем позицию робота
         this.restoreCellAppearance(oldCell);
         robot.row = targetRow;
         robot.col = targetCol;
-        robot.battery = Math.max(0, robot.battery - 2);
+        robot.battery = Math.max(0, robot.battery - 5);
         
         if (robot.battery <= 0) {
             this.gameOver();
@@ -752,7 +821,7 @@ class LogisticsGame {
         cell.textContent = '⏳';
         cell.classList.add('loading-animation');
         
-        await this.delay(2000);
+        await this.delay(5000);
         
         robot.hasPackage = true;
         cell.textContent = '📦' + robot.number;
@@ -831,5 +900,3 @@ function shareResults() {
 document.addEventListener('DOMContentLoaded', () => {
     new LogisticsGame();
 });
-
-                                 
