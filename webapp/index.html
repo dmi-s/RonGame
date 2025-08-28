@@ -406,7 +406,7 @@
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
-        this.lockedCells = new Set();
+        this.lockedCells = new Set(); // Добавлено: блокировка клеток траектории
         this.init();
     }
 
@@ -450,6 +450,7 @@
     }
 
     setupGame() {
+        // Поле старта
         for (let row = 0; row < 2; row++) {
             for (let col = 0; col < 5; col++) {
                 const cell = this.getCell(row, col);
@@ -457,6 +458,7 @@
                 cell.dataset.originalClass = 'start';
             }
         }
+        // Поле финиша
         const garageNumbers = this.generateUniqueNumbers(10, 1, 10);
         let numberIndex = 0;
         for (let row = 0; row < 2; row++) {
@@ -468,60 +470,64 @@
                 cell.dataset.originalClass = 'finish';
             }
         }
+        // Станции и препятствия
         this.placeStationsAndObstacles();
+        // Роботы
         this.createRobots();
         this.updateTimer();
     }
 
     placeStationsAndObstacles() {
-        const stationRow = this.rows - 1;
+        const bottomRow = this.rows - 1;
         const stationTypes = ['charging', 'charging', 'loading', 'loading'];
         this.shuffleArray(stationTypes);
         this.chargingStations = [];
         this.loadingStations = [];
-        this.obstacles = [];
-
         const availableCols = [1, 2, 3, 4, 5, 6, 7, 8];
         this.shuffleArray(availableCols);
-
         const placedStations = [];
         for (const type of stationTypes) {
             for (const col of availableCols) {
-                if (placedStations.length === 0 || placedStations.every(p => Math.abs(p - col) > 1)) {
-                    const cell = this.getCell(stationRow, col);
+                if (placedStations.length === 0 || placedStations.every(placed => Math.abs(placed - col) > 1)) {
+                    const cell = this.getCell(bottomRow, col);
                     if (type === 'charging') {
                         cell.className = 'cell charging';
                         cell.textContent = '⚡';
                         cell.dataset.originalClass = 'charging';
-                        this.chargingStations.push({ row: stationRow, col: col });
+                        this.chargingStations.push({ row: bottomRow, col: col });
                     } else {
                         cell.className = 'cell loading';
                         cell.textContent = '📦';
                         cell.dataset.originalClass = 'loading';
-                        this.loadingStations.push({ row: stationRow, col: col });
+                        this.loadingStations.push({ row: bottomRow, col: col });
                     }
                     placedStations.push(col);
                     break;
                 }
             }
         }
-
+        // Столбы только в рядах 4, 5, 6
+        this.obstacles = [];
         const obstacleRows = [4, 5, 6];
-        const allPossible = [];
+        const allPossibleObstacles = [];
         for (const row of obstacleRows) {
             for (let col = 1; col < this.cols - 1; col++) {
                 const cell = this.getCell(row, col);
-                if (!cell.classList.contains('charging') && !cell.classList.contains('loading')) {
-                    allPossible.push({ row, col });
+                if (!cell.classList.contains('charging') && 
+                    !cell.classList.contains('loading') &&
+                    !cell.classList.contains('start') &&
+                    !cell.classList.contains('finish')) {
+                    allPossibleObstacles.push({ row, col });
                 }
             }
         }
-        this.shuffleArray(allPossible);
-        for (const obs of allPossible) {
+        this.shuffleArray(allPossibleObstacles);
+        for (const obstacle of allPossibleObstacles) {
             if (this.obstacles.length >= 8) break;
-            if (this.canPlaceObstacle(obs.row, obs.col)) {
-                this.obstacles.push(obs);
-                const cell = this.getCell(obs.row, obs.col);
+            const canPlace = this.canPlaceObstacle(obstacle.row, obstacle.col);
+            if (canPlace) {
+                this.obstacles.push(obstacle);
+                const cell = this.getCell(obstacle.row, obstacle.col);
                 cell.className = 'cell obstacle';
                 cell.textContent = '🚧';
                 cell.dataset.originalClass = 'obstacle';
@@ -574,7 +580,7 @@
             const row = Math.floor(i / 5);
             const col = i % 5;
             const number = robotNumbers[i];
-            const battery = i < 3 ?
+            const battery = i < 3 ? 
                 Math.floor(Math.random() * 16) + 25 :
                 Math.floor(Math.random() * 61) + 40;
             this.createRobot(row, col, number, battery, false);
@@ -583,11 +589,11 @@
 
     createRobot(row, col, number, battery, hasPackage) {
         const robot = {
-            number,
-            row,
-            col,
-            battery,
-            hasPackage,
+            number: number,
+            row: row,
+            col: col,
+            battery: battery,
+            hasPackage: hasPackage,
             atCharging: false,
             atLoading: false,
             atFinish: false,
@@ -666,7 +672,6 @@
             }
             return;
         }
-
         if (this.selectedRobot) {
             this.addToPath(this.selectedRobot, row, col);
         }
@@ -692,51 +697,30 @@
 
     highlightAvailableMoves(robot) {
         this.resetHighlights();
-        let priorityTargets = [];
-        if (robot.battery < 25 && !robot.atCharging) {
-            priorityTargets = this.chargingStations.filter(s => !this.isCellLocked(s.row, s.col));
-        } else if (!robot.hasPackage && !robot.atLoading) {
-            priorityTargets = this.loadingStations.filter(s => !this.isCellLocked(s.row, s.col));
-        } else if (robot.hasPackage && !robot.atFinish) {
-            const garage = this.findGarageForRobot(robot);
-            if (garage) priorityTargets = [garage];
-        }
-
-        priorityTargets.forEach(t => {
-            const cell = this.getCell(t.row, t.col);
-            cell.classList.add('priority-blinking');
-            if (this.chargingStations.some(s => s.row === t.row && s.col === t.col)) cell.classList.add('highlight-charging');
-            else if (this.loadingStations.some(s => s.row === t.row && s.col === t.col)) cell.classList.add('highlight-loading');
-            else if (this.isGarageForRobot(robot, t.row, t.col)) cell.classList.add('highlight-garage');
-        });
-
         for (let r = 0; r < this.rows; r++) {
             for (let c = 0; c < this.cols; c++) {
-                if (this.canMoveTo(r, c, robot) && this.isStraightLine(robot.row, robot.col, r, c) && this.isPathClear(robot.row, robot.col, r, c)) {
-                    const cell = this.getCell(r, c);
-                    if (this.chargingStations.some(s => s.row === r && s.col === c)) cell.classList.add('highlight-charging');
-                    else if (this.loadingStations.some(s => s.row === r && s.col === c)) cell.classList.add('highlight-loading');
-                    else if (this.isGarageForRobot(robot, r, c)) cell.classList.add('highlight-garage');
-                    else cell.classList.add('highlight-move');
+                const cell = this.getCell(r, c);
+                if (this.canMoveTo(r, c, robot) && 
+                    this.isStraightLine(robot.row, robot.col, r, c) &&
+                    this.isPathClear(robot.row, robot.col, r, c)) {
+                    if (this.chargingStations.some(s => s.row === r && s.col === c)) {
+                        cell.classList.add('highlight-charging');
+                    } else if (this.loadingStations.some(s => s.row === r && s.col === c)) {
+                        cell.classList.add('highlight-loading');
+                    } else if (this.isGarageForRobot(robot, r, c)) {
+                        cell.classList.add('highlight-garage');
+                    } else {
+                        cell.classList.add('highlight-move');
+                    }
                 }
             }
         }
-    }
-
-    findGarageForRobot(robot) {
-        for (let r = 0; r < 2; r++) {
-            for (let c = 5; c < 10; c++) {
-                if (this.isGarageForRobot(robot, r, c)) {
-                    return { row: r, col: c };
-                }
-            }
-        }
-        return null;
     }
 
     isGarageForRobot(robot, row, col) {
         const cell = this.getCell(row, col);
-        return cell.classList.contains('finish') && parseInt(cell.dataset.garageNumber) === robot.number;
+        return cell.classList.contains('finish') && 
+               parseInt(cell.dataset.garageNumber) === robot.number;
     }
 
     isStraightLine(startRow, startCol, endRow, endCol) {
@@ -746,8 +730,7 @@
     isPathClear(startRow, startCol, endRow, endCol) {
         const rowStep = endRow > startRow ? 1 : endRow < startRow ? -1 : 0;
         const colStep = endCol > startCol ? 1 : endCol < startCol ? -1 : 0;
-        let r = startRow + rowStep;
-        let c = startCol + colStep;
+        let r = startRow + rowStep, c = startCol + colStep;
         while (r !== endRow || c !== endCol) {
             if (this.getCell(r, c).classList.contains('obstacle') || this.isCellLocked(r, c)) return false;
             r += rowStep;
@@ -758,7 +741,7 @@
 
     resetHighlights() {
         this.board.querySelectorAll('.cell').forEach(cell => {
-            cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move', 'priority-blinking');
+            cell.classList.remove('highlight-charging', 'highlight-loading', 'highlight-garage', 'highlight-move');
         });
     }
 
@@ -768,7 +751,8 @@
     }
 
     addToPath(robot, targetRow, targetCol) {
-        if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol) || !this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
+        if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol) ||
+            !this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
             return;
         }
 
@@ -780,6 +764,7 @@
         if (!robot.isMoving) {
             this.moveRobotAlongPath(robot);
         } else {
+            // Разрешаем добавлять точки, пока робот в пути
             this.unlockAllCells();
             for (const p of robot.path) {
                 const pts = this.getLinePoints(robot.row, robot.col, p.row, p.col);
@@ -818,8 +803,7 @@
         const points = [];
         const rowStep = endRow > startRow ? 1 : endRow < startRow ? -1 : 0;
         const colStep = endCol > startCol ? 1 : endCol < startCol ? -1 : 0;
-        let r = startRow;
-        let c = startCol;
+        let r = startRow, c = startCol;
         while (true) {
             points.push({ row: r, col: c });
             if (r === endRow && c === endCol) break;
@@ -886,7 +870,7 @@
         if (this.selectedRobot === robot) this.highlightAvailableMoves(robot);
     }
 
-    async moveRobotToPoint(robot, r, c) {
+    async moveRobotToPoint(robot, targetRow, targetCol) {
         if (robot.battery < 25 && !robot.atCharging) {
             robot.path = [];
             this.clearPathVisualization(robot);
@@ -916,28 +900,28 @@
         this.board.appendChild(ghost);
 
         await new Promise(resolve => requestAnimationFrame(resolve));
-        const targetCell = this.getCell(r, c);
+        const targetCell = this.getCell(targetRow, targetCol);
         ghost.style.left = targetCell.offsetLeft + 'px';
         ghost.style.top = targetCell.offsetTop + 'px';
 
-        await this.delay(4000);
+        await this.delay(4000); // 4 секунды на клетку
         ghost.remove();
 
         this.restoreCellAppearance(oldCell);
-        robot.row = r;
-        robot.col = c;
+        robot.row = targetRow;
+        robot.col = targetCol;
         robot.battery = Math.max(0, robot.battery - 5);
         if (robot.battery <= 0) {
             this.gameOver();
             return;
         }
 
-        const newCell = this.getCell(r, c);
+        const newCell = this.getCell(targetRow, targetCol);
         newCell.className = 'cell robot';
         if (this.selectedRobot === robot) newCell.classList.add('selected');
         newCell.textContent = robot.hasPackage ? '📦' + robot.number : robot.number;
         this.updateBatteryDisplay(newCell, robot.battery);
-        newCell.dataset.originalClass = this.getCell(r, c).dataset.originalClass || 'empty';
+        newCell.dataset.originalClass = this.getCell(targetRow, targetCol).dataset.originalClass || 'empty';
 
         this.moves++;
         this.movesElement.textContent = `Ходы: ${this.moves}`;
@@ -1050,5 +1034,6 @@ document.addEventListener('DOMContentLoaded', () => {
     </script>
 </body>
 </html>
+
 
 
