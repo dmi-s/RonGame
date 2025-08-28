@@ -18,7 +18,6 @@ body {
     overflow-x: hidden;
     touch-action: manipulation;
 }
-
 .container {
     background: white;
     border-radius: 12px;
@@ -33,7 +32,6 @@ body {
     flex-direction: column;
     align-items: center;
 }
-
 .stats-container {
     display: flex;
     justify-content: space-between;
@@ -43,7 +41,6 @@ body {
     width: 100%;
     max-width: 500px;
 }
-
 .stat-item {
     background: #ecf0f1;
     padding: 4px 8px;
@@ -53,46 +50,40 @@ body {
     flex: 1;
     min-width: 0;
 }
-
 .game-wrapper {
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
     padding: 2px;
-    max-height: 70vh;
 }
-
 .game-board {
     display: grid;
     grid-template-columns: repeat(10, 1fr);
     grid-template-rows: repeat(13, 1fr);
     gap: 1px;
-    width: 100%;
-    max-width: min(95vmin, 500px);
-    aspect-ratio: 10/13;
+    width: min(95vmin, 95vh, 500px);
+    height: min(95vmin, 95vh, 500px);
     border: 2px solid #34495e;
     background: #bdc3c7;
     position: relative;
 }
-
 .cell {
     display: flex;
     justify-content: center;
     align-items: center;
+    font-size: min(0.65em, 3vw);
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     border-radius: 2px;
-    font-size: calc(12px + 0.5vw);
+    aspect-ratio: 1/1;
 }
-
 .cell:hover {
     transform: scale(1.03);
     z-index: 2;
 }
-
 /* Цвета клеток */
 .start { background: #ecf0f1; color: #2c3e50; }
 .finish { background: #27ae60; color: white; }
@@ -113,72 +104,37 @@ body {
     font-weight: bold;
 }
 .empty { background: #ecf0f1; }
-
 button {
     background: #3498db;
     color: white;
     border: none;
-    padding: 8px 16px;
+    padding: 6px 10px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: min(0.9em, 4vw);
+    font-size: min(0.75em, 3.5vw);
     transition: background 0.3s;
-    margin-top: 15px;
+    margin-top: 10px;
     width: 100%;
-    max-width: 300px;
+    max-width: 500px;
 }
-
 button:hover {
     background: #2980b9;
 }
-
-/* Адаптивность */
-@media (max-width: 768px) {
-    .container {
-        padding: 8px;
-        margin: 2px;
-    }
-    
-    .game-wrapper {
-        max-height: 60vh;
-    }
-    
-    .cell {
-        font-size: calc(10px + 0.8vw);
-    }
-    
-    button {
-        padding: 6px 12px;
-        font-size: min(0.8em, 3.5vw);
-    }
-}
-
-@media (max-width: 480px) {
-    .game-wrapper {
-        max-height: 55vh;
-    }
-    
-    .cell {
-        font-size: calc(8px + 1vw);
-    }
-    
-    .stat-item {
-        font-size: min(0.7em, 3vw);
-        padding: 3px 6px;
-    }
-    
-    button {
-        margin-top: 10px;
-        max-width: 250px;
-    }
-}
-
+/* Адаптивность для очень маленьких экранов */
 @media (max-width: 320px) {
     .cell {
-        font-size: calc(7px + 1.2vw);
+        font-size: min(0.55em, 2.8vw);
+    }
+    .stat-item {
+        font-size: min(0.7em, 3.2vw);
+        padding: 3px 6px;
     }
 }
-
+@media (max-width: 280px) {
+    .cell {
+        font-size: min(0.5em, 2.5vw);
+    }
+}
 /* Предотвращение выделения текста */
 * {
     -webkit-tap-highlight-color: transparent;
@@ -188,21 +144,18 @@ button:hover {
     user-select: none;
     box-sizing: border-box;
 }
-
 /* Улучшенная прокрутка для мобильных */
 .container {
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
     max-height: 100vh;
 }
-
 /* Фикс для iOS */
 @supports (-webkit-touch-callout: none) {
     .container {
         padding-bottom: 20px;
     }
 }
-
 /* Убираем стандартные отступы */
 html, body {
     margin: 0;
@@ -210,10 +163,35 @@ html, body {
     width: 100%;
     height: 100%;
 }
-
 /* Гарантируем, что ничего не выходит за границы */
 * {
     max-width: 100%;
+}
+/* Портретная ориентация */
+@media (orientation: portrait) {
+    .container {
+        margin: 2px;
+        padding: 8px;
+    }
+    .game-board {
+        width: min(90vmin, 90vh, 500px);
+        height: min(90vmin, 90vh, 500px);
+    }
+}
+/* Ландшафтная ориентация */
+@media (orientation: landscape) {
+    .container {
+        max-width: 95vh;
+        margin: 5px auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        padding: 10px;
+    }
+    .game-board {
+        width: min(70vmin, 70vh, 400px);
+        height: min(70vmin, 70vh, 400px);
+    }
 }
     </style>
 </head>
@@ -223,14 +201,11 @@ html, body {
             <div id="moves" class="stat-item">Ходы: 0</div>
             <div id="timer" class="stat-item">Время: 0:00</div>
         </div>
-
         <div class="game-wrapper">
             <div class="game-board" id="game-board"></div>
         </div>
-
         <button id="reset-btn">Новая игра</button>
     </div>
-
     <script>
         class LogisticsGame {
             constructor() {
@@ -246,55 +221,47 @@ html, body {
                 this.gameStarted = false;
                 this.startTime = 0;
                 this.timerInterval = null;
-
                 // ПЕРЕМЕННАЯ: количество столбов
                 this.OBSTACLES_COUNT = 9;
-
+                this.cellSize = 0;
+                this.fontSize = 0;
                 this.init();
             }
-
             init() {
                 this.createBoard();
                 this.setupGame();
                 this.setupEventListeners();
+                this.updateScreenSize();
                 this.updateTimer();
-
                 // Обработчики изменения размера экрана
-                window.addEventListener('resize', () => this.updateBoardSize());
+                window.addEventListener('resize', () => this.updateScreenSize());
                 window.addEventListener('orientationchange', () => {
-                    setTimeout(() => this.updateBoardSize(), 100);
+                    setTimeout(() => this.updateScreenSize(), 100);
                 });
-                
-                // Первоначальная настройка размера
-                this.updateBoardSize();
             }
-
-            updateBoardSize() {
-                const container = document.querySelector('.container');
-                const statsHeight = document.querySelector('.stats-container').offsetHeight;
-                const buttonHeight = document.getElementById('reset-btn').offsetHeight;
-                const padding = 30; // Отступы
-                
-                // Рассчитываем доступную высоту для игрового поля
-                const availableHeight = window.innerHeight - statsHeight - buttonHeight - padding;
-                const availableWidth = window.innerWidth - 20; // Отступы по бокам
-                
-                // Определяем размер на основе доступного пространства
-                const maxCellSize = Math.min(availableWidth / this.cols, availableHeight / this.rows);
-                const cellSize = Math.min(maxCellSize, 40); // Максимальный размер клетки 40px
-                
+            updateScreenSize() {
+                const isMobile = window.innerWidth <= 768;
+                const maxWidth = isMobile ? window.innerWidth * 0.92 : 500;
+                // Рассчитываем размер клетки
+                this.cellSize = Math.min(maxWidth / this.cols, 40);
+                this.fontSize = Math.max(this.cellSize * 0.35, 10);
                 // Устанавливаем размеры поля
-                this.board.style.width = `${cellSize * this.cols}px`;
-                this.board.style.height = `${cellSize * this.rows}px`;
-                
-                // Обновляем размер шрифта в зависимости от размера клетки
-                const fontSize = Math.max(cellSize * 0.35, 10);
+                this.board.style.width = `${this.cellSize * this.cols}px`;
+                this.board.style.height = `${this.cellSize * this.rows}px`;
+                this.board.style.gridTemplateColumns = `repeat(${this.cols}, ${this.cellSize}px)`;
+                this.board.style.gridTemplateRows = `repeat(${this.rows}, ${this.cellSize}px)`;
+                // Устанавливаем размер шрифта для всех клеток
                 const cells = this.board.querySelectorAll('.cell');
                 cells.forEach(cell => {
-                    cell.style.fontSize = `${fontSize}px`;
+                    cell.style.fontSize = `${this.fontSize}px`;
                 });
+                // Центрируем поле на мобильных устройствах
+                if (isMobile) {
+                    const wrapper = this.board.parentElement;
+                    wrapper.style.margin = '0 auto';
+                    wrapper.style.maxWidth = `${this.cellSize * this.cols}px`;
+                }
             }
-
             createBoard() {
                 this.board.innerHTML = '';
                 for (let row = 0; row < this.rows; row++) {
@@ -307,7 +274,6 @@ html, body {
                     }
                 }
             }
-
             setupGame() {
                 // Сбрасываем счетчики
                 this.moves = 0;
@@ -315,7 +281,6 @@ html, body {
                 this.stopTimer();
                 this.gameStarted = false;
                 this.startTime = 0;
-
                 // Создаем стартовую зону (первые 2 ряда)
                 for (let row = 0; row < 2; row++) {
                     for (let col = 0; col < 5; col++) {
@@ -324,7 +289,6 @@ html, body {
                         cell.dataset.originalClass = 'start';
                     }
                 }
-
                 // Создаем зону финиша (первые 2 ряда)
                 for (let row = 0; row < 2; row++) {
                     for (let col = 5; col < 10; col++) {
@@ -333,28 +297,23 @@ html, body {
                         cell.dataset.originalClass = 'finish';
                     }
                 }
-
                 this.placeStationsAndObstacles();
+                this.updateScreenSize(); // Обновляем размеры после создания поля
             }
-
             placeStationsAndObstacles() {
                 const stationRow = this.rows - 1; // Станции в последнем ряду
                 this.chargingStations = [];
                 this.loadingStations = [];
                 this.obstacles = [];
-
                 // Создаем случайное расположение для 4 станций
-                const availableCols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+                const availableCols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; // Все колонки, включая края
                 this.shuffleArray(availableCols);
-
                 const stationTypes = ['charging', 'charging', 'loading', 'loading'];
                 this.shuffleArray(stationTypes);
-
                 const placedStations = [];
                 for (let i = 0; i < 4; i++) {
                     let col = availableCols[i];
                     const type = stationTypes[i];
-
                     // Проверяем минимальное расстояние 1 клетка между станциями
                     let isValid = true;
                     for (const placedCol of placedStations) {
@@ -363,7 +322,6 @@ html, body {
                             break;
                         }
                     }
-
                     if (isValid) {
                         const cell = this.getCell(stationRow, col);
                         if (type === 'charging') {
@@ -380,7 +338,6 @@ html, body {
                         placedStations.push(col);
                     }
                 }
-
                 // Заполняем весь нижний ряд стенами
                 for (let col = 0; col < this.cols; col++) {
                     if (!placedStations.includes(col)) {
@@ -390,40 +347,33 @@ html, body {
                         cell.dataset.originalClass = 'wall';
                     }
                 }
-
-                // Добавляем столбы
+                // Добавляем столбы в рядах 4-12 (столбы могут быть у края)
                 const obstacleRows = [4, 5, 6, 7, 8, 9, 10, 11, 12];
                 const grid = [];
-
+                // Все возможные позиции включая края
                 for (const row of obstacleRows) {
                     for (let col = 0; col < this.cols; col++) {
                         grid.push({ row, col });
                     }
                 }
-
                 // Размещаем столбы
                 let attempts = 0;
                 const maxAttempts = 1000;
-
                 while (this.obstacles.length < this.OBSTACLES_COUNT && attempts < maxAttempts) {
                     this.obstacles = [];
                     const shuffledGrid = [...grid];
                     this.shuffleArray(shuffledGrid);
-
                     for (const pos of shuffledGrid) {
                         if (this.obstacles.length >= this.OBSTACLES_COUNT) break;
-
                         let valid = true;
                         for (const existing of this.obstacles) {
                             const manhattanDistance = Math.abs(pos.row - existing.row) + Math.abs(pos.col - existing.col);
                             const chebyshevDistance = Math.max(Math.abs(pos.row - existing.row), Math.abs(pos.col - existing.col));
-
                             if (manhattanDistance < 3 || chebyshevDistance < 2) {
                                 valid = false;
                                 break;
                             }
                         }
-
                         if (valid) {
                             for (const station of [...this.chargingStations, ...this.loadingStations]) {
                                 const manhattanDistance = Math.abs(pos.row - station.row) + Math.abs(pos.col - station.col);
@@ -433,14 +383,12 @@ html, body {
                                 }
                             }
                         }
-
                         if (valid) {
                             this.obstacles.push(pos);
                         }
                     }
                     attempts++;
                 }
-
                 // Fallback
                 if (this.obstacles.length < this.OBSTACLES_COUNT) {
                     const remaining = grid.filter(pos =>
@@ -448,7 +396,6 @@ html, body {
                     );
                     this.obstacles = [...this.obstacles, ...remaining.slice(0, this.OBSTACLES_COUNT - this.obstacles.length)];
                 }
-
                 // Визуализируем столбы
                 for (const obs of this.obstacles) {
                     const cell = this.getCell(obs.row, obs.col);
@@ -456,11 +403,7 @@ html, body {
                     cell.textContent = '';
                     cell.dataset.originalClass = 'obstacle';
                 }
-                
-                // Обновляем размер после создания всех элементов
-                setTimeout(() => this.updateBoardSize(), 100);
             }
-
             startTimer() {
                 if (!this.gameStarted) {
                     this.gameStarted = true;
@@ -468,14 +411,12 @@ html, body {
                     this.timerInterval = setInterval(() => this.updateTimer(), 1000);
                 }
             }
-
             stopTimer() {
                 if (this.timerInterval) {
                     clearInterval(this.timerInterval);
                     this.timerInterval = null;
                 }
             }
-
             updateTimer() {
                 if (this.gameStarted) {
                     const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
@@ -484,30 +425,25 @@ html, body {
                     this.timerElement.textContent = `Время: ${minutes}:${seconds.toString().padStart(2, '0')}`;
                 }
             }
-
             getCell(row, col) {
                 return this.board.querySelector(`[data-row="${row}"][data-col="${col}"]`);
             }
-
             setupEventListeners() {
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
                 this.board.addEventListener('click', () => this.startTimer());
             }
-
             resetGame() {
                 this.createBoard();
                 this.setupGame();
             }
-
             shuffleArray(array) {
                 for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() + (i + 1));
+                    const j = Math.floor(Math.random() * (i + 1));
                     [array[i], array[j]] = [array[j], array[i]];
                 }
                 return array;
             }
         }
-
         document.addEventListener('DOMContentLoaded', () => {
             new LogisticsGame();
         });
