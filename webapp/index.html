@@ -406,7 +406,7 @@
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
-        this.lockedCells = new Set(); // Добавлено: блокировка клеток траектории
+        this.lockedCells = new Set(); // Добавлено: блокировка траекторий
         this.init();
     }
 
@@ -450,7 +450,6 @@
     }
 
     setupGame() {
-        // Поле старта
         for (let row = 0; row < 2; row++) {
             for (let col = 0; col < 5; col++) {
                 const cell = this.getCell(row, col);
@@ -458,7 +457,6 @@
                 cell.dataset.originalClass = 'start';
             }
         }
-        // Поле финиша
         const garageNumbers = this.generateUniqueNumbers(10, 1, 10);
         let numberIndex = 0;
         for (let row = 0; row < 2; row++) {
@@ -470,64 +468,60 @@
                 cell.dataset.originalClass = 'finish';
             }
         }
-        // Станции и препятствия
         this.placeStationsAndObstacles();
-        // Роботы
         this.createRobots();
         this.updateTimer();
     }
 
     placeStationsAndObstacles() {
-        const bottomRow = this.rows - 1;
+        const stationRow = this.rows - 1;
         const stationTypes = ['charging', 'charging', 'loading', 'loading'];
         this.shuffleArray(stationTypes);
         this.chargingStations = [];
         this.loadingStations = [];
+        this.obstacles = [];
+
         const availableCols = [1, 2, 3, 4, 5, 6, 7, 8];
         this.shuffleArray(availableCols);
+
         const placedStations = [];
         for (const type of stationTypes) {
             for (const col of availableCols) {
-                if (placedStations.length === 0 || placedStations.every(placed => Math.abs(placed - col) > 1)) {
-                    const cell = this.getCell(bottomRow, col);
+                if (placedStations.length === 0 || placedStations.every(p => Math.abs(p - col) > 1)) {
+                    const cell = this.getCell(stationRow, col);
                     if (type === 'charging') {
                         cell.className = 'cell charging';
                         cell.textContent = '⚡';
                         cell.dataset.originalClass = 'charging';
-                        this.chargingStations.push({ row: bottomRow, col: col });
+                        this.chargingStations.push({ row: stationRow, col: col });
                     } else {
                         cell.className = 'cell loading';
                         cell.textContent = '📦';
                         cell.dataset.originalClass = 'loading';
-                        this.loadingStations.push({ row: bottomRow, col: col });
+                        this.loadingStations.push({ row: stationRow, col: col });
                     }
                     placedStations.push(col);
                     break;
                 }
             }
         }
-        // Столбы только в рядах 4, 5, 6
-        this.obstacles = [];
+
         const obstacleRows = [4, 5, 6];
-        const allPossibleObstacles = [];
+        const allPossible = [];
         for (const row of obstacleRows) {
             for (let col = 1; col < this.cols - 1; col++) {
                 const cell = this.getCell(row, col);
-                if (!cell.classList.contains('charging') && 
-                    !cell.classList.contains('loading') &&
-                    !cell.classList.contains('start') &&
-                    !cell.classList.contains('finish')) {
-                    allPossibleObstacles.push({ row, col });
+                if (!cell.classList.contains('charging') && !cell.classList.contains('loading')) {
+                    allPossible.push({ row, col });
                 }
             }
         }
-        this.shuffleArray(allPossibleObstacles);
-        for (const obstacle of allPossibleObstacles) {
+        this.shuffleArray(allPossible);
+        for (const obs of allPossible) {
             if (this.obstacles.length >= 8) break;
-            const canPlace = this.canPlaceObstacle(obstacle.row, obstacle.col);
-            if (canPlace) {
-                this.obstacles.push(obstacle);
-                const cell = this.getCell(obstacle.row, obstacle.col);
+            if (this.canPlaceObstacle(obs.row, obs.col)) {
+                this.obstacles.push(obs);
+                const cell = this.getCell(obs.row, obs.col);
                 cell.className = 'cell obstacle';
                 cell.textContent = '🚧';
                 cell.dataset.originalClass = 'obstacle';
@@ -580,7 +574,7 @@
             const row = Math.floor(i / 5);
             const col = i % 5;
             const number = robotNumbers[i];
-            const battery = i < 3 ? 
+            const battery = i < 3 ?
                 Math.floor(Math.random() * 16) + 25 :
                 Math.floor(Math.random() * 61) + 40;
             this.createRobot(row, col, number, battery, false);
@@ -589,11 +583,11 @@
 
     createRobot(row, col, number, battery, hasPackage) {
         const robot = {
-            number: number,
-            row: row,
-            col: col,
-            battery: battery,
-            hasPackage: hasPackage,
+            number,
+            row,
+            col,
+            battery,
+            hasPackage,
             atCharging: false,
             atLoading: false,
             atFinish: false,
@@ -672,6 +666,7 @@
             }
             return;
         }
+
         if (this.selectedRobot) {
             this.addToPath(this.selectedRobot, row, col);
         }
@@ -904,7 +899,7 @@
         ghost.style.left = targetCell.offsetLeft + 'px';
         ghost.style.top = targetCell.offsetTop + 'px';
 
-        await this.delay(4000); // 4 секунды на клетку
+        await this.delay(4000);
         ghost.remove();
 
         this.restoreCellAppearance(oldCell);
@@ -1034,6 +1029,7 @@ document.addEventListener('DOMContentLoaded', () => {
     </script>
 </body>
 </html>
+
 
 
 
