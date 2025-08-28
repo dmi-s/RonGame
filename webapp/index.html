@@ -130,7 +130,7 @@
         .finish { background: #27ae60; color: white; }
         .charging { background: #f39c12; color: white; }
         .loading { background: #9b59b6; color: white; }
-        
+
         /* --- ВОЗВРАЩЕН ФОН ДЛЯ СТЕН И СТОЛБОВ --- */
         .obstacle, .wall {
             /* Создаем диагональные полосы под углом 45 градусов */
@@ -144,7 +144,7 @@
                 );
             color: white; /* Цвет текста, если он есть */
         }
-        
+
         .robot {
             background: linear-gradient(45deg, #ffeb3b, #ffc107);
             color: #000;
@@ -320,52 +320,97 @@
             }
 
             placeStationsAndObstacles() {
-                const stationRow = this.rows - 1;
+                const stationRow = this.rows - 1; // Ряд для станций (12-й, индекс 12)
                 this.chargingStations = [];
                 this.loadingStations = [];
                 this.obstacles = [];
 
-                const availableCols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-                this.shuffleArray(availableCols);
-                const stationTypes = ['charging', 'charging', 'loading', 'loading'];
-                this.shuffleArray(stationTypes);
+                // --- ИСПРАВЛЕНИЕ ЛОГИКИ НИЖНЕГО РЯДА ---
+                // 1. Определяем все возможные колонки (0-9)
+                const allColumns = Array.from({ length: this.cols }, (_, i) => i);
 
-                const placedStations = [];
-                for (let i = 0; i < 4; i++) {
-                    let col = availableCols[i];
-                    const type = stationTypes[i];
-                    let isValid = true;
-                    for (const placedCol of placedStations) {
-                        if (Math.abs(col - placedCol) <= 1) {
+                // 2. Перемешиваем колонки для случайного выбора
+                this.shuffleArray(allColumns);
+
+                // 3. Выбираем 4 различные колонки
+                const selectedColumns = allColumns.slice(0, 4);
+                // Убеждаемся, что выбранные колонки уникальны
+                const uniqueSelectedColumns = [...new Set(selectedColumns)].slice(0, 4);
+
+                // 4. Назначаем типы станций
+                let stationTypes = ['charging', 'charging', 'loading', 'loading'];
+
+                // 5. Проверяем и обеспечиваем минимальное расстояние (>= 2 клетки между центрами)
+                let isValid = false;
+                let placementAttempts = 0;
+                const maxPlacementAttempts = 200;
+
+                while (!isValid && placementAttempts < maxPlacementAttempts) {
+                    isValid = true;
+                    // Сортируем выбранные колонки для проверки расстояния
+                    const sortedColumns = [...uniqueSelectedColumns].sort((a, b) => a - b);
+
+                    for (let i = 0; i < sortedColumns.length - 1; i++) {
+                        // Расстояние между центрами соседних станций >= 2
+                        if (Math.abs(sortedColumns[i] - sortedColumns[i + 1]) < 2) {
                             isValid = false;
+                            // Перемешиваем и выбираем новые колонки
+                            this.shuffleArray(allColumns);
+                            // Обновляем выбранные колонки
+                            const newSelected = allColumns.slice(0, 4);
+                            uniqueSelectedColumns.splice(0, 4, ...[...new Set(newSelected)].slice(0, 4));
                             break;
                         }
                     }
-                    if (isValid) {
-                        const cell = this.getCell(stationRow, col);
-                        if (type === 'charging') {
-                            cell.className = 'cell charging';
-                            cell.textContent = '⚡';
-                            cell.dataset.originalClass = 'charging';
-                            this.chargingStations.push({ row: stationRow, col: col });
-                        } else {
-                            cell.className = 'cell loading';
-                            cell.textContent = '📦';
-                            cell.dataset.originalClass = 'loading';
-                            this.loadingStations.push({ row: stationRow, col: col });
-                        }
-                        placedStations.push(col);
+                    placementAttempts++;
+                }
+
+                // 6. Размещаем станции на доске
+                // Если не удалось найти хорошее расположение, используем фиксированное
+                let finalColumns;
+                if (isValid && uniqueSelectedColumns.length === 4) {
+                    finalColumns = uniqueSelectedColumns;
+                } else {
+                    console.warn("Не удалось разместить станции с соблюдением минимального расстояния, используем резервный вариант.");
+                    // Используем колонки 1, 3, 6, 8 - гарантированно подходят
+                    finalColumns = [1, 3, 6, 8];
+                    // Убеждаемся, что типы перемешаны
+                    this.shuffleArray(stationTypes);
+                }
+
+                // Размещение станций
+                for (let i = 0; i < 4; i++) {
+                    const col = finalColumns[i];
+                    const type = stationTypes[i];
+                    const cell = this.getCell(stationRow, col);
+
+                    if (type === 'charging') {
+                        cell.className = 'cell charging';
+                        cell.textContent = '⚡';
+                        cell.dataset.originalClass = 'charging';
+                        this.chargingStations.push({ row: stationRow, col: col });
+                    } else {
+                        cell.className = 'cell loading';
+                        cell.textContent = '📦';
+                        cell.dataset.originalClass = 'loading';
+                        this.loadingStations.push({ row: stationRow, col: col });
                     }
                 }
 
+                // 7. Заполняем ВСЕ ОСТАЛЬНЫЕ клетки нижнего ряда стенами
                 for (let col = 0; col < this.cols; col++) {
-                    if (!placedStations.includes(col)) {
+                    // Проверяем, занята ли колонка станцией
+                    const isChargingStation = this.chargingStations.some(station => station.col === col);
+                    const isLoadingStation = this.loadingStations.some(station => station.col === col);
+
+                    if (!isChargingStation && !isLoadingStation) {
                         const cell = this.getCell(stationRow, col);
                         cell.className = 'cell wall';
                         cell.textContent = '';
                         cell.dataset.originalClass = 'wall';
                     }
                 }
+                // --- КОНЕЦ ИСПРАВЛЕНИЯ ЛОГИКИ НИЖНЕГО РЯДА ---
 
                 // Столбы только в рядах 4, 5, 6, 7, 8, 9
                 const obstacleRows = [4, 5, 6, 7, 8, 9];
