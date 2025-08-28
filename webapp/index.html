@@ -50,9 +50,9 @@
             display: flex;
             justify-content: space-between;
             /* --- УВЕЛИЧЕНИЕ --- */
-            margin-bottom: 10px; 
-            padding: 0 6px; 
-            gap: 8px; 
+            margin-bottom: 10px;
+            padding: 0 6px;
+            gap: 8px;
             width: 100%;
             max-width: 550px; /* Увеличена максимальная ширина */
         }
@@ -60,18 +60,18 @@
         .stat-item {
             background: #ecf0f1;
             /* --- УВЕЛИЧЕНИЕ --- */
-            padding: 8px 12px; 
+            padding: 8px 12px;
             border-radius: 6px;
             font-weight: bold;
             /* --- УВЕЛИЧЕНИЕ --- */
-            font-size: min(0.9em, 4vw); 
+            font-size: min(0.9em, 4vw);
             flex: 1;
             min-width: 0;
             white-space: nowrap; /* Предотвращает перенос текста */
             overflow: hidden;
             text-overflow: ellipsis; /* Добавляет многоточие при переполнении */
              /* Центрирование текста */
-            display: flex; 
+            display: flex;
             justify-content: center;
             align-items: center;
         }
@@ -130,8 +130,21 @@
         .finish { background: #27ae60; color: white; }
         .charging { background: #f39c12; color: white; }
         .loading { background: #9b59b6; color: white; }
-        .obstacle { background: #7f8c8d; color: white; }
-        .wall { background: #7f8c8d; color: white; }
+        
+        /* --- ВОЗВРАЩЕН ФОН ДЛЯ СТЕН И СТОЛБОВ --- */
+        .obstacle, .wall {
+            /* Создаем диагональные полосы под углом 45 градусов */
+            background-image:
+                repeating-linear-gradient(
+                    45deg,
+                    #000 0%,
+                    #000 10%,
+                    #ffff00 10%,
+                    #ffff00 20%
+                );
+            color: white; /* Цвет текста, если он есть */
+        }
+        
         .robot {
             background: linear-gradient(45deg, #ffeb3b, #ffc107);
             color: #000;
@@ -151,18 +164,18 @@
             color: white;
             border: none;
             /* --- УВЕЛИЧЕНИЕ --- */
-            padding: 12px 16px; 
-            border-radius: 8px; 
+            padding: 12px 16px;
+            border-radius: 8px;
             cursor: pointer;
             /* --- УВЕЛИЧЕНИЕ --- */
-            font-size: min(1em, 4.5vw); 
+            font-size: min(1em, 4.5vw);
             font-weight: bold;
             transition: background 0.3s;
             /* --- УВЕЛИЧЕНИЕ --- */
-            margin-top: 12px; 
+            margin-top: 12px;
             width: 100%;
             /* --- УВЕЛИЧЕНИЕ --- */
-            max-width: 550px; 
+            max-width: 550px;
         }
 
         button:hover {
