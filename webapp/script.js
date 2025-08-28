@@ -321,8 +321,6 @@ class LogisticsGame {
     }
 
     handleCellClick(row, col, cell) {
-        console.log('Click on cell:', row, col, cell.classList.toString());
-        
         if (cell.classList.contains('robot')) {
             const robot = this.robots.find(r => r.row === row && r.col === col);
             if (robot && !robot.isMoving) {
@@ -333,7 +331,6 @@ class LogisticsGame {
         }
         
         if (this.selectedRobot && !this.selectedRobot.isMoving) {
-            console.log('Adding to path for robot:', this.selectedRobot.number);
             this.addToPath(this.selectedRobot, row, col);
         }
     }
@@ -363,8 +360,6 @@ class LogisticsGame {
     }
 
     highlightAvailableMoves(robot) {
-        console.log('Highlighting moves for robot:', robot.number);
-        
         // Сначала сбросим все подсветки
         this.resetHighlights();
         
@@ -506,20 +501,15 @@ class LogisticsGame {
     }
 
     addToPath(robot, targetRow, targetCol) {
-        console.log('Adding path point:', targetRow, targetCol, 'for robot:', robot.number);
-        
         if (robot.isMoving) {
-            console.log('Robot is moving, cannot add path');
             return;
         }
         
         if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol)) {
-            console.log('Not straight line');
             return;
         }
         
         if (!this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
-            console.log('Path not clear');
             return;
         }
 
@@ -532,7 +522,6 @@ class LogisticsGame {
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
         
-        console.log('Starting movement for robot:', robot.number);
         this.moveRobotAlongPath(robot);
     }
 
@@ -631,7 +620,6 @@ class LogisticsGame {
     async moveRobotAlongPath(robot) {
         if (robot.isMoving || robot.path.length === 0) return;
         
-        console.log('Starting movement along path for robot:', robot.number);
         robot.isMoving = true;
         this.movingRobots.add(robot);
         
@@ -677,16 +665,11 @@ class LogisticsGame {
         if (this.selectedRobot === robot) {
             this.highlightAvailableMoves(robot);
         }
-        
-        console.log('Finished movement for robot:', robot.number);
     }
 
     async moveRobotToPoint(robot, targetRow, targetCol) {
-        console.log('Moving robot to point:', targetRow, targetCol);
-        
         // Проверка низкого заряда
         if (robot.battery < 25 && !robot.atCharging) {
-            console.log('Low battery! Stopping movement.');
             robot.path = []; // Сбрасываем траекторию
             this.clearPathVisualization(robot);
             this.unlockAllCells();
