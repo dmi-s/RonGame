@@ -16,6 +16,7 @@ class LogisticsGame {
         this.loadingStations = [];
         this.obstacles = [];
         this.moves = 0;
+        this.movingRobots = new Set();
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
@@ -63,6 +64,7 @@ class LogisticsGame {
     }
 
     setupGame() {
+        // Поле старта
         for (let row = 0; row < 2; row++) {
             for (let col = 0; col < 5; col++) {
                 const cell = this.getCell(row, col);
@@ -70,18 +72,21 @@ class LogisticsGame {
                 cell.dataset.originalClass = 'start';
             }
         }
+        // Поле финиша
         const garageNumbers = this.generateUniqueNumbers(10, 1, 10);
-        let idx = 0;
+        let numberIndex = 0;
         for (let row = 0; row < 2; row++) {
             for (let col = 5; col < 10; col++) {
                 const cell = this.getCell(row, col);
                 cell.className = 'cell finish';
-                cell.textContent = garageNumbers[idx++];
+                cell.textContent = garageNumbers[numberIndex++];
                 cell.dataset.garageNumber = cell.textContent;
                 cell.dataset.originalClass = 'finish';
             }
         }
+        // Станции и препятствия
         this.placeStationsAndObstacles();
+        // Роботы
         this.createRobots();
         this.updateTimer();
     }
@@ -102,17 +107,24 @@ class LogisticsGame {
             for (const col of availableCols) {
                 if (placedStations.length === 0 || placedStations.every(p => Math.abs(p - col) > 1)) {
                     const cell = this.getCell(stationRow, col);
-                    cell.className = `cell ${type}`;
-                    cell.textContent = type === 'charging' ? '⚡' : '📦';
-                    cell.dataset.originalClass = type;
-                    if (type === 'charging') this.chargingStations.push({ row: stationRow, col });
-                    else this.loadingStations.push({ row: stationRow, col });
+                    if (type === 'charging') {
+                        cell.className = 'cell charging';
+                        cell.textContent = '⚡';
+                        cell.dataset.originalClass = 'charging';
+                        this.chargingStations.push({ row: stationRow, col: col });
+                    } else {
+                        cell.className = 'cell loading';
+                        cell.textContent = '📦';
+                        cell.dataset.originalClass = 'loading';
+                        this.loadingStations.push({ row: stationRow, col: col });
+                    }
                     placedStations.push(col);
                     break;
                 }
             }
         }
 
+        // Столбы только в рядах 4, 5, 6
         const obstacleRows = [4, 5, 6];
         const allPossible = [];
         for (const row of obstacleRows) {
@@ -234,13 +246,9 @@ class LogisticsGame {
         const cell = this.getCell(row, col);
         if (cell.classList.contains('robot')) {
             const robot = this.robots.find(r => r.row === row && r.col === col);
-            if (robot) {
-                if (this.selectedRobot !== robot) {
-                    this.selectRobot(robot);
-                    this.startTimer();
-                } else {
-                    this.continueRoute(robot);
-                }
+            if (robot && !robot.isMoving) {
+                this.selectRobot(robot);
+                this.startTimer();
             }
             return;
         }
@@ -265,12 +273,6 @@ class LogisticsGame {
         this.selectedRobotElement.textContent = `Выбрано: ${robot.number}`;
         this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
         this.resetHighlights();
-        this.highlightAvailableMoves(robot);
-    }
-
-    continueRoute(robot) {
-        if (robot.isMoving) return;
-        this.selectRobot(robot);
         this.highlightAvailableMoves(robot);
     }
 
@@ -305,6 +307,39 @@ class LogisticsGame {
                 }
             }
         }
+    }
+
+    findGarage(robot) {
+        for (let r = 0; r < 2; r++) {
+            for (let c = 5; c < 10; c++) {
+                const cell = this.getCell(r, c);
+                if (cell.classList.contains('finish') && parseInt(cell.dataset.garageNumber) === robot.number) {
+                    return { row: r, col: c };
+                }
+            }
+        }
+        return null;
+    }
+
+    isGarageForRobot(robot, r, c) {
+        const cell = this.getCell(r, c);
+        return cell.classList.contains('finish') && parseInt(cell.dataset.garageNumber) === robot.number;
+    }
+
+    isStraightLine(r1, c1, r2, c2) {
+        return r1 === r2 || c1 === c2;
+    }
+
+    isPathClear(r1, c1, r2, c2) {
+        const dr = r2 > r1 ? 1 : r2 < r1 ? -1 : 0;
+        const dc = c2 > c1 ? 1 : c2 < c1 ? -1 : 0;
+        let r = r1 + dr, c = c1 + dc;
+        while (r !== r2 || c !== c2) {
+            if (this.getCell(r, c).classList.contains('obstacle') || this.isCellLocked(r, c)) return false;
+            r += dr;
+            c += dc;
+        }
+        return !this.getCell(r2, c2).classList.contains('obstacle') && !this.isCellLocked(r2, c2);
     }
 
     addToPath(robot, targetRow, targetCol) {
@@ -382,6 +417,7 @@ class LogisticsGame {
         const oldCell = this.getCell(robot.row, robot.col);
         const newCell = this.getCell(r, c);
 
+        // Анимация через transform
         oldCell.classList.remove('robot', 'selected');
         this.restoreCellAppearance(oldCell);
 
@@ -493,39 +529,6 @@ class LogisticsGame {
             [array[i], array[j]] = [array[j], array[i]];
         }
         return array;
-    }
-
-    findGarage(robot) {
-        for (let r = 0; r < 2; r++) {
-            for (let c = 5; c < 10; c++) {
-                const cell = this.getCell(r, c);
-                if (cell.classList.contains('finish') && parseInt(cell.dataset.garageNumber) === robot.number) {
-                    return { row: r, col: c };
-                }
-            }
-        }
-        return null;
-    }
-
-    isGarageForRobot(robot, r, c) {
-        const cell = this.getCell(r, c);
-        return cell.classList.contains('finish') && parseInt(cell.dataset.garageNumber) === robot.number;
-    }
-
-    isStraightLine(r1, c1, r2, c2) {
-        return r1 === r2 || c1 === c2;
-    }
-
-    isPathClear(r1, c1, r2, c2) {
-        const dr = r2 > r1 ? 1 : r2 < r1 ? -1 : 0;
-        const dc = c2 > c1 ? 1 : c2 < c1 ? -1 : 0;
-        let r = r1 + dr, c = c1 + dc;
-        while (r !== r2 || c !== c2) {
-            if (this.getCell(r, c).classList.contains('obstacle') || this.isCellLocked(r, c)) return false;
-            r += dr;
-            c += dc;
-        }
-        return !this.getCell(r2, c2).classList.contains('obstacle') && !this.isCellLocked(r2, c2);
     }
 
     getLinePoints(r1, c1, r2, c2) {
