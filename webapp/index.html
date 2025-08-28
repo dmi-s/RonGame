@@ -60,6 +60,7 @@ body {
     align-items: center;
     width: 100%;
     padding: 2px;
+    max-height: 70vh;
 }
 
 .game-board {
@@ -67,8 +68,9 @@ body {
     grid-template-columns: repeat(10, 1fr);
     grid-template-rows: repeat(13, 1fr);
     gap: 1px;
-    width: min(95vmin, 95vh, 500px);
-    height: min(95vmin, 95vh, 500px);
+    width: 100%;
+    max-width: min(95vmin, 500px);
+    aspect-ratio: 10/13;
     border: 2px solid #34495e;
     background: #bdc3c7;
     position: relative;
@@ -78,13 +80,12 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: min(0.65em, 3vw);
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
     position: relative;
     border-radius: 2px;
-    aspect-ratio: 1/1;
+    font-size: calc(12px + 0.5vw);
 }
 
 .cell:hover {
@@ -117,35 +118,64 @@ button {
     background: #3498db;
     color: white;
     border: none;
-    padding: 6px 10px;
+    padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: min(0.75em, 3.5vw);
+    font-size: min(0.9em, 4vw);
     transition: background 0.3s;
-    margin-top: 10px;
+    margin-top: 15px;
     width: 100%;
-    max-width: 500px;
+    max-width: 300px;
 }
 
 button:hover {
     background: #2980b9;
 }
 
-/* Адаптивность для очень маленьких экранов */
-@media (max-width: 320px) {
-    .cell {
-        font-size: min(0.55em, 2.8vw);
+/* Адаптивность */
+@media (max-width: 768px) {
+    .container {
+        padding: 8px;
+        margin: 2px;
     }
     
-    .stat-item {
-        font-size: min(0.7em, 3.2vw);
-        padding: 3px 6px;
+    .game-wrapper {
+        max-height: 60vh;
+    }
+    
+    .cell {
+        font-size: calc(10px + 0.8vw);
+    }
+    
+    button {
+        padding: 6px 12px;
+        font-size: min(0.8em, 3.5vw);
     }
 }
 
-@media (max-width: 280px) {
+@media (max-width: 480px) {
+    .game-wrapper {
+        max-height: 55vh;
+    }
+    
     .cell {
-        font-size: min(0.5em, 2.5vw);
+        font-size: calc(8px + 1vw);
+    }
+    
+    .stat-item {
+        font-size: min(0.7em, 3vw);
+        padding: 3px 6px;
+    }
+    
+    button {
+        margin-top: 10px;
+        max-width: 250px;
+    }
+}
+
+@media (max-width: 320px) {
+    .cell {
+        font-size: calc(7px + 1.2vw);
     }
 }
 
@@ -185,36 +215,6 @@ html, body {
 * {
     max-width: 100%;
 }
-
-/* Портретная ориентация */
-@media (orientation: portrait) {
-    .container {
-        margin: 2px;
-        padding: 8px;
-    }
-    
-    .game-board {
-        width: min(90vmin, 90vh, 500px);
-        height: min(90vmin, 90vh, 500px);
-    }
-}
-
-/* Ландшафтная ориентация */
-@media (orientation: landscape) {
-    .container {
-        max-width: 95vh;
-        margin: 5px auto;
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: center;
-        padding: 10px;
-    }
-    
-    .game-board {
-        width: min(70vmin, 70vh, 400px);
-        height: min(70vmin, 70vh, 400px);
-    }
-}
     </style>
 </head>
 <body>
@@ -250,9 +250,6 @@ html, body {
                 // ПЕРЕМЕННАЯ: количество столбов
                 this.OBSTACLES_COUNT = 9;
 
-                this.cellSize = 0;
-                this.fontSize = 0;
-
                 this.init();
             }
 
@@ -260,42 +257,42 @@ html, body {
                 this.createBoard();
                 this.setupGame();
                 this.setupEventListeners();
-                this.updateScreenSize();
                 this.updateTimer();
 
                 // Обработчики изменения размера экрана
-                window.addEventListener('resize', () => this.updateScreenSize());
+                window.addEventListener('resize', () => this.updateBoardSize());
                 window.addEventListener('orientationchange', () => {
-                    setTimeout(() => this.updateScreenSize(), 100);
+                    setTimeout(() => this.updateBoardSize(), 100);
                 });
+                
+                // Первоначальная настройка размера
+                this.updateBoardSize();
             }
 
-            updateScreenSize() {
-                const isMobile = window.innerWidth <= 768;
-                const maxWidth = isMobile ? window.innerWidth * 0.92 : 500;
-
-                // Рассчитываем размер клетки
-                this.cellSize = Math.min(maxWidth / this.cols, 40);
-                this.fontSize = Math.max(this.cellSize * 0.35, 10);
-
+            updateBoardSize() {
+                const container = document.querySelector('.container');
+                const statsHeight = document.querySelector('.stats-container').offsetHeight;
+                const buttonHeight = document.getElementById('reset-btn').offsetHeight;
+                const padding = 30; // Отступы
+                
+                // Рассчитываем доступную высоту для игрового поля
+                const availableHeight = window.innerHeight - statsHeight - buttonHeight - padding;
+                const availableWidth = window.innerWidth - 20; // Отступы по бокам
+                
+                // Определяем размер на основе доступного пространства
+                const maxCellSize = Math.min(availableWidth / this.cols, availableHeight / this.rows);
+                const cellSize = Math.min(maxCellSize, 40); // Максимальный размер клетки 40px
+                
                 // Устанавливаем размеры поля
-                this.board.style.width = `${this.cellSize * this.cols}px`;
-                this.board.style.height = `${this.cellSize * this.rows}px`;
-                this.board.style.gridTemplateColumns = `repeat(${this.cols}, ${this.cellSize}px)`;
-                this.board.style.gridTemplateRows = `repeat(${this.rows}, ${this.cellSize}px)`;
-
-                // Устанавливаем размер шрифта для всех клеток
+                this.board.style.width = `${cellSize * this.cols}px`;
+                this.board.style.height = `${cellSize * this.rows}px`;
+                
+                // Обновляем размер шрифта в зависимости от размера клетки
+                const fontSize = Math.max(cellSize * 0.35, 10);
                 const cells = this.board.querySelectorAll('.cell');
                 cells.forEach(cell => {
-                    cell.style.fontSize = `${this.fontSize}px`;
+                    cell.style.fontSize = `${fontSize}px`;
                 });
-
-                // Центрируем поле на мобильных устройствах
-                if (isMobile) {
-                    const wrapper = this.board.parentElement;
-                    wrapper.style.margin = '0 auto';
-                    wrapper.style.maxWidth = `${this.cellSize * this.cols}px`;
-                }
             }
 
             createBoard() {
@@ -338,7 +335,6 @@ html, body {
                 }
 
                 this.placeStationsAndObstacles();
-                this.updateScreenSize(); // Обновляем размеры после создания поля
             }
 
             placeStationsAndObstacles() {
@@ -348,7 +344,7 @@ html, body {
                 this.obstacles = [];
 
                 // Создаем случайное расположение для 4 станций
-                const availableCols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]; // Все колонки, включая края
+                const availableCols = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
                 this.shuffleArray(availableCols);
 
                 const stationTypes = ['charging', 'charging', 'loading', 'loading'];
@@ -395,11 +391,10 @@ html, body {
                     }
                 }
 
-                // Добавляем столбы в рядах 4-12 (столбы могут быть у края)
+                // Добавляем столбы
                 const obstacleRows = [4, 5, 6, 7, 8, 9, 10, 11, 12];
                 const grid = [];
 
-                // Все возможные позиции включая края
                 for (const row of obstacleRows) {
                     for (let col = 0; col < this.cols; col++) {
                         grid.push({ row, col });
@@ -461,6 +456,9 @@ html, body {
                     cell.textContent = '';
                     cell.dataset.originalClass = 'obstacle';
                 }
+                
+                // Обновляем размер после создания всех элементов
+                setTimeout(() => this.updateBoardSize(), 100);
             }
 
             startTimer() {
@@ -503,7 +501,7 @@ html, body {
 
             shuffleArray(array) {
                 for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
+                    const j = Math.floor(Math.random() + (i + 1));
                     [array[i], array[j]] = [array[j], array[i]];
                 }
                 return array;
