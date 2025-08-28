@@ -203,6 +203,12 @@ button:hover {
     color: #28a745;
     margin-bottom: 6px;
     font-size: 1em;
+    margin: 0;
+}
+
+.win-message p {
+    margin: 2px 0;
+    font-size: 0.75em;
 }
 
 .win-message button {
@@ -227,18 +233,9 @@ button:hover {
 }
 
 @keyframes moveAnimation {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(0.9);
-        opacity: 0.8;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
+    0% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(0.9); opacity: 0.8; }
+    100% { transform: scale(1); opacity: 1; }
 }
 
 /* Стили для подсветки */
@@ -256,6 +253,29 @@ button:hover {
 
 .highlight-move {
     box-shadow: 0 0 6px blue !important;
+}
+
+/* Приоритетная мигающая подсветка */
+.priority-blinking {
+    animation: priority-blink 1s infinite;
+}
+
+@keyframes priority-blink {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.priority-blinking.highlight-charging {
+    box-shadow: 0 0 12px #ff9900 !important;
+}
+
+.priority-blinking.highlight-loading {
+    box-shadow: 0 0 12px #cc00ff !important;
+}
+
+.priority-blinking.highlight-garage {
+    box-shadow: 0 0 12px #00ff00 !important;
 }
 
 /* Линии траектории */
@@ -295,7 +315,7 @@ button:hover {
     color: #2c3e50 !important;
 }
 
-/* Адаптивность для очень маленьких экранов */
+/* Адаптивность */
 @media (max-width: 320px) {
     .game-board {
         width: 90vmin;
@@ -368,7 +388,7 @@ html, body {
     max-width: 100%;
 }
 
-/* Улучшенное отображение на очень узких экранов */
+/* Улучшенное отображение на очень узких экранах */
 @media (max-height: 600px) {
     .container {
         padding: 5px;
@@ -403,15 +423,6 @@ html, body {
         width: 70vmin;
         height: 70vmin;
     }
-}
-
-/* Гарантия что игра влезает в экран */
-.game-board-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 100%;
-    padding: 2px;
 }
 
 /* Стили для анимации движения роботов */
