@@ -128,16 +128,15 @@ button:hover {
 .charging { background: #f39c12; color: white; }
 .loading { background: #9b59b6; color: white; }
 .obstacle { background: #7f8c8d; color: white; }
-.robot { 
+.robot {
     background: linear-gradient(45deg, #ffeb3b, #ffc107);
     color: #000;
     font-weight: bold;
     z-index: 3;
-    transition: all 0.3s ease;
 }
-.path { 
-    background: #f1c40f; 
-    color: #2c3e50; 
+.path {
+    background: #f1c40f;
+    color: #2c3e50;
     font-weight: bold;
 }
 .empty { background: #ecf0f1; }
@@ -153,7 +152,6 @@ button:hover {
     border-radius: 1px;
     background: white;
 }
-
 .battery-level {
     position: absolute;
     bottom: 0;
@@ -162,7 +160,6 @@ button:hover {
     transition: height 0.3s;
     border-radius: 0 0 1px 1px;
 }
-
 .battery-red { background: #e74c3c; }
 .battery-pink { background: #ff6b6b; }
 .battery-orange { background: #f39c12; }
@@ -227,39 +224,24 @@ button:hover {
     border: 1px solid black;
 }
 
-/* Анимация движения */
-.moving {
-    animation: moveAnimation 4s ease-in-out;
-}
-
-@keyframes moveAnimation {
-    0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(0.9); opacity: 0.8; }
-    100% { transform: scale(1); opacity: 1; }
-}
-
-/* Стили для подсветки */
+/* Подсветка доступных клеток */
 .highlight-charging {
     box-shadow: 0 0 8px orange !important;
 }
-
 .highlight-loading {
     box-shadow: 0 0 8px purple !important;
 }
-
 .highlight-garage {
     box-shadow: 0 0 8px green !important;
 }
-
 .highlight-move {
     box-shadow: 0 0 6px blue !important;
 }
 
-/* Приоритетная мигающая подсветка */
+/* Мигание приоритетных целей */
 .priority-blinking {
     animation: priority-blink 1s infinite;
 }
-
 @keyframes priority-blink {
     0% { opacity: 1; }
     50% { opacity: 0.3; }
@@ -269,11 +251,9 @@ button:hover {
 .priority-blinking.highlight-charging {
     box-shadow: 0 0 12px #ff9900 !important;
 }
-
 .priority-blinking.highlight-loading {
     box-shadow: 0 0 12px #cc00ff !important;
 }
-
 .priority-blinking.highlight-garage {
     box-shadow: 0 0 12px #00ff00 !important;
 }
@@ -283,7 +263,6 @@ button:hover {
     position: relative;
     z-index: 1;
 }
-
 .horizontal-line::before {
     content: '';
     position: absolute;
@@ -295,7 +274,6 @@ button:hover {
     transform: translateY(-50%);
     z-index: -1;
 }
-
 .vertical-line::before {
     content: '';
     position: absolute;
@@ -308,44 +286,31 @@ button:hover {
     z-index: -1;
 }
 
-.path {
-    z-index: 2;
-    font-weight: bold;
-    background: #f1c40f !important;
-    color: #2c3e50 !important;
-}
-
 /* Адаптивность */
 @media (max-width: 320px) {
     .game-board {
         width: 90vmin;
         height: 90vmin;
     }
-    
     .cell {
         font-size: 0.55em;
     }
-    
     h1 {
         font-size: 1.1em;
     }
-    
     .stat-item {
         font-size: 0.7em;
         padding: 3px 6px;
     }
 }
-
 @media (max-width: 280px) {
     .game-board {
         width: 85vmin;
         height: 85vmin;
     }
-    
     .cell {
         font-size: 0.5em;
     }
-    
     h1 {
         font-size: 1em;
     }
@@ -361,7 +326,7 @@ button:hover {
     box-sizing: border-box;
 }
 
-/* Улучшенная прокрутка для мобильных */
+/* Улучшенная прокрутка */
 .container {
     -webkit-overflow-scrolling: touch;
     overflow-y: auto;
@@ -375,7 +340,7 @@ button:hover {
     }
 }
 
-/* Убираем стандартные отступы */
+/* Гарантия границ */
 html, body {
     margin: 0;
     padding: 0;
@@ -383,90 +348,38 @@ html, body {
     height: 100%;
 }
 
-/* Гарантируем, что ничего не выходит за границы */
-* {
-    max-width: 100%;
-}
-
-/* Улучшенное отображение на очень узких экранах */
-@media (max-height: 600px) {
-    .container {
-        padding: 5px;
-    }
-    
-    .game-board {
-        width: 90vmin;
-        height: 90vmin;
-    }
-    
-    .instructions {
-        display: none;
-    }
-}
-
-/* Портретная ориентация */
+/* Портрет и ландшафт */
 @media (orientation: portrait) {
     .container {
         margin: 2px;
         padding: 8px;
     }
 }
-
-/* Ландшафтная ориентация */
 @media (orientation: landscape) {
     .container {
         max-width: 95vh;
         margin: 5px auto;
     }
-    
     .game-board {
         width: 70vmin;
         height: 70vmin;
     }
 }
 
-/* Стили для анимации движения роботов */
-.robot-ghost {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-weight: bold;
-    border-radius: 2px;
-    font-size: 0.65em;
-    box-shadow: 0 0 10px rgba(255, 235, 59, 0.7);
-    position: absolute;
-    z-index: 100;
-    transition: all 4s ease-in-out;
-}
-
-/* Анимация загрузки */
-.loading-animation {
-    animation: pulse 1s infinite;
-}
-
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* Анимация зарядки */
+/* Анимации */
 .charging-animation {
     animation: glow 1s infinite alternate;
 }
-
 @keyframes glow {
     from { box-shadow: 0 0 5px #f39c12; }
     to { box-shadow: 0 0 15px #f39c12; }
 }
 
-/* Анимация успеха */
-.success-animation {
-    animation: success 0.5s ease-in-out;
+.loading-animation {
+    animation: pulse 1s infinite;
 }
-
-@keyframes success {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
 }
