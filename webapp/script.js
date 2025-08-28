@@ -16,11 +16,10 @@ class LogisticsGame {
         this.loadingStations = [];
         this.obstacles = [];
         this.moves = 0;
-        this.movingRobots = new Set();
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
-        this.lockedCells = new Set();
+        this.lockedCells = new Set(); // Занятые траектории
         this.init();
     }
 
