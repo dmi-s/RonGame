@@ -462,6 +462,10 @@ class LogisticsGame {
         this.resetGame();
     }
 
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
     endGame() {
         this.stopTimer();
         const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
@@ -470,10 +474,6 @@ class LogisticsGame {
         this.winMessage.style.display = 'block';
         this.finalMoves.textContent = this.moves;
         this.finalTime.textContent = `${min}:${sec.toString().padStart(2, '0')}`;
-    }
-
-    delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
     resetGame() {
@@ -501,7 +501,6 @@ class LogisticsGame {
         return array;
     }
 
-    // Вспомогательные
     findGarage(robot) {
         for (let r = 0; r < 2; r++) {
             for (let c = 5; c < 10; c++) {
