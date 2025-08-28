@@ -22,6 +22,7 @@ class LogisticsGame {
         this.gameStarted = false;
         this.startTime = 0;
         this.timerInterval = null;
+        this.lockedCells = new Set(); // Заблокированные клетки траекторий
         
         this.init();
     }
@@ -138,36 +139,19 @@ class LogisticsGame {
                     }
                     
                     placedStations.push(col);
-                    
-                    // Ставим столбы МЕЖДУ станциями в том же ряду
-                    if (placedStations.length > 1) {
-                        const prevCol = placedStations[placedStations.length - 2];
-                        const obstacleCol = Math.floor((prevCol + col) / 2);
-                        if (obstacleCol !== prevCol && obstacleCol !== col) {
-                            const obstacleCell = this.getCell(stationRow, obstacleCol);
-                            if (!obstacleCell.classList.contains('charging') && 
-                                !obstacleCell.classList.contains('loading')) {
-                                obstacleCell.className = 'cell obstacle';
-                                obstacleCell.textContent = '🚧';
-                                obstacleCell.dataset.originalClass = 'obstacle';
-                                this.obstacles.push({ row: stationRow, col: obstacleCol });
-                            }
-                        }
-                    }
                     break;
                 }
             }
         }
         
-        // Добавляем дополнительные столбы в рядах 4,5,6,7
-        const additionalObstacleRows = [4, 5, 6, 7];
+        // Добавляем столбы только в рядах 4,5,6
+        const obstacleRows = [4, 5, 6];
         const allPossibleObstacles = [];
         
-        for (const row of additionalObstacleRows) {
+        for (const row of obstacleRows) {
             for (let col = 0; col < this.cols; col++) {
                 const cell = this.getCell(row, col);
-                if (!cell.classList.contains('obstacle') && 
-                    !cell.classList.contains('charging') && 
+                if (!cell.classList.contains('charging') && 
                     !cell.classList.contains('loading') &&
                     !cell.classList.contains('start') &&
                     !cell.classList.contains('finish') &&
@@ -179,7 +163,7 @@ class LogisticsGame {
         
         this.shuffleArray(allPossibleObstacles);
         
-        // Добавляем столбы до общего количества 8-10
+        // Добавляем 8-10 столбов
         for (const obstacle of allPossibleObstacles) {
             if (this.obstacles.length >= 8) break;
             
@@ -199,16 +183,6 @@ class LogisticsGame {
         for (const obs of this.obstacles) {
             const rowDistance = Math.abs(obs.row - row);
             const colDistance = Math.abs(obs.col - col);
-            if (rowDistance <= 1 && colDistance <= 1) {
-                return false;
-            }
-        }
-        
-        // Проверяем расстояние до станций (минимум 1 клетка)
-        const allStations = [...this.chargingStations, ...this.loadingStations];
-        for (const station of allStations) {
-            const rowDistance = Math.abs(station.row - row);
-            const colDistance = Math.abs(station.col - col);
             if (rowDistance <= 1 && colDistance <= 1) {
                 return false;
             }
@@ -278,8 +252,7 @@ class LogisticsGame {
             atLoading: false,
             atFinish: false,
             path: [],
-            isMoving: false,
-            currentTargetIndex: 0
+            isMoving: false
         };
         
         this.robots.push(robot);
@@ -320,6 +293,26 @@ class LogisticsGame {
         return this.board.querySelector(`[data-row="${row}"][data-col="${col}"]`);
     }
 
+    getCellKey(row, col) {
+        return `${row}-${col}`;
+    }
+
+    isCellLocked(row, col) {
+        return this.lockedCells.has(this.getCellKey(row, col));
+    }
+
+    lockCell(row, col) {
+        this.lockedCells.add(this.getCellKey(row, col));
+    }
+
+    unlockCell(row, col) {
+        this.lockedCells.delete(this.getCellKey(row, col));
+    }
+
+    unlockAllCells() {
+        this.lockedCells.clear();
+    }
+
     setupEventListeners() {
         document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
         
@@ -341,14 +334,14 @@ class LogisticsGame {
             return;
         }
         
-        if (this.selectedRobot) {
+        if (this.selectedRobot && !this.selectedRobot.isMoving) {
             this.addToPath(this.selectedRobot, row, col);
         }
     }
 
     selectRobot(row, col) {
         const robot = this.robots.find(r => r.row === row && r.col === col);
-        if (!robot) return;
+        if (!robot || robot.isMoving) return;
         
         // Сбрасываем выделение у предыдущего робота
         if (this.selectedRobot) {
@@ -369,7 +362,6 @@ class LogisticsGame {
         robotCell.style.color = '#ffeb3b';
         
         this.highlightAvailableMoves(robot);
-        this.visualizeAllPaths();
     }
 
     highlightAvailableMoves(robot) {
@@ -380,7 +372,8 @@ class LogisticsGame {
                 
                 if (this.canMoveTo(r, c, robot) && 
                     this.isStraightLine(robot.row, robot.col, r, c) &&
-                    this.isPathClear(robot.row, robot.col, r, c)) {
+                    this.isPathClear(robot.row, robot.col, r, c) &&
+                    !this.isCellLocked(r, c)) {
                     
                     if (this.chargingStations.some(s => s.row === r && s.col === c)) {
                         cell.classList.add('highlight-charging');
@@ -420,6 +413,7 @@ class LogisticsGame {
         while (currentRow !== endRow || currentCol !== endCol) {
             const cell = this.getCell(currentRow, currentCol);
             if (cell.classList.contains('obstacle') || 
+                this.isCellLocked(currentRow, currentCol) ||
                 (cell.classList.contains('robot') && !this.isRobotMovingTo(currentRow, currentCol))) {
                 return false;
             }
@@ -428,7 +422,8 @@ class LogisticsGame {
             currentCol += colStep;
         }
         
-        return !this.getCell(endRow, endCol).classList.contains('obstacle');
+        return !this.getCell(endRow, endCol).classList.contains('obstacle') &&
+               !this.isCellLocked(endRow, endCol);
     }
 
     isRobotMovingTo(row, col) {
@@ -459,59 +454,24 @@ class LogisticsGame {
     }
 
     addToPath(robot, targetRow, targetCol) {
-        // Проверяем только прямую линию от последней точки пути
-        let startRow = robot.row;
-        let startCol = robot.col;
+        if (robot.isMoving) return;
         
-        if (robot.path.length > 0) {
-            const lastPoint = robot.path[robot.path.length - 1];
-            startRow = lastPoint.row;
-            startCol = lastPoint.col;
-        }
-        
-        if (!this.isStraightLine(startRow, startCol, targetRow, targetCol) ||
-            !this.isPathClear(startRow, startCol, targetRow, targetCol)) {
+        if (!this.isStraightLine(robot.row, robot.col, targetRow, targetCol) ||
+            !this.isPathClear(robot.row, robot.col, targetRow, targetCol)) {
             return;
         }
 
-        if (this.willPathsIntersect(robot, targetRow, targetCol)) {
-            return;
+        // Блокируем клетки траектории
+        const pathPoints = this.getLinePoints(robot.row, robot.col, targetRow, targetCol);
+        for (const point of pathPoints) {
+            this.lockCell(point.row, point.col);
         }
 
         robot.path.push({ row: targetRow, col: targetCol });
         this.visualizePath(robot);
         
-        // Автоматически начинаем движение
-        if (!robot.isMoving) {
-            this.moveRobotAlongPath(robot);
-        }
-    }
-
-    willPathsIntersect(robot, targetRow, targetCol) {
-        for (const otherRobot of this.robots) {
-            if (otherRobot !== robot && otherRobot.path.length > 0) {
-                const otherPath = otherRobot.path;
-                
-                for (const point of otherPath) {
-                    if (this.isPointOnLine(robot.row, robot.col, targetRow, targetCol, point.row, point.col)) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
-    isPointOnLine(startRow, startCol, endRow, endCol, pointRow, pointCol) {
-        if (startRow === endRow) {
-            return pointRow === startRow && 
-                   Math.min(startCol, endCol) <= pointCol && 
-                   pointCol <= Math.max(startCol, endCol);
-        } else {
-            return pointCol === startCol && 
-                   Math.min(startRow, endRow) <= pointRow && 
-                   pointRow <= Math.max(startRow, endRow);
-        }
+        // Начинаем движение
+        this.moveRobotAlongPath(robot);
     }
 
     visualizePath(robot) {
@@ -540,7 +500,6 @@ class LogisticsGame {
             if (!cell.classList.contains('path') && !cell.classList.contains('robot')) {
                 cell.classList.add('path-line');
                 
-                // Определяем направление линии
                 if (startRow === endRow) {
                     cell.classList.add('horizontal-line');
                 } else {
@@ -558,7 +517,6 @@ class LogisticsGame {
         let currentRow = startRow;
         let currentCol = startCol;
         
-        // Идем до конечной точки включительно
         while (true) {
             points.push({ row: currentRow, col: currentCol });
             if (currentRow === endRow && currentCol === endCol) break;
@@ -567,14 +525,6 @@ class LogisticsGame {
         }
         
         return points;
-    }
-
-    visualizeAllPaths() {
-        for (const robot of this.robots) {
-            if (robot.path.length > 0) {
-                this.visualizePath(robot);
-            }
-        }
     }
 
     clearPathVisualization(robot) {
@@ -589,8 +539,6 @@ class LogisticsGame {
             
             if (!isInOtherPath) {
                 cell.classList.remove('path', 'path-line', 'horizontal-line', 'vertical-line');
-                cell.style.background = '';
-                cell.style.opacity = '';
                 this.restoreCellAppearance(cell);
             }
         });
@@ -628,7 +576,6 @@ class LogisticsGame {
         while (robot.path.length > 0) {
             const point = robot.path[0];
             
-            // Проверяем путь от текущей позиции до следующей точки
             if (!this.isPathClear(robot.row, robot.col, point.row, point.col)) {
                 await this.delay(500);
                 continue;
@@ -644,14 +591,29 @@ class LogisticsGame {
                 break;
             }
             
+            // Разблокируем пройденные клетки
+            this.unlockAllCells();
+            // Блокируем клетки оставшегося пути
+            for (const pathPoint of robot.path) {
+                const points = this.getLinePoints(robot.row, robot.col, pathPoint.row, pathPoint.col);
+                for (const point of points) {
+                    this.lockCell(point.row, point.col);
+                }
+            }
+            
+            // Обновляем доступные ходы
+            if (this.selectedRobot === robot) {
+                this.highlightAvailableMoves(robot);
+            }
+            
             await this.delay(100);
         }
         
         robot.isMoving = false;
         this.movingRobots.delete(robot);
+        this.unlockAllCells();
         this.clearPathVisualization(robot);
         
-        // Обновляем выделение если это выбранный робот
         if (this.selectedRobot === robot) {
             this.highlightAvailableMoves(robot);
         }
@@ -660,15 +622,43 @@ class LogisticsGame {
     async moveRobotToPoint(robot, targetRow, targetCol) {
         const oldCell = this.getCell(robot.row, robot.col);
         
-        // Восстанавливаем старую клетку
-        this.restoreCellAppearance(oldCell);
+        // Анимация движения
+        const ghost = document.createElement('div');
+        ghost.className = 'robot-ghost';
+        ghost.textContent = robot.hasPackage ? '📦' + robot.number : robot.number;
+        ghost.style.position = 'absolute';
+        ghost.style.width = oldCell.offsetWidth + 'px';
+        ghost.style.height = oldCell.offsetHeight + 'px';
+        ghost.style.left = oldCell.offsetLeft + 'px';
+        ghost.style.top = oldCell.offsetTop + 'px';
+        ghost.style.zIndex = '100';
+        ghost.style.transition = 'all 4s ease-in-out';
+        
+        if (this.selectedRobot === robot) {
+            ghost.style.background = 'linear-gradient(45deg, #ffeb3b, #000000)';
+            ghost.style.color = '#ffeb3b';
+        } else {
+            ghost.style.background = 'linear-gradient(45deg, #ffeb3b, #ffc107)';
+            ghost.style.color = '#000';
+        }
+        
+        this.board.appendChild(ghost);
+        
+        await this.delay(50);
+        
+        const targetCell = this.getCell(targetRow, targetCol);
+        ghost.style.left = targetCell.offsetLeft + 'px';
+        ghost.style.top = targetCell.offsetTop + 'px';
+        
+        await this.delay(4000);
+        ghost.remove();
         
         // Обновляем позицию робота
+        this.restoreCellAppearance(oldCell);
         robot.row = targetRow;
         robot.col = targetCol;
         robot.battery = Math.max(0, robot.battery - 2);
         
-        // Проверяем Game Over
         if (robot.battery <= 0) {
             this.gameOver();
             return;
@@ -677,7 +667,6 @@ class LogisticsGame {
         const newCell = this.getCell(targetRow, targetCol);
         newCell.className = 'cell robot';
         
-        // Сохраняем выделение если это выбранный робот
         if (this.selectedRobot === robot) {
             newCell.classList.add('selected');
             newCell.style.background = 'linear-gradient(45deg, #ffeb3b, #000000)';
@@ -702,14 +691,6 @@ class LogisticsGame {
         if (this.selectedRobot === robot) {
             this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
         }
-        
-        // Анимация движения
-        newCell.classList.add('moving');
-        await this.delay(4000); // 4 секунды на клетку
-        newCell.classList.remove('moving');
-        
-        // Обновляем визуализацию пути после движения
-        this.visualizePath(robot);
     }
 
     async checkSpecialCells(robot) {
@@ -721,21 +702,21 @@ class LogisticsGame {
             robot.atCharging = false;
         }
         
-        if (cell.classList.contains('loading') && !robot.atLoading) {
+        if (cell.classList.contains('loading') && !robot.atLoading && !robot.hasPackage) {
             robot.atLoading = true;
             await this.loadRobot(robot);
             robot.atLoading = false;
         }
         
-        if (this.isGarageForRobot(robot, robot.row, robot.col) && !robot.atFinish) {
+        if (this.isGarageForRobot(robot, robot.row, robot.col) && !robot.atFinish && robot.hasPackage) {
             robot.atFinish = true;
         }
     }
 
     async chargeRobot(robot) {
         const cell = this.getCell(robot.row, robot.col);
+        cell.classList.add('charging-animation');
         
-        // Анимация зарядки
         while (robot.battery < 100 && robot.atCharging) {
             robot.battery = Math.min(100, robot.battery + 10);
             this.updateBatteryDisplay(cell, robot.battery);
@@ -746,17 +727,24 @@ class LogisticsGame {
             
             await this.delay(1000);
         }
+        
+        cell.classList.remove('charging-animation');
     }
 
     async loadRobot(robot) {
         const cell = this.getCell(robot.row, robot.col);
-        
-        // Анимация погрузки (5 секунд)
         cell.textContent = '⏳';
+        cell.classList.add('loading-animation');
+        
         await this.delay(5000);
         
         robot.hasPackage = true;
         cell.textContent = '📦' + robot.number;
+        cell.classList.remove('loading-animation');
+        
+        if (this.selectedRobot === robot) {
+            this.batteryElement.textContent = `Заряд: ${robot.battery}%`;
+        }
     }
 
     checkWinCondition() {
@@ -791,6 +779,7 @@ class LogisticsGame {
         this.movingRobots.clear();
         this.gameStarted = false;
         this.stopTimer();
+        this.unlockAllCells();
         
         this.selectedRobotElement.textContent = 'Выбрано: нет';
         this.batteryElement.textContent = 'Заряд: -';
