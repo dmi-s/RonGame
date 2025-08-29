@@ -2,9 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Логистические роботы</title>
     <style>
         /* style.css */
@@ -29,9 +27,6 @@
             align-items: flex-start;
             overflow: hidden;
             touch-action: manipulation;
-            /* Добавлено для iOS */
-            height: -webkit-fill-available;
-            height: 100dvh;
         }
         .container {
             background: black;
@@ -47,9 +42,6 @@
             flex-direction: column;
             align-items: center;
             overflow: hidden;
-            /* Добавлено для iOS */
-            min-height: -webkit-fill-available;
-            min-height: 100dvh;
         }
         .stats-container {
             display: flex;
@@ -65,8 +57,7 @@
             padding: 8px 12px;
             border-radius: 6px;
             font-weight: bold;
-            /* Подогнанный шрифт для номера и заряда */
-            font-size: min(0.8em, 3.5vw);
+            font-size: min(0.9em, 4vw);
             min-width: 0;
             white-space: nowrap;
             overflow: hidden;
@@ -84,8 +75,6 @@
             width: 100%;
             padding: 1px;
             overflow: hidden;
-            /* Добавлено для iOS */
-            flex: 1;
         }
         .game-board {
             display: grid;
@@ -101,9 +90,6 @@
             position: relative;
             overflow: hidden;
             aspect-ratio: 10 / 13;
-            /* Добавлено для iOS */
-            width: min(94vw, 94dvh * (10/13), 480px);
-            height: min(94dvh, 94vw * (13/10), 624px);
         }
         .cell {
             display: flex;
@@ -124,10 +110,10 @@
         }
         .start { background: #ecf0f1; color: #2c3e50; }
         .finish { background: #27ae60; color: white; }
-        .charging { 
+        .charging {
             background: url('Chg.png') no-repeat center center;
             background-size: cover;
-            color: white; 
+            color: white;
         }
         .loading { background: #9b59b6; color: white; }
         .obstacle, .wall {
@@ -154,7 +140,6 @@
             font-weight: bold;
         }
         .empty { background: #ecf0f1; }
-
         /* --- СТИЛЬ ДЛЯ РОБОТОВ --- */
         .robot-cell {
             background: url('Robot.png') no-repeat center center;
@@ -175,7 +160,6 @@
             text-shadow: 0 0 4px black, 0 0 2px black;
             font-weight: bold;
         }
-
         /* --- ПОЛОСКА ЗАРЯДА --- */
         .battery-bar {
             position: absolute;
@@ -189,7 +173,6 @@
         .battery-25-50 { background: #f1c40f; }   /* 25-50% - жёлтый */
         .battery-50-75 { background: #e67e22; }   /* 50-75% - оранжевый */
         .battery-75-100 { background: #2ecc71; }  /* 75-100% - зелёный */
-
         button {
             background: yellow;
             color: black;
@@ -207,7 +190,68 @@
         button:hover {
             background: #ffeb3b;
         }
-
+        /* --- ЭФФЕКТ МИГАНИЯ И ПОДСВЕТКИ --- */
+        .robot-cell.selected {
+            animation: blink 0.5s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { 
+                background: linear-gradient(45deg, #000000, #333333);
+            }
+            50.1%, 100% { 
+                background: linear-gradient(45deg, #ffeb3b, #ffc107);
+            }
+        }
+        .highlighted {
+            background: #3498db !important;
+            color: white;
+            z-index: 4;
+            position: relative;
+            overflow: hidden;
+        }
+        .highlighted::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(52, 152, 219, 0.8), rgba(52, 152, 219, 0.4));
+            animation: pulse 1.5s infinite;
+            z-index: -1;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.7; }
+        }
+        /* --- АНИМАЦИЯ ДЛЯ КЛЕТОК ХОДА --- */
+        .move-highlight {
+            position: relative;
+            overflow: hidden;
+        }
+        .move-highlight::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 3px solid #3498db;
+            border-radius: 2px;
+            animation: borderPulse 1.2s infinite;
+            z-index: 5;
+            pointer-events: none;
+        }
+        @keyframes borderPulse {
+            0%, 100% { 
+                border-color: #3498db;
+                box-shadow: 0 0 5px #3498db;
+            }
+            50% { 
+                border-color: #1a5276;
+                box-shadow: 0 0 15px #1a5276;
+            }
+        }
         @media (max-width: 400px) {
             .container {
                 padding: 6px;
@@ -220,7 +264,7 @@
             }
             .stat-item {
                 padding: 6px 10px;
-                font-size: min(0.75em, 3.2vw);
+                font-size: min(0.85em, 3.8vw);
             }
             .cell {
                 font-size: calc(min(92vw, 92vh * (10/13), 400px) / 10 * 0.38);
@@ -244,14 +288,11 @@
              }
              .stat-item {
                  padding: 5px 8px;
-                 font-size: min(0.7em, 2.8vw);
+                 font-size: min(0.75em, 3vw);
              }
              .game-board {
                  width: min(85vw, 85vh * (10/13), 350px);
                  height: min(85vh, 85vw * (13/10), 455px);
-                 /* Добавлено для iOS */
-                 width: min(85vw, 85dvh * (10/13), 350px);
-                 height: min(85dvh, 85vw * (13/10), 455px);
              }
              .cell {
                  font-size: calc(min(85vw, 85vh * (10/13), 350px) / 10 * 0.35);
@@ -330,7 +371,6 @@
                 this.selectedRobot = null;
                 this.timeLeft = this.totalTime;
                 this.timerElement.textContent = `Время: 20:00`;
-
                 // --- НОВОЕ: Зелёный финишный ряд сверху ---
                 for (let col = 0; col < this.cols; col++) {
                     const cell = this.getCell(0, col);
@@ -339,7 +379,6 @@
                     cell.dataset.originalClass = 'finish';
                 }
                 // --- КОНЕЦ НОВОГО ---
-
                 this.placeStationsAndObstacles();
                 this.placeRobots();
             }
@@ -351,11 +390,9 @@
                         grid.push({ row, col });
                     }
                 }
-
                 this.shuffleArray(grid);
                 const numbers = Array.from({ length: 10 }, (_, i) => i + 1);
                 this.shuffleArray(numbers);
-
                 // Генерируем уровни заряда
                 const batteryLevels = [];
                 for (let i = 0; i < 3; i++) {
@@ -365,30 +402,25 @@
                     batteryLevels.push(Math.floor(Math.random() * 51) + 50); // 50-100
                 }
                 this.shuffleArray(batteryLevels);
-
                 // Размещаем 10 роботов
                 for (let i = 0; i < 10; i++) {
                     const pos = grid[i];
                     const cell = this.getCell(pos.row, pos.col);
                     const charge = batteryLevels[i];
                     const movesLeft = Math.floor(charge / 2); // Расчет ходов
-
                     cell.className = 'cell robot-cell';
                     cell.dataset.number = numbers[i];
                     cell.dataset.originalClass = 'robot-cell';
-
                     // Сохраняем данные о роботе
                     this.robotsData[`${pos.row}-${pos.col}`] = {
                         number: numbers[i],
                         charge: charge,
                         movesLeft: movesLeft
                     };
-
                     // Создание полоски заряда
                     const batteryBar = document.createElement('div');
                     batteryBar.className = 'battery-bar';
                     batteryBar.style.width = `${charge}%`;
-
                     if (charge <= 25) {
                         batteryBar.classList.add('battery-0-25');
                     } else if (charge <= 50) {
@@ -398,7 +430,6 @@
                     } else {
                         batteryBar.classList.add('battery-75-100');
                     }
-
                     cell.appendChild(batteryBar);
                 }
             }
@@ -407,20 +438,16 @@
                 this.chargingStations = [];
                 this.loadingStations = [];
                 this.obstacles = [];
-
                 const possibleColumns = Array.from({ length: this.cols - 2 }, (_, i) => i + 1);
                 this.shuffleArray(possibleColumns);
                 const selectedColumns = possibleColumns.slice(0, 4);
                 const uniqueSelectedColumns = [...new Set(selectedColumns)].slice(0, 4);
-
                 let isValid = false;
                 let placementAttempts = 0;
                 const maxPlacementAttempts = 200;
-
                 while (!isValid && placementAttempts < maxPlacementAttempts) {
                     isValid = true;
                     const sortedColumns = [...uniqueSelectedColumns].sort((a, b) => a - b);
-
                     for (let i = 0; i < sortedColumns.length - 1; i++) {
                         if (Math.abs(sortedColumns[i] - sortedColumns[i + 1]) < 2) {
                             isValid = false;
@@ -432,7 +459,6 @@
                     }
                     placementAttempts++;
                 }
-
                 let finalColumns;
                 if (isValid && uniqueSelectedColumns.length === 4) {
                     finalColumns = uniqueSelectedColumns;
@@ -441,15 +467,12 @@
                     finalColumns = [2, 4, 5, 7];
                     this.shuffleArray(stationTypes);
                 }
-
                 let stationTypes = ['charging', 'charging', 'loading', 'loading'];
                 this.shuffleArray(stationTypes);
-
                 for (let i = 0; i < 4; i++) {
                     const col = finalColumns[i];
                     const type = stationTypes[i];
                     const cell = this.getCell(stationRow, col);
-
                     if (type === 'charging') {
                         cell.className = 'cell charging';
                         cell.textContent = '⚡';
@@ -462,11 +485,9 @@
                         this.loadingStations.push({ row: stationRow, col: col });
                     }
                 }
-
                 for (let col = 0; col < this.cols; col++) {
                     const isChargingStation = this.chargingStations.some(station => station.col === col);
                     const isLoadingStation = this.loadingStations.some(station => station.col === col);
-
                     if (!isChargingStation && !isLoadingStation) {
                         const cell = this.getCell(stationRow, col);
                         cell.className = 'cell wall';
@@ -474,7 +495,6 @@
                         cell.dataset.originalClass = 'wall';
                     }
                 }
-
                 const obstacleRows = [3, 4, 5, 6, 7, 8, 9];
                 const grid = [];
                 for (const row of obstacleRows) {
@@ -482,7 +502,6 @@
                         grid.push({ row, col });
                     }
                 }
-
                 let attempts = 0;
                 const maxAttempts = 1000;
                 while (this.obstacles.length < this.OBSTACLES_COUNT && attempts < maxAttempts) {
@@ -515,14 +534,12 @@
                     }
                     attempts++;
                 }
-
                 if (this.obstacles.length < this.OBSTACLES_COUNT) {
                     const remaining = grid.filter(pos =>
                         !this.obstacles.some(o => o.row === pos.row && o.col === pos.col)
                     );
                     this.obstacles.push(...remaining.slice(0, this.OBSTACLES_COUNT - this.obstacles.length));
                 }
-
                 for (const obs of this.obstacles) {
                     const cell = this.getCell(obs.row, obs.col);
                     cell.className = 'cell obstacle';
@@ -547,12 +564,10 @@
                 if (this.gameStarted) {
                     const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
                     this.timeLeft = this.totalTime - elapsed;
-                    
                     if (this.timeLeft <= 0) {
                         this.timeLeft = 0;
                         this.stopTimer();
                     }
-                    
                     const minutes = Math.floor(this.timeLeft / 60);
                     const seconds = this.timeLeft % 60;
                     this.timerElement.textContent = `Время: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
@@ -563,16 +578,13 @@
             }
             setupEventListeners() {
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
-                
                 // Обработчик клика по полю для выбора робота и запуска таймера
                 this.board.addEventListener('click', (event) => {
                     if (!this.gameStarted) {
                         this.startTimer();
                     }
-                    
                     const cell = event.target.closest('.cell');
                     if (!cell) return;
-
                     const row = parseInt(cell.dataset.row);
                     const col = parseInt(cell.dataset.col);
                     const key = `${row}-${col}`;
@@ -580,6 +592,10 @@
                     // Если кликнули по роботу
                     if (cell.classList.contains('robot-cell')) {
                         const robotData = this.robotsData[key];
+
+                        // Сбросить предыдущую подсветку
+                        this.clearHighlights();
+
                         if (this.selectedRobot === key) {
                             // Отменить выбор
                             this.selectedRobot = null;
@@ -590,10 +606,17 @@
                             this.selectedRobot = key;
                             this.robotNumberElement.textContent = `Номер робота: ${robotData.number}`;
                             this.robotChargeElement.textContent = `Заряд робота: ${robotData.charge}%`;
+
+                            // Подсветить робота
+                            cell.classList.add('selected');
+
+                            // Подсветить возможные ходы
+                            this.highlightPossibleMoves(key);
                         }
                     } else {
-                        // Клик не по роботу - сбросить выбор
+                        // Клик не по роботу - сбросить выбор и подсветку
                         if (this.selectedRobot) {
+                            this.clearHighlights();
                             this.selectedRobot = null;
                             this.robotNumberElement.textContent = 'Номер робота: -';
                             this.robotChargeElement.textContent = 'Заряд робота: -%';
@@ -601,6 +624,65 @@
                     }
                 });
             }
+
+            clearHighlights() {
+                // Удалить классы подсветки со всех ячеек
+                const cells = this.board.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    cell.classList.remove('highlighted', 'selected', 'move-highlight');
+                });
+            }
+
+            highlightPossibleMoves(robotKey) {
+                const [row, col] = robotKey.split('-').map(Number);
+                const directions = [
+                    { dr: -1, dc: 0 }, // Вверх
+                    { dr: 1, dc: 0 },  // Вниз
+                    { dr: 0, dc: -1 }, // Влево
+                    { dr: 0, dc: 1 }   // Вправо
+                ];
+
+                directions.forEach(({ dr, dc }) => {
+                    let currentRow = row + dr;
+                    let currentCol = col + dc;
+                    let steps = 0;
+
+                    // Пока не вышли за границы и не наткнулись на препятствие
+                    while (
+                        currentRow >= 0 &&
+                        currentRow < this.rows &&
+                        currentCol >= 0 &&
+                        currentCol < this.cols &&
+                        steps < 10 // Ограничение на количество шагов
+                    ) {
+                        const targetCell = this.getCell(currentRow, currentCol);
+
+                        // Проверить, что целевая ячейка не является стеной или препятствием
+                        if (targetCell.classList.contains('obstacle') ||
+                            targetCell.classList.contains('wall') ||
+                            targetCell.classList.contains('robot-cell')) {
+                            break; // Препятствие - останавливаемся
+                        }
+
+                        // Проверить, что целевая ячейка не является другой станцией
+                        const isStation = this.chargingStations.some(s => s.row === currentRow && s.col === currentCol) ||
+                                          this.loadingStations.some(s => s.row === currentRow && s.col === currentCol);
+
+                        if (isStation) {
+                            break; // Станция - останавливаемся
+                        }
+
+                        // Подсветить клетку
+                        targetCell.classList.add('move-highlight');
+
+                        // Продолжаем двигаться в том же направлении
+                        currentRow += dr;
+                        currentCol += dc;
+                        steps++;
+                    }
+                });
+            }
+
             resetGame() {
                 this.createBoard();
                 this.setupGame();
