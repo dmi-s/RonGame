@@ -65,16 +65,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
-        }
-        /* --- ЛЕВОЕ И ПРАВОЕ ПОЛЕ МЕНЬШЕ --- */
-        .stat-item:first-child, .stat-item:last-child {
-            flex: 0 0 auto; /* Не растягиваются */
-            width: auto;
-            max-width: 30%; /* Ограничение ширины */
-        }
-        /* --- ЦЕНТРАЛЬНОЕ ПОЛЕ БОЛЬШЕ --- */
-        .stat-item:nth-child(2) {
-            flex: 1 1 auto; /* Растягивается */
+            /* Все поля одинаковой ширины */
+            flex: 1;
         }
         .game-wrapper {
             display: flex;
@@ -118,7 +110,11 @@
         }
         .start { background: #ecf0f1; color: #2c3e50; }
         .finish { background: #27ae60; color: white; }
-        .charging { background: #f39c12; color: white; }
+        .charging { 
+            background: url('Chg.png') no-repeat center center;
+            background-size: cover;
+            color: white; 
+        }
         .loading { background: #9b59b6; color: white; }
         .obstacle, .wall {
             background-image:
@@ -254,8 +250,8 @@
 <body>
     <div class="container">
         <div class="stats-container">
-            <div id="robot-number" class="stat-item">Номер: -</div>
-            <div id="robot-charge" class="stat-item">заряда хватит на - ходов</div>
+            <div id="robot-number" class="stat-item">Номер робота: -</div>
+            <div id="robot-charge" class="stat-item">Заряд робота: -%</div>
             <div id="timer" class="stat-item">Время: 20:00</div>
         </div>
         <div class="game-wrapper">
@@ -308,8 +304,8 @@
             }
             setupGame() {
                 this.moves = 0;
-                this.robotNumberElement.textContent = 'Номер: -';
-                this.robotChargeElement.textContent = 'заряда хватит на - ходов';
+                this.robotNumberElement.textContent = 'Номер робота: -';
+                this.robotChargeElement.textContent = 'Заряд робота: -%';
                 this.stopTimer();
                 this.gameStarted = false;
                 this.startTime = 0;
@@ -570,20 +566,20 @@
                         if (this.selectedRobot === key) {
                             // Отменить выбор
                             this.selectedRobot = null;
-                            this.robotNumberElement.textContent = 'Номер: -';
-                            this.robotChargeElement.textContent = 'заряда хватит на - ходов';
+                            this.robotNumberElement.textContent = 'Номер робота: -';
+                            this.robotChargeElement.textContent = 'Заряд робота: -%';
                         } else {
                             // Выбрать нового робота
                             this.selectedRobot = key;
-                            this.robotNumberElement.textContent = `Номер: ${robotData.number}`;
-                            this.robotChargeElement.textContent = `заряда хватит на ${robotData.movesLeft} ходов`;
+                            this.robotNumberElement.textContent = `Номер робота: ${robotData.number}`;
+                            this.robotChargeElement.textContent = `Заряд робота: ${robotData.charge}%`;
                         }
                     } else {
                         // Клик не по роботу - сбросить выбор
                         if (this.selectedRobot) {
                             this.selectedRobot = null;
-                            this.robotNumberElement.textContent = 'Номер: -';
-                            this.robotChargeElement.textContent = 'заряда хватит на - ходов';
+                            this.robotNumberElement.textContent = 'Номер робота: -';
+                            this.robotChargeElement.textContent = 'Заряд робота: -%';
                         }
                     }
                 });
