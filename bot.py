@@ -1,55 +1,57 @@
 # bot.py
-import logging
+# Telegram-бот для запуска игры
+import asyncio
+from telegram import Update
+from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram.constants import ParseMode
 import time
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
-
-# Настройка логирования
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-
-TOKEN = "8218546394:AAHV5oUGupEWqq071n18tpIR3Pce3ddlC2w"
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработчик команды /start"""
-    # Добавляем timestamp к URL чтобы избежать кэширования
+    # Добавляем timestamp для избежания кэширования
     timestamp = int(time.time())
-    webapp_url = f"https://dmi-s.github.io/RonGame/webapp/index.html?t={timestamp}"
-
-    keyboard = [
-        [InlineKeyboardButton("🤖 Логистические роботы",
-                              web_app=WebAppInfo(url=webapp_url))]
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+    web_app_url = f"https://dmi-s.github.io/RonGame/webapp/index.html?t={timestamp}"
 
     await update.message.reply_text(
-        "Добро пожаловать в 'Логистические роботы'! 🤖\n\n"
-        "Перемещайте роботов через станцию погрузки к месту выгрузки!\n"
-        "Следите за уровнем заряда батареи!",
-        reply_markup=reply_markup
+        "🎮 Добро пожаловать в игру 'Логистические роботы'!\n"
+        "Нажмите кнопку ниже, чтобы начать игру.",
+        reply_markup={
+            "inline_keyboard": [[
+                {"text": "Запустить игру", "web_app": {"url": web_app_url}}
+            ]]
+        }
     )
 
 
-async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Обработка данных из веб-приложения"""
-    if update.message and update.message.web_app_data:
-        data = update.message.web_app_data.data
-        await update.message.reply_text(f"Спасибо за игру! Результат: {data}")
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    help_text = """
+🤖 *Логистические роботы* - игра-головоломка
+
+*Правила игры:*
+• Переместите всех роботов на свои места выгрузки
+• Роботы должны заряжаться при низком заряде (<25%)
+• Перед выгрузкой роботы должны загрузиться на станции погрузки
+• Избегайте столкновений с препятствиями и другими роботами
+
+*Управление:*
+1. Нажмите на робота для выбора
+2. Кликайте по клеткам для построения маршрута
+3. Робот автоматически поедет по построенному пути
+
+Удачи! 🚀
+    """
+    await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
 
 
 def main():
-    """Запуск бота"""
-    application = Application.builder().token(TOKEN).build()
+    # Замените токен на ваш реальный токен бота
+    app = Application.builder().token("8218546394:AAHV5oUGupEWqq071n18tpIR3Pce3ddlC2w").build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("game", start))  # Альтернативная команда
 
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, handle_web_app_data))
-
-    print("Бот запускается...")
-    application.run_polling()
-    print("Бот запущен!")
+    print("Бот запущен...")
+    app.run_polling()
 
 
 if __name__ == "__main__":
