@@ -75,6 +75,7 @@
             width: 100%;
             padding: 1px;
             overflow: hidden;
+            position: relative;
         }
         .game-board {
             display: grid;
@@ -102,6 +103,7 @@
             position: relative;
             border-radius: 1px;
             background: #ecf0f1;
+            z-index: 1;
         }
         .cell:hover {
             transform: scale(0.95);
@@ -109,9 +111,9 @@
             z-index: 2;
         }
         .start { background: #ecf0f1; color: #2c3e50; }
-        .finish {
-            background: #000000;
-            color: white;
+        .finish { 
+            background: #000000; 
+            color: white; 
             position: relative;
         }
         .finish::before {
@@ -147,9 +149,9 @@
             background-size: cover;
             z-index: 1;
         }
-        .loading {
-            background: #ecf0f1;
-            color: white;
+        .loading { 
+            background: #ecf0f1; 
+            color: white; 
             position: relative;
         }
         .loading::before {
@@ -254,10 +256,10 @@
             animation: blinkBackground 0.8s infinite;
         }
         @keyframes blinkBackground {
-            0%, 100% {
+            0%, 100% { 
                 background: #000000;
             }
-            50% {
+            50% { 
                 background: #ffeb3b;
             }
         }
@@ -288,6 +290,7 @@
             position: relative;
             overflow: hidden;
             background: transparent !important;
+            cursor: pointer;
         }
         .move-highlight::before {
             content: '';
@@ -303,36 +306,50 @@
             pointer-events: none;
         }
         @keyframes runningBorder {
-            0% {
+            0% { 
                 border-top-color: #f1c40f;
                 border-right-color: #000;
                 border-bottom-color: #000;
                 border-left-color: #000;
             }
-            25% {
+            25% { 
                 border-top-color: #000;
                 border-right-color: #f1c40f;
                 border-bottom-color: #000;
                 border-left-color: #000;
             }
-            50% {
+            50% { 
                 border-top-color: #000;
                 border-right-color: #000;
                 border-bottom-color: #f1c40f;
                 border-left-color: #000;
             }
-            75% {
+            75% { 
                 border-top-color: #000;
                 border-right-color: #000;
                 border-bottom-color: #000;
                 border-left-color: #f1c40f;
             }
-            100% {
+            100% { 
                 border-top-color: #f1c40f;
                 border-right-color: #000;
                 border-bottom-color: #000;
                 border-left-color: #000;
             }
+        }
+        /* --- ТРАЕКТОРИЯ ДВИЖЕНИЯ --- */
+        .trajectory-line {
+            position: absolute;
+            background: #f1c40f;
+            z-index: 6;
+            transform-origin: 0 0;
+        }
+        .moving-robot {
+            position: absolute;
+            background: url('Robot.png') no-repeat center center;
+            background-size: cover;
+            z-index: 7;
+            pointer-events: none;
         }
         @media (max-width: 400px) {
             .container {
@@ -420,6 +437,9 @@
                 this.selectedRobot = null; // Текущий выбранный робот
                 this.totalTime = 20 * 60; // 20 минут в секундах
                 this.timeLeft = this.totalTime;
+                this.movingRobot = null; // Анимируемый робот
+                this.trajectoryLine = null; // Линия траектории
+                this.MOVE_DURATION = 2000; // 2 секунды на клетку
                 this.init();
             }
             init() {
@@ -453,6 +473,15 @@
                 this.selectedRobot = null;
                 this.timeLeft = this.totalTime;
                 this.timerElement.textContent = `Время: 20:00`;
+                // Удалить траекторию и движущегося робота, если есть
+                if (this.trajectoryLine) {
+                    this.trajectoryLine.remove();
+                    this.trajectoryLine = null;
+                }
+                if (this.movingRobot) {
+                    this.movingRobot.remove();
+                    this.movingRobot = null;
+                }
                 // --- НОВОЕ: Станции выгрузки в верхнем ряду ---
                 for (let col = 0; col < this.cols; col++) {
                     const cell = this.getCell(0, col);
@@ -660,9 +689,8 @@
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
                 // Обработчик клика по полю для выбора робота и запуска таймера
                 this.board.addEventListener('click', (event) => {
-                    if (!this.gameStarted) {
-                        this.startTimer();
-                    }
+                    if (this.movingRobot) return; // Игнорировать клики во время движения
+                    
                     const cell = event.target.closest('.cell');
                     if (!cell) return;
                     const row = parseInt(cell.dataset.row);
@@ -693,8 +721,15 @@
                             // Подсветить возможные ходы
                             this.highlightPossibleMoves(key);
                         }
-                    } else {
-                        // Клик не по роботу - сбросить выбор и подсветку
+                    } 
+                    // Если кликнули по возможной клетке для перемещения
+                    else if (cell.classList.contains('move-highlight')) {
+                        if (this.selectedRobot) {
+                            this.moveRobot(this.selectedRobot, row, col);
+                        }
+                    }
+                    // Клик не по роботу и не по возможной клетке - сбросить выбор
+                    else {
                         if (this.selectedRobot) {
                             this.clearHighlights();
                             this.selectedRobot = null;
@@ -711,6 +746,12 @@
                 cells.forEach(cell => {
                     cell.classList.remove('highlighted', 'selected', 'move-highlight');
                 });
+                
+                // Удалить траекторию, если есть
+                if (this.trajectoryLine) {
+                    this.trajectoryLine.remove();
+                    this.trajectoryLine = null;
+                }
             }
 
             highlightPossibleMoves(robotKey) {
@@ -753,6 +794,173 @@
                         steps++;
                     }
                 });
+            }
+
+            moveRobot(fromKey, toRow, toCol) {
+                const [fromRow, fromCol] = fromKey.split('-').map(Number);
+                
+                // Создать траекторию
+                this.createTrajectory(fromRow, fromCol, toRow, toCol);
+                
+                // Создать движущегося робота
+                this.createMovingRobot(fromRow, fromCol);
+                
+                // Анимировать движение
+                const distance = Math.abs(toRow - fromRow) + Math.abs(toCol - fromCol);
+                const duration = distance * this.MOVE_DURATION;
+                
+                // Рассчитать позиции для анимации
+                const startPos = this.getCellPosition(fromRow, fromCol);
+                const endPos = this.getCellPosition(toRow, toCol);
+                
+                // Запустить анимацию
+                this.animateRobotMovement(startPos, endPos, duration, fromKey, toRow, toCol);
+            }
+
+            createTrajectory(fromRow, fromCol, toRow, toCol) {
+                // Удалить предыдущую траекторию, если есть
+                if (this.trajectoryLine) {
+                    this.trajectoryLine.remove();
+                }
+                
+                const startPos = this.getCellPosition(fromRow, fromCol);
+                const endPos = this.getCellPosition(toRow, toCol);
+                
+                // Создать линию траектории
+                this.trajectoryLine = document.createElement('div');
+                this.trajectoryLine.className = 'trajectory-line';
+                
+                const deltaX = endPos.x - startPos.x;
+                const deltaY = endPos.y - startPos.y;
+                const length = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+                
+                this.trajectoryLine.style.width = `${length}px`;
+                this.trajectoryLine.style.height = '4px';
+                this.trajectoryLine.style.left = `${startPos.x}px`;
+                this.trajectoryLine.style.top = `${startPos.y}px`;
+                this.trajectoryLine.style.transform = `rotate(${angle}deg)`;
+                
+                this.board.parentElement.appendChild(this.trajectoryLine);
+            }
+
+            createMovingRobot(row, col) {
+                // Удалить предыдущего движущегося робота, если есть
+                if (this.movingRobot) {
+                    this.movingRobot.remove();
+                }
+                
+                const pos = this.getCellPosition(row, col);
+                const cellSize = this.getCellSize();
+                
+                this.movingRobot = document.createElement('div');
+                this.movingRobot.className = 'moving-robot';
+                this.movingRobot.style.width = `${cellSize.width}px`;
+                this.movingRobot.style.height = `${cellSize.height}px`;
+                this.movingRobot.style.left = `${pos.x}px`;
+                this.movingRobot.style.top = `${pos.y}px`;
+                
+                this.board.parentElement.appendChild(this.movingRobot);
+            }
+
+            getCellPosition(row, col) {
+                const cell = this.getCell(row, col);
+                const rect = cell.getBoundingClientRect();
+                const boardRect = this.board.getBoundingClientRect();
+                return {
+                    x: rect.left - boardRect.left + rect.width / 2,
+                    y: rect.top - boardRect.top + rect.height / 2
+                };
+            }
+
+            getCellSize() {
+                const cell = this.getCell(0, 0);
+                const rect = cell.getBoundingClientRect();
+                return {
+                    width: rect.width,
+                    height: rect.height
+                };
+            }
+
+            animateRobotMovement(startPos, endPos, duration, fromKey, toRow, toCol) {
+                const startTime = Date.now();
+                
+                const animate = () => {
+                    const elapsed = Date.now() - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Линейная интерполяция
+                    const currentX = startPos.x + (endPos.x - startPos.x) * progress;
+                    const currentY = startPos.y + (endPos.y - startPos.y) * progress;
+                    
+                    if (this.movingRobot) {
+                        this.movingRobot.style.left = `${currentX - this.movingRobot.offsetWidth / 2}px`;
+                        this.movingRobot.style.top = `${currentY - this.movingRobot.offsetHeight / 2}px`;
+                    }
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        // Анимация завершена
+                        this.finishMovement(fromKey, toRow, toCol);
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            }
+
+            finishMovement(fromKey, toRow, toCol) {
+                // Удалить траекторию и движущегося робота
+                if (this.trajectoryLine) {
+                    this.trajectoryLine.remove();
+                    this.trajectoryLine = null;
+                }
+                if (this.movingRobot) {
+                    this.movingRobot.remove();
+                    this.movingRobot = null;
+                }
+                
+                // Обновить позицию робота в данных
+                const robotData = this.robotsData[fromKey];
+                delete this.robotsData[fromKey];
+                const toKey = `${toRow}-${toCol}`;
+                this.robotsData[toKey] = robotData;
+                
+                // Обновить визуальное представление
+                const fromCell = this.getCell(parseInt(fromKey.split('-')[0]), parseInt(fromKey.split('-')[1]));
+                const toCell = this.getCell(toRow, toCol);
+                
+                // Очистить исходную клетку
+                fromCell.className = 'cell empty';
+                fromCell.dataset.originalClass = 'empty';
+                
+                // Обновить целевую клетку
+                toCell.className = 'cell robot-cell';
+                toCell.dataset.number = robotData.number;
+                toCell.dataset.originalClass = 'robot-cell';
+                
+                // Создать полоску заряда
+                const batteryBar = document.createElement('div');
+                batteryBar.className = 'battery-bar';
+                batteryBar.style.width = `${robotData.charge}%`;
+                if (robotData.charge <= 25) {
+                    batteryBar.classList.add('battery-0-25');
+                } else if (robotData.charge <= 50) {
+                    batteryBar.classList.add('battery-25-50');
+                } else if (robotData.charge <= 75) {
+                    batteryBar.classList.add('battery-50-75');
+                } else {
+                    batteryBar.classList.add('battery-75-100');
+                }
+                toCell.appendChild(batteryBar);
+                
+                // Сбросить выбор
+                this.selectedRobot = null;
+                this.robotNumberElement.textContent = 'Номер робота: -';
+                this.robotChargeElement.textContent = 'Заряд робота: -%';
+                
+                // Очистить подсветку
+                this.clearHighlights();
             }
 
             resetGame() {
