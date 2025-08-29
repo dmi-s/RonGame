@@ -109,13 +109,60 @@
             z-index: 2;
         }
         .start { background: #ecf0f1; color: #2c3e50; }
-        .finish { background: #27ae60; color: white; }
+        .finish { 
+            background: #000000; 
+            color: white; 
+            position: relative;
+        }
+        .finish::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('pallet.png') no-repeat center center;
+            background-size: cover;
+            z-index: 1;
+        }
+        .finish .cell-content {
+            position: relative;
+            z-index: 3;
+            color: white;
+            font-weight: bold;
+        }
         .charging {
+            background: #ecf0f1;
+            color: white;
+            position: relative;
+        }
+        .charging::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: url('Chg.png') no-repeat center center;
             background-size: cover;
-            color: white;
+            z-index: 1;
         }
-        .loading { background: #9b59b6; color: white; }
+        .loading { 
+            background: #ecf0f1; 
+            color: white; 
+            position: relative;
+        }
+        .loading::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('Cargo.png') no-repeat center center;
+            background-size: cover;
+            z-index: 1;
+        }
         .obstacle, .wall {
             background-image:
                 repeating-linear-gradient(
@@ -142,11 +189,21 @@
         .empty { background: #ecf0f1; }
         /* --- СТИЛЬ ДЛЯ РОБОТОВ --- */
         .robot-cell {
-            background: url('Robot.png') no-repeat center center;
-            background-size: cover;
+            background: #ecf0f1;
             color: white;
             font-weight: bold;
             position: relative;
+            z-index: 1;
+        }
+        .robot-cell::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('Robot.png') no-repeat center center;
+            background-size: cover;
             z-index: 1;
         }
         .robot-cell::after {
@@ -159,6 +216,7 @@
             color: white;
             text-shadow: 0 0 4px black, 0 0 2px black;
             font-weight: bold;
+            z-index: 2;
         }
         /* --- ПОЛОСКА ЗАРЯДА --- */
         .battery-bar {
@@ -168,6 +226,7 @@
             height: 4px;
             width: 0; /* Будет установлено в JS */
             border-radius: 2px 0 0 0;
+            z-index: 3;
         }
         .battery-0-25 { background: #e74c3c; }    /* 0-25% - красный */
         .battery-25-50 { background: #f1c40f; }   /* 25-50% - жёлтый */
@@ -192,14 +251,14 @@
         }
         /* --- ЭФФЕКТ МИГАНИЯ И ПОДСВЕТКИ --- */
         .robot-cell.selected {
-            animation: blink 0.5s infinite;
+            animation: blinkBackground 0.8s infinite;
         }
-        @keyframes blink {
-            0%, 50% { 
-                background: linear-gradient(45deg, #000000, #333333);
+        @keyframes blinkBackground {
+            0%, 100% { 
+                background: #000000;
             }
-            50.1%, 100% { 
-                background: linear-gradient(45deg, #ffeb3b, #ffc107);
+            50% { 
+                background: #ffeb3b;
             }
         }
         .highlighted {
@@ -228,6 +287,7 @@
         .move-highlight {
             position: relative;
             overflow: hidden;
+            background: transparent !important;
         }
         .move-highlight::before {
             content: '';
@@ -236,20 +296,42 @@
             left: 0;
             right: 0;
             bottom: 0;
-            border: 3px solid #3498db;
+            border: 3px solid #000;
             border-radius: 2px;
-            animation: borderPulse 1.2s infinite;
+            animation: runningBorder 1.2s infinite linear;
             z-index: 5;
             pointer-events: none;
         }
-        @keyframes borderPulse {
-            0%, 100% { 
-                border-color: #3498db;
-                box-shadow: 0 0 5px #3498db;
+        @keyframes runningBorder {
+            0% { 
+                border-top-color: #f1c40f;
+                border-right-color: #000;
+                border-bottom-color: #000;
+                border-left-color: #000;
+            }
+            25% { 
+                border-top-color: #000;
+                border-right-color: #f1c40f;
+                border-bottom-color: #000;
+                border-left-color: #000;
             }
             50% { 
-                border-color: #1a5276;
-                box-shadow: 0 0 15px #1a5276;
+                border-top-color: #000;
+                border-right-color: #000;
+                border-bottom-color: #f1c40f;
+                border-left-color: #000;
+            }
+            75% { 
+                border-top-color: #000;
+                border-right-color: #000;
+                border-bottom-color: #000;
+                border-left-color: #f1c40f;
+            }
+            100% { 
+                border-top-color: #f1c40f;
+                border-right-color: #000;
+                border-bottom-color: #000;
+                border-left-color: #000;
             }
         }
         @media (max-width: 400px) {
@@ -371,11 +453,11 @@
                 this.selectedRobot = null;
                 this.timeLeft = this.totalTime;
                 this.timerElement.textContent = `Время: 20:00`;
-                // --- НОВОЕ: Зелёный финишный ряд сверху ---
+                // --- НОВОЕ: Станции выгрузки в верхнем ряду ---
                 for (let col = 0; col < this.cols; col++) {
                     const cell = this.getCell(0, col);
                     cell.className = 'cell finish';
-                    cell.textContent = col + 1;
+                    cell.innerHTML = '<span class="cell-content">' + (col + 1) + '</span>';
                     cell.dataset.originalClass = 'finish';
                 }
                 // --- КОНЕЦ НОВОГО ---
@@ -475,12 +557,10 @@
                     const cell = this.getCell(stationRow, col);
                     if (type === 'charging') {
                         cell.className = 'cell charging';
-                        cell.textContent = '⚡';
                         cell.dataset.originalClass = 'charging';
                         this.chargingStations.push({ row: stationRow, col: col });
                     } else {
                         cell.className = 'cell loading';
-                        cell.textContent = '📦';
                         cell.dataset.originalClass = 'loading';
                         this.loadingStations.push({ row: stationRow, col: col });
                     }
@@ -662,14 +742,6 @@
                             targetCell.classList.contains('wall') ||
                             targetCell.classList.contains('robot-cell')) {
                             break; // Препятствие - останавливаемся
-                        }
-
-                        // Проверить, что целевая ячейка не является другой станцией
-                        const isStation = this.chargingStations.some(s => s.row === currentRow && s.col === currentCol) ||
-                                          this.loadingStations.some(s => s.row === currentRow && s.col === currentCol);
-
-                        if (isStation) {
-                            break; // Станция - останавливаемся
                         }
 
                         // Подсветить клетку
