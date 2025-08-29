@@ -247,6 +247,17 @@
             background: yellow;
         }
 
+        /* Траектория движения */
+        .trajectory {
+            position: absolute;
+            background: red;
+            z-index: 5;
+        }
+
+        .moving-cell {
+            background: red !important;
+        }
+
         /* Анимация мигания выбранного робота */
         @keyframes blink {
             0% { filter: brightness(1); }
@@ -256,6 +267,12 @@
 
         .selected-robot {
             animation: blink 1s infinite;
+        }
+
+        /* Анимация движения робота */
+        .moving-robot {
+            transition: transform 0.5s linear;
+            z-index: 10;
         }
 
         /* --- КНОПКА НОВАЯ ИГРА: ФОН ЖЁЛТЫЙ, ТЕКСТ ЧЁРНЫЙ --- */
@@ -384,6 +401,9 @@
                 this.remainingTime = this.totalTime;
                 this.possibleMoves = []; // Массив для хранения возможных перемещений
                 this.blinkInterval = null; // Интервал для мигания робота
+                this.movingRobot = null; // Робот, который сейчас движется
+                this.trajectoryCells = []; // Клетки траектории
+                this.trajectoryElements = []; // Элементы траектории
                 this.OBSTACLES_COUNT = 9;
                 this.init();
             }
@@ -416,6 +436,7 @@
                 this.movesElement.textContent = 'Заряд робота: 100%';
                 this.stopTimer();
                 this.stopBlinking();
+                this.stopRobotMovement();
                 this.gameStarted = false;
                 this.startTime = 0;
                 this.selectedRobot = null;
@@ -439,10 +460,10 @@
                 this.shelves = [];
                 this.robots = [];
                 this.robotCharges = [];
-
+                
                 // Столбы только в рядах 3-12 (индексы 3-12)
                 const obstacleRows = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-
+                
                 // Создаем сетку для размещения столбов с минимальным расстоянием 4 клетки
                 const grid = [];
                 for (const row of obstacleRows) {
@@ -453,11 +474,11 @@
 
                 // Перемешиваем сетку для случайного выбора
                 this.shuffleArray(grid);
-
+                
                 // Размещаем столбы с минимальным расстоянием 4 клетки
                 for (const pos of grid) {
                     if (this.obstacles.length >= this.OBSTACLES_COUNT) break;
-
+                    
                     let valid = true;
                     // Проверяем минимальное расстояние до уже размещенных столбов
                     for (const existing of this.obstacles) {
@@ -467,7 +488,7 @@
                             break;
                         }
                     }
-
+                    
                     if (valid) {
                         this.obstacles.push(pos);
                     }
@@ -492,11 +513,11 @@
                 // Размещаем зарядные станции рядом со случайными столбами
                 const shuffledObstacles = [...this.obstacles];
                 this.shuffleArray(shuffledObstacles);
-
+                
                 let placedChargingStations = 0;
                 for (const obstacle of shuffledObstacles) {
                     if (placedChargingStations >= this.chargingStationCount) break;
-
+                    
                     // Направления: 0 - сверху, 1 - справа, 2 - снизу, 3 - слева
                     const directions = [
                         { row: -1, col: 0 },  // сверху
@@ -504,20 +525,20 @@
                         { row: 1, col: 0 },   // снизу
                         { row: 0, col: -1 }   // слева
                     ];
-
+                    
                     // Перемешиваем направления
                     this.shuffleArray(directions);
-
+                    
                     let chargingPlaced = false;
                     for (const dir of directions) {
                         const newRow = obstacle.row + dir.row;
                         const newCol = obstacle.col + dir.col;
-
+                        
                         // Проверяем, что позиция внутри поля и не ближе 2 клеток к краям
                         if (newRow >= 2 && newRow < this.rows - 2 && newCol >= 2 && newCol < this.cols - 2) {
                             const cell = this.getCell(newRow, newCol);
                             const currentClass = cell.className;
-
+                            
                             // Проверяем, что клетка пустая
                             if (currentClass.includes('empty')) {
                                 // Проверяем минимальное расстояние 3 клетки до других зарядных станций
@@ -529,7 +550,7 @@
                                         break;
                                     }
                                 }
-
+                                
                                 if (validDistance) {
                                     cell.className = 'cell charging-station';
                                     cell.dataset.originalClass = 'charging-station';
@@ -554,11 +575,11 @@
 
                 // Перемешиваем сетку для случайного выбора
                 this.shuffleArray(shelfGrid);
-
+                
                 // Размещаем столы с проверкой расстояния до зарядных станций
                 for (const pos of shelfGrid) {
                     if (this.shelves.length >= this.shelfCount) break;
-
+                    
                     let valid = true;
                     // Проверяем минимальное расстояние 2 клетки до зарядных станций
                     for (const chargingStation of this.chargingStations) {
@@ -568,7 +589,7 @@
                             break;
                         }
                     }
-
+                    
                     // Проверяем, что клетка пустая
                     if (valid) {
                         const cell = this.getCell(pos.row, pos.col);
@@ -578,7 +599,7 @@
                             valid = false;
                         }
                     }
-
+                    
                     if (valid) {
                         const cell = this.getCell(pos.row, pos.col);
                         cell.className = 'cell shelf';
@@ -597,11 +618,11 @@
 
                 // Перемешиваем сетку для случайного выбора
                 this.shuffleArray(robotGrid);
-
+                
                 // Размещаем роботов с минимальным расстоянием 4 клетки
                 for (const pos of robotGrid) {
                     if (this.robots.length >= this.robotCount) break;
-
+                    
                     let valid = true;
                     // Проверяем минимальное расстояние 4 клетки до других роботов
                     for (const existingRobot of this.robots) {
@@ -611,7 +632,7 @@
                             break;
                         }
                     }
-
+                    
                     // Проверяем, что клетка пустая
                     if (valid) {
                         const cell = this.getCell(pos.row, pos.col);
@@ -621,12 +642,12 @@
                             valid = false;
                         }
                     }
-
+                    
                     if (valid) {
                         const cell = this.getCell(pos.row, pos.col);
                         cell.className = 'cell robot-cell';
                         cell.dataset.originalClass = 'robot-cell';
-
+                        
                         // Добавляем полосу заряда
                         const chargeBar = document.createElement('div');
                         chargeBar.className = 'charge-bar';
@@ -645,7 +666,7 @@
             setRobotCharges() {
                 // Вычисляем количество роботов с низким зарядом (10% или минимум 1)
                 this.lowChargeRobotCount = Math.max(1, Math.floor(this.robotCount * 0.1));
-
+                
                 // Создаем массив зарядов
                 this.robotCharges = [];
                 for (let i = 0; i < this.robotCount; i++) {
@@ -659,10 +680,10 @@
                     }
                     this.robotCharges.push(charge);
                 }
-
+                
                 // Перемешиваем заряды для случайного распределения
                 this.shuffleArray(this.robotCharges);
-
+                
                 // Обновляем визуальное отображение зарядов
                 this.updateRobotChargeDisplay();
             }
@@ -672,11 +693,11 @@
                     const robotPos = this.robots[i];
                     const cell = this.getCell(robotPos.row, robotPos.col);
                     const chargeLevel = cell.querySelector('.charge-level');
-
+                    
                     if (chargeLevel) {
                         const charge = this.robotCharges[i];
                         chargeLevel.style.width = charge + '%';
-
+                        
                         // Устанавливаем цвет в зависимости от уровня заряда
                         chargeLevel.className = 'charge-level ';
                         if (charge <= 25) {
@@ -711,12 +732,12 @@
                 if (this.gameStarted) {
                     const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
                     this.remainingTime = this.totalTime - elapsed;
-
+                    
                     if (this.remainingTime <= 0) {
                         this.remainingTime = 0;
                         this.stopTimer();
                     }
-
+                    
                     this.updateTimerDisplay();
                 }
             }
@@ -735,7 +756,7 @@
             calculatePossibleMoves(robotIndex) {
                 const robot = this.robots[robotIndex];
                 if (!robot) return [];
-
+                
                 const possibleMoves = [];
                 const directions = [
                     { row: -1, col: 0 }, // вверх
@@ -743,23 +764,24 @@
                     { row: 1, col: 0 },  // вниз
                     { row: 0, col: -1 }  // влево
                 ];
-
+                
                 for (const dir of directions) {
                     let newRow = robot.row + dir.row;
                     let newCol = robot.col + dir.col;
-
+                    
                     // Двигаемся в направлении пока не встретим препятствие
                     while (newRow >= 0 && newRow < this.rows && newCol >= 0 && newCol < this.cols) {
                         const cell = this.getCell(newRow, newCol);
                         const cellClass = cell.className;
-
+                        
                         // Проверяем, можно ли переместиться в эту клетку
+                        // Зарядная станция теперь не прерывает маршрут
                         if (this.isMovableCell(cellClass)) {
                             // Проверяем, есть ли в этой клетке другой робот
-                            const hasRobot = this.robots.some((r, index) =>
+                            const hasRobot = this.robots.some((r, index) => 
                                 index !== robotIndex && r.row === newRow && r.col === newCol
                             );
-
+                            
                             if (!hasRobot) {
                                 // Можно переместиться в эту клетку
                                 possibleMoves.push({ row: newRow, col: newCol });
@@ -775,31 +797,33 @@
                         }
                     }
                 }
-
+                
                 return possibleMoves;
             }
 
             // Метод для проверки, можно ли перемещаться в клетку
             isMovableCell(cellClass) {
-                // Робот может перемещаться в пустые клетки и клетки со столами
-                return cellClass.includes('empty') || cellClass.includes('shelf');
+                // Робот может перемещаться в пустые клетки, клетки со столами и зарядные станции
+                return cellClass.includes('empty') || 
+                       cellClass.includes('shelf') || 
+                       cellClass.includes('charging-station');
             }
 
             // Метод для подсветки возможных перемещений
             highlightPossibleMoves() {
                 // Убираем предыдущую подсветку
                 this.clearHighlights();
-
+                
                 if (this.selectedRobot === null) return;
-
+                
                 // Вычисляем возможные перемещения
                 this.possibleMoves = this.calculatePossibleMoves(this.selectedRobot);
-
+                
                 // Подсвечиваем возможные перемещения
                 for (const move of this.possibleMoves) {
                     const cell = this.getCell(move.row, move.col);
                     cell.classList.add('possible-move');
-
+                    
                     // Добавляем черные границы и движущиеся желтые части
                     this.addBorderHighlights(cell);
                 }
@@ -809,7 +833,7 @@
             addBorderHighlights(cell) {
                 // Создаем черные границы
                 const borders = [];
-
+                
                 // Верхняя граница
                 const topBorder = document.createElement('div');
                 topBorder.className = 'border-highlight';
@@ -818,7 +842,7 @@
                 topBorder.style.width = '100%';
                 topBorder.style.height = '2px';
                 borders.push(topBorder);
-
+                
                 // Правая граница
                 const rightBorder = document.createElement('div');
                 rightBorder.className = 'border-highlight';
@@ -827,7 +851,7 @@
                 rightBorder.style.width = '2px';
                 rightBorder.style.height = '100%';
                 borders.push(rightBorder);
-
+                
                 // Нижняя граница
                 const bottomBorder = document.createElement('div');
                 bottomBorder.className = 'border-highlight';
@@ -836,7 +860,7 @@
                 bottomBorder.style.width = '100%';
                 bottomBorder.style.height = '2px';
                 borders.push(bottomBorder);
-
+                
                 // Левая граница
                 const leftBorder = document.createElement('div');
                 leftBorder.className = 'border-highlight';
@@ -845,13 +869,13 @@
                 leftBorder.style.width = '2px';
                 leftBorder.style.height = '100%';
                 borders.push(leftBorder);
-
+                
                 // Добавляем черные границы
                 borders.forEach(border => cell.appendChild(border));
-
+                
                 // Создаем движущиеся желтые части
                 const movingParts = [];
-
+                
                 // Верхняя движущаяся часть
                 const topPart = document.createElement('div');
                 topPart.className = 'moving-part';
@@ -864,7 +888,7 @@
                     type: 'top',
                     position: 0
                 });
-
+                
                 // Правая движущаяся часть
                 const rightPart = document.createElement('div');
                 rightPart.className = 'moving-part';
@@ -877,7 +901,7 @@
                     type: 'right',
                     position: 0
                 });
-
+                
                 // Нижняя движущаяся часть
                 const bottomPart = document.createElement('div');
                 bottomPart.className = 'moving-part';
@@ -890,7 +914,7 @@
                     type: 'bottom',
                     position: 0
                 });
-
+                
                 // Левая движущаяся часть
                 const leftPart = document.createElement('div');
                 leftPart.className = 'moving-part';
@@ -903,10 +927,10 @@
                     type: 'left',
                     position: 0
                 });
-
+                
                 // Добавляем движущиеся части
                 movingParts.forEach(part => cell.appendChild(part.element));
-
+                
                 // Запускаем анимацию
                 this.animateMovingParts(movingParts);
             }
@@ -935,10 +959,10 @@
                                 break;
                         }
                     });
-
+                    
                     step = (step + 1) % 4;
                 };
-
+                
                 // Запускаем анимацию с интервалом 300мс
                 setInterval(animate, 300);
             }
@@ -959,7 +983,7 @@
             startBlinking(robotIndex) {
                 this.stopBlinking();
                 if (robotIndex === null) return;
-
+                
                 const robot = this.robots[robotIndex];
                 if (robot) {
                     const cell = this.getCell(robot.row, robot.col);
@@ -973,43 +997,256 @@
                     clearInterval(this.blinkInterval);
                     this.blinkInterval = null;
                 }
-
+                
                 const blinkingRobots = this.board.querySelectorAll('.selected-robot');
                 blinkingRobots.forEach(cell => {
                     cell.classList.remove('selected-robot');
                 });
             }
 
+            // Метод для остановки движения робота
+            stopRobotMovement() {
+                if (this.movingRobot) {
+                    // Очищаем траекторию
+                    this.clearTrajectory();
+                    this.movingRobot = null;
+                }
+            }
+
+            // Метод для создания траектории движения
+            createTrajectory(startRow, startCol, endRow, endCol) {
+                const trajectory = [];
+                
+                // Определяем направление движения
+                if (startRow === endRow) {
+                    // Горизонтальное движение
+                    const step = startCol < endCol ? 1 : -1;
+                    for (let col = startCol + step; col !== endCol + step; col += step) {
+                        trajectory.push({ row: startRow, col: col });
+                    }
+                } else if (startCol === endCol) {
+                    // Вертикальное движение
+                    const step = startRow < endRow ? 1 : -1;
+                    for (let row = startRow + step; row !== endRow + step; row += step) {
+                        trajectory.push({ row: row, col: startCol });
+                    }
+                }
+                
+                return trajectory;
+            }
+
+            // Метод для отображения траектории
+            showTrajectory(trajectory) {
+                this.trajectoryCells = [];
+                this.trajectoryElements = [];
+                
+                trajectory.forEach((pos, index) => {
+                    const cell = this.getCell(pos.row, pos.col);
+                    if (cell) {
+                        // Добавляем красный фон клетке
+                        cell.classList.add('moving-cell');
+                        this.trajectoryCells.push(cell);
+                        
+                        // Создаем элемент траектории
+                        const trajectoryElement = document.createElement('div');
+                        trajectoryElement.className = 'trajectory';
+                        
+                        // Определяем ориентацию линии
+                        if (index < trajectory.length - 1) {
+                            const nextPos = trajectory[index + 1];
+                            if (pos.row === nextPos.row) {
+                                // Горизонтальная линия
+                                trajectoryElement.style.top = '50%';
+                                trajectoryElement.style.left = '0';
+                                trajectoryElement.style.width = '100%';
+                                trajectoryElement.style.height = '2px';
+                                trajectoryElement.style.transform = 'translateY(-50%)';
+                            } else {
+                                // Вертикальная линия
+                                trajectoryElement.style.left = '50%';
+                                trajectoryElement.style.top = '0';
+                                trajectoryElement.style.width = '2px';
+                                trajectoryElement.style.height = '100%';
+                                trajectoryElement.style.transform = 'translateX(-50%)';
+                            }
+                        } else {
+                            // Последняя клетка - точка
+                            trajectoryElement.style.top = '50%';
+                            trajectoryElement.style.left = '50%';
+                            trajectoryElement.style.width = '4px';
+                            trajectoryElement.style.height = '4px';
+                            trajectoryElement.style.borderRadius = '50%';
+                            trajectoryElement.style.transform = 'translate(-50%, -50%)';
+                        }
+                        
+                        cell.appendChild(trajectoryElement);
+                        this.trajectoryElements.push(trajectoryElement);
+                    }
+                });
+            }
+
+            // Метод для очистки траектории
+            clearTrajectory() {
+                // Убираем красный фон с клеток
+                this.trajectoryCells.forEach(cell => {
+                    cell.classList.remove('moving-cell');
+                });
+                
+                // Удаляем элементы траектории
+                this.trajectoryElements.forEach(element => {
+                    if (element.parentNode) {
+                        element.parentNode.removeChild(element);
+                    }
+                });
+                
+                this.trajectoryCells = [];
+                this.trajectoryElements = [];
+            }
+
+            // Метод для перемещения робота
+            moveRobot(robotIndex, targetRow, targetCol) {
+                const robot = this.robots[robotIndex];
+                if (!robot) return;
+                
+                // Создаем траекторию
+                const trajectory = this.createTrajectory(robot.row, robot.col, targetRow, targetCol);
+                if (trajectory.length === 0) return;
+                
+                // Отображаем траекторию
+                this.showTrajectory(trajectory);
+                
+                // Получаем элемент робота
+                const robotCell = this.getCell(robot.row, robot.col);
+                const robotElement = robotCell.querySelector('img') || robotCell;
+                
+                // Добавляем класс для анимации
+                robotElement.classList.add('moving-robot');
+                
+                // Сохраняем движущегося робота
+                this.movingRobot = {
+                    index: robotIndex,
+                    element: robotElement,
+                    from: { row: robot.row, col: robot.col },
+                    to: { row: targetRow, col: targetCol },
+                    trajectory: trajectory
+                };
+                
+                // Начинаем анимацию движения
+                this.animateRobotMovement(robotIndex, targetRow, targetCol, trajectory);
+            }
+
+            // Метод для анимации движения робота
+            animateRobotMovement(robotIndex, targetRow, targetCol, trajectory) {
+                const robot = this.robots[robotIndex];
+                if (!robot) return;
+                
+                // Рассчитываем размер клетки
+                const cellWidth = this.board.clientWidth / this.cols;
+                const cellHeight = this.board.clientHeight / this.rows;
+                
+                // Рассчитываем смещение
+                const deltaX = (targetCol - robot.col) * cellWidth;
+                const deltaY = (targetRow - robot.row) * cellHeight;
+                
+                // Применяем трансформацию
+                const robotCell = this.getCell(robot.row, robot.col);
+                const robotElement = robotCell.querySelector('img') || robotCell;
+                robotElement.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+                
+                // После завершения анимации обновляем позицию робота
+                setTimeout(() => {
+                    // Очищаем траекторию
+                    this.clearTrajectory();
+                    
+                    // Убираем класс анимации
+                    robotElement.classList.remove('moving-robot');
+                    robotElement.style.transform = '';
+                    
+                    // Очищаем исходную клетку
+                    const oldCell = this.getCell(robot.row, robot.col);
+                    const originalClass = oldCell.dataset.originalClass || 'empty';
+                    oldCell.className = 'cell ' + originalClass;
+                    
+                    // Обновляем позицию робота
+                    robot.row = targetRow;
+                    robot.col = targetCol;
+                    
+                    // Обновляем целевую клетку
+                    const newCell = this.getCell(targetRow, targetCol);
+                    newCell.className = 'cell robot-cell';
+                    newCell.dataset.originalClass = 'robot-cell';
+                    
+                    // Добавляем полосу заряда
+                    const chargeBar = document.createElement('div');
+                    chargeBar.className = 'charge-bar';
+                    const chargeLevel = document.createElement('div');
+                    chargeLevel.className = 'charge-level high';
+                    chargeLevel.style.width = '100%';
+                    chargeBar.appendChild(chargeLevel);
+                    newCell.appendChild(chargeBar);
+                    
+                    // Обновляем отображение заряда
+                    this.updateRobotChargeDisplay();
+                    
+                    // Сбрасываем движущегося робота
+                    this.movingRobot = null;
+                }, 500);
+            }
+
             setupEventListeners() {
                 document.getElementById('reset-btn').addEventListener('click', () => this.resetGame());
-
-                // Обработчик клика по роботу для запуска таймера и подсветки перемещений
+                
+                // Обработчик клика по полю
                 this.board.addEventListener('click', (e) => {
-                    const cell = e.target.closest('.robot-cell');
-                    if (cell) {
-                        const row = parseInt(cell.dataset.row);
-                        const col = parseInt(cell.dataset.col);
-
-                        // Находим индекс робота
-                        const robotIndex = this.robots.findIndex(robot =>
-                            robot.row === row && robot.col === col
+                    // Если робот движется, игнорируем клики
+                    if (this.movingRobot) return;
+                    
+                    const cell = e.target.closest('.cell');
+                    if (!cell) return;
+                    
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    
+                    // Проверяем, кликнули ли на робота
+                    const robotIndex = this.robots.findIndex(robot => 
+                        robot.row === row && robot.col === col
+                    );
+                    
+                    if (robotIndex !== -1) {
+                        // Клик на робота - показываем возможные перемещения
+                        this.selectedRobot = robotIndex;
+                        const charge = this.robotCharges[robotIndex];
+                        this.movesElement.textContent = `Заряд робота: ${charge}%`;
+                        
+                        // Запускаем таймер при первом клике на робота
+                        if (!this.gameStarted) {
+                            this.startTimer();
+                        }
+                        
+                        // Подсвечиваем возможные перемещения
+                        this.highlightPossibleMoves();
+                        
+                        // Начинаем мигание выбранного робота
+                        this.startBlinking(robotIndex);
+                    } else if (this.selectedRobot !== null) {
+                        // Клик на клетку - проверяем, является ли она возможным перемещением
+                        const isPossibleMove = this.possibleMoves.some(move => 
+                            move.row === row && move.col === col
                         );
-
-                        if (robotIndex !== -1) {
-                            this.selectedRobot = robotIndex;
-                            const charge = this.robotCharges[robotIndex];
-                            this.movesElement.textContent = `Заряд робота: ${charge}%`;
-
-                            // Запускаем таймер при первом клике на робота
-                            if (!this.gameStarted) {
-                                this.startTimer();
-                            }
-
-                            // Подсвечиваем возможные перемещения
-                            this.highlightPossibleMoves();
-
-                            // Начинаем мигание выбранного робота
-                            this.startBlinking(robotIndex);
+                        
+                        if (isPossibleMove) {
+                            // Перемещаем робота
+                            this.moveRobot(this.selectedRobot, row, col);
+                            
+                            // Убираем подсветку
+                            this.clearHighlights();
+                            this.stopBlinking();
+                            this.selectedRobot = null;
+                        } else {
+                            // Клик не на возможное перемещение - убираем подсветку
+                            this.clearHighlights();
+                            this.stopBlinking();
+                            this.selectedRobot = null;
                         }
                     }
                 });
