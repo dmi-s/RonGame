@@ -2,7 +2,9 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>Логистические роботы</title>
     <style>
         /* style.css */
@@ -27,6 +29,9 @@
             align-items: flex-start;
             overflow: hidden;
             touch-action: manipulation;
+            /* Добавлено для iOS */
+            height: -webkit-fill-available;
+            height: 100dvh;
         }
         .container {
             background: black;
@@ -42,6 +47,9 @@
             flex-direction: column;
             align-items: center;
             overflow: hidden;
+            /* Добавлено для iOS */
+            min-height: -webkit-fill-available;
+            min-height: 100dvh;
         }
         .stats-container {
             display: flex;
@@ -76,6 +84,8 @@
             width: 100%;
             padding: 1px;
             overflow: hidden;
+            /* Добавлено для iOS */
+            flex: 1;
         }
         .game-board {
             display: grid;
@@ -91,6 +101,9 @@
             position: relative;
             overflow: hidden;
             aspect-ratio: 10 / 13;
+            /* Добавлено для iOS */
+            width: min(94vw, 94dvh * (10/13), 480px);
+            height: min(94dvh, 94vw * (13/10), 624px);
         }
         .cell {
             display: flex;
@@ -236,6 +249,9 @@
              .game-board {
                  width: min(85vw, 85vh * (10/13), 350px);
                  height: min(85vh, 85vw * (13/10), 455px);
+                 /* Добавлено для iOS */
+                 width: min(85vw, 85dvh * (10/13), 350px);
+                 height: min(85dvh, 85vw * (13/10), 455px);
              }
              .cell {
                  font-size: calc(min(85vw, 85vh * (10/13), 350px) / 10 * 0.35);
