@@ -109,9 +109,9 @@
             z-index: 2;
         }
         .start { background: #ecf0f1; color: #2c3e50; }
-        .finish { 
-            background: #000000; 
-            color: white; 
+        .finish {
+            background: #000000;
+            color: white;
             position: relative;
         }
         .finish::before {
@@ -127,7 +127,7 @@
         }
         .finish .cell-content {
             position: relative;
-            z-index: 3;
+            z-index: 10;
             color: white;
             font-weight: bold;
         }
@@ -147,9 +147,9 @@
             background-size: cover;
             z-index: 1;
         }
-        .loading { 
-            background: #ecf0f1; 
-            color: white; 
+        .loading {
+            background: #ecf0f1;
+            color: white;
             position: relative;
         }
         .loading::before {
@@ -254,10 +254,10 @@
             animation: blinkBackground 0.8s infinite;
         }
         @keyframes blinkBackground {
-            0%, 100% { 
+            0%, 100% {
                 background: #000000;
             }
-            50% { 
+            50% {
                 background: #ffeb3b;
             }
         }
@@ -303,31 +303,31 @@
             pointer-events: none;
         }
         @keyframes runningBorder {
-            0% { 
+            0% {
                 border-top-color: #f1c40f;
                 border-right-color: #000;
                 border-bottom-color: #000;
                 border-left-color: #000;
             }
-            25% { 
+            25% {
                 border-top-color: #000;
                 border-right-color: #f1c40f;
                 border-bottom-color: #000;
                 border-left-color: #000;
             }
-            50% { 
+            50% {
                 border-top-color: #000;
                 border-right-color: #000;
                 border-bottom-color: #f1c40f;
                 border-left-color: #000;
             }
-            75% { 
+            75% {
                 border-top-color: #000;
                 border-right-color: #000;
                 border-bottom-color: #000;
                 border-left-color: #f1c40f;
             }
-            100% { 
+            100% {
                 border-top-color: #f1c40f;
                 border-right-color: #000;
                 border-bottom-color: #000;
