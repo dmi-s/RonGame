@@ -151,8 +151,8 @@
     robotCols: { min: 0, max: 9 },
     columnRows: { min: 4, max: 11 },
     columnCols: { min: 0, max: 9 },
-    chargingCenterRows: { min: 3, max: 10 },
-    chargingCenterCols: { min: 2, max: 8 },
+    chargingCenterRows: { min: 4, max: 8 },
+    chargingCenterCols: { min: 3, max: 7 },
 
     minDistanceShelf: 2,
     minDistanceRobot: 4,
@@ -165,6 +165,8 @@
 
     chargeCostPerMove: 5,
     chargeGainPerTick: 2,
+
+    maxGenerationAttempts: 10, // Макс. попыток генерации
 
     images: {
       parking: 'Parking.png',
@@ -213,8 +215,13 @@
   let gameStarted = false;
   let gameEnded = false;
 
-  // Инициализация
-  function initGrid() {
+  // === БЕЗОПАСНАЯ ГЕНЕРАЦИЯ С ЛИМИТОМ ПОПЫТОК ===
+  function initGrid(attempt = 0) {
+    if (attempt > CONFIG.maxGenerationAttempts) {
+      alert("Не удалось сгенерировать поле после нескольких попыток. Попробуйте изменить параметры.");
+      return;
+    }
+
     grid.innerHTML = "";
     const { rows, cols } = CONFIG;
     cells = Array(rows).fill().map(() => Array(cols).fill("free"));
@@ -232,56 +239,41 @@
     }
 
     // Столбы
-    while (columns.length < CONFIG.numColumns) {
+    if (!placeObjects(columns, CONFIG.numColumns, () => {
       const r = rand(CONFIG.columnRows.min, CONFIG.columnRows.max);
       const c = rand(CONFIG.columnCols.min, CONFIG.columnCols.max);
-      if (!isTooClose(columns, r, c, CONFIG.minDistanceColumn)) continue;
-      if (cells[r][c] !== "free") continue;
-      columns.push({ r, c });
-      cells[r][c] = "column";
+      return { r, c, valid: isFree(r, c) && isTooClose(columns, r, c, CONFIG.minDistanceColumn) === false };
+    })) {
+      console.log("Failed to place columns, retrying...");
+      return initGrid(attempt + 1);
     }
 
     // Зарядки
-    const centerColumns = columns.filter(col =>
-      col.r >= CONFIG.chargingCenterRows.min && col.r <= CONFIG.chargingCenterRows.max &&
-      col.c >= CONFIG.chargingCenterCols.min && col.c <= CONFIG.chargingCenterCols.max
-    );
-    const selectedForCharging = shuffle(centerColumns).slice(0, CONFIG.numChargingStations);
-    for (const col of selectedForCharging) {
-      const dirs = shuffle([{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }]);
-      let placed = false;
-      for (const dir of dirs) {
-        const nr = col.r + dir.dr;
-        const nc = col.c + dir.dc;
-        if (isValid(nr, nc) && cells[nr][nc] === "free") {
-          cells[nr][nc] = "charging";
-          chargingStations.push({ r: nr, c: nc });
-          placed = true;
-          break;
-        }
-      }
-      // Если не удалось — пропускаем, не останавливаем игру
-    }
+    placeChargingStations();
 
     // Столы
-    while (shelves.length < CONFIG.numShelves) {
+    if (!placeObjects(shelves, CONFIG.numShelves, () => {
       const r = rand(CONFIG.shelfRows.min, CONFIG.shelfRows.max);
       const c = rand(CONFIG.shelfCols.min, CONFIG.shelfCols.max);
-      if (!isTooClose(shelves, r, c, CONFIG.minDistanceShelf)) continue;
-      if (cells[r][c] !== "free") continue;
-      shelves.push({ r, c });
-      cells[r][c] = "shelf";
+      return { r, c, valid: isFree(r, c) && isTooClose(shelves, r, c, CONFIG.minDistanceShelf) === false };
+    })) {
+      console.log("Failed to place shelves, retrying...");
+      return initGrid(attempt + 1);
     }
 
     // Роботы
-    while (robots.length < CONFIG.numRobots) {
+    if (!placeObjects(robots, CONFIG.numRobots, () => {
       const r = rand(CONFIG.robotRows.min, CONFIG.robotRows.max);
       const c = rand(CONFIG.robotCols.min, CONFIG.robotCols.max);
-      if (!isTooClose(robots, r, c, CONFIG.minDistanceRobot)) continue;
-      if (cells[r][c] !== "free") continue;
-      robots.push({ r, c });
-      cells[r][c] = "robot";
-      const charge = robots.length === 0
+      return { r, c, valid: isFree(r, c) && isTooClose(robots, r, c, CONFIG.minDistanceRobot) === false };
+    })) {
+      console.log("Failed to place robots, retrying...");
+      return initGrid(attempt + 1);
+    }
+
+    // Заряд роботов
+    for (let i = 0; i < robots.length; i++) {
+      const charge = i === 0
         ? rand(CONFIG.chargeRobotFirstMin, CONFIG.chargeRobotFirstMax)
         : rand(CONFIG.chargeOtherRobotsMin, CONFIG.chargeOtherRobotsMax);
       robotCharge.push(charge);
@@ -289,22 +281,69 @@
 
     renderGrid();
     updateTimerDisplay();
+    chargeDisplay.textContent = "-";
+
+    console.log("Field generated successfully on attempt", attempt + 1);
   }
 
   function rand(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
   }
 
+  function isFree(r, c) {
+    return r >= 0 && r < CONFIG.rows && c >= 0 && c < CONFIG.cols && cells[r][c] === "free";
+  }
+
   function isTooClose(list, r, c, minDist) {
     for (const item of list) {
       const dist = Math.abs(item.r - r) + Math.abs(item.c - c);
-      if (dist < minDist) return false;
+      if (dist < minDist) return true;
     }
-    return true;
+    return false;
   }
 
-  function isValid(r, c) {
-    return r >= 0 && r < CONFIG.rows && c >= 0 && c < CONFIG.cols;
+  // Универсальная функция размещения объектов
+  function placeObjects(list, count, generator) {
+    const MAX_TRIES = 1000;
+    let tries = 0;
+    while (list.length < count && tries < MAX_TRIES) {
+      tries++;
+      const { r, c, valid } = generator();
+      if (valid) {
+        list.push({ r, c });
+        cells[r][c] = getTypeFromList(list);
+      }
+    }
+    return list.length === count;
+  }
+
+  function getTypeFromList(list) {
+    if (list === columns) return "column";
+    if (list === shelves) return "shelf";
+    if (list === robots) return "robot";
+    return "free";
+  }
+
+  // Зарядки — отдельно, т.к. ставятся рядом со столбами
+  function placeChargingStations() {
+    const centerColumns = columns.filter(col =>
+      col.r >= CONFIG.chargingCenterRows.min && col.r <= CONFIG.chargingCenterRows.max &&
+      col.c >= CONFIG.chargingCenterCols.min && col.c <= CONFIG.chargingCenterCols.max
+    );
+    const candidates = shuffle(centerColumns).slice(0, CONFIG.numChargingStations);
+
+    for (const col of candidates) {
+      const dirs = shuffle([{ dr: -1, dc: 0 }, { dr: 1, dc: 0 }, { dr: 0, dc: -1 }, { dr: 0, dc: 1 }]);
+      for (const dir of dirs) {
+        const nr = col.r + dir.dr;
+        const nc = col.c + dir.dc;
+        if (isFree(nr, nc)) {
+          cells[nr][nc] = "charging";
+          chargingStations.push({ r: nr, c: nc });
+          break;
+        }
+      }
+    }
   }
 
   function shuffle(array) {
@@ -380,26 +419,25 @@
 
     const robotIdx = getRobotIndex(r, c);
 
-    // Показ заряда при клике на любого робота (даже если уже стартовал)
+    // Показ заряда при клике на робота
     if (robotIdx !== -1) {
       chargeDisplay.textContent = robotCharge[robotIdx] + "%";
     }
 
-    // Старт игры — только при клике на робота
+    // Старт игры — только по роботу
     if (!gameStarted && robotIdx !== -1) {
       startGame();
     }
 
     if (!gameStarted) return;
 
-    // Логика выбора робота
+    // Логика перемещения
     if (robotIdx !== -1 && !selectedRobot) {
       selectedRobot = { r, c, idx: robotIdx };
       highlightMoves(r, c);
       return;
     }
 
-    // Выбор цели
     if (selectedRobot) {
       if (isValidMove(selectedRobot.r, selectedRobot.c, r, c)) {
         moveRobot(selectedRobot.idx, r, c);
@@ -432,18 +470,19 @@
   }
 
   function isValidMove(fromR, fromC, toR, toC) {
-    if (!isValid(toR, toC) || (fromR === toR && fromC === toC)) return false;
-    const dr = Math.abs(fromR - toR);
-    const dc = Math.abs(fromC - toC);
-    if (dr + dc !== 1) return false;
+    if (!isFree(toR, toC) && !(toR === 0 && cells[toR][toC] === "parking")) return false;
+    if (Math.abs(fromR - toR) + Math.abs(fromC - toC) !== 1) return false;
 
     const robotIdx = getRobotIndex(fromR, fromC);
+    if (robotIdx === -1) return false;
+
     const hasShelf = cells[fromR][fromC] === "robot_with_shelf";
     const target = cells[toR][toC];
 
-    if (["column", "robot", "free", "charging"].includes(target)) return true;
-    if (hasShelf && ["shelf", "robot_with_shelf"].includes(target)) return true;
+    if (["column", "robot", "charging"].includes(target)) return false;
+    if (target === "free" || target === "parking") return true;
     if (hasShelf && target === "parking") return true;
+    if (hasShelf && ["shelf", "robot_with_shelf"].includes(target)) return true;
     return false;
   }
 
@@ -509,7 +548,6 @@
       }
     }
 
-    // Подзарядка
     let needsRender = false;
     for (let i = 0; i < robots.length; i++) {
       const r = robots[i].r;
@@ -548,14 +586,14 @@
     gameEnded = false;
     timer = CONFIG.gameMinutes * 60;
     selectedRobot = null;
+    overlay.style.display = "none"; // Убираем серый слой
     updateTimerDisplay();
-    overlay.style.display = "none";
     chargeDisplay.textContent = "-";
-    initGrid();
+    initGrid(0); // Перезапускаем генерацию
   }
 
   newGameBtn.addEventListener("click", resetGame);
-  window.onload = resetGame;
+  window.onload = () => initGrid(0);
 </script>
 </body>
 </html>
