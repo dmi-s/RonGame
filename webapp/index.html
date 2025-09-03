@@ -4,116 +4,121 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Логистические роботы</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 10px;
-      font-family: Arial, sans-serif;
-      background-color: black;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: white;
-    }
+ <style>
+  body {
+    margin: 0;
+    padding: 10px;
+    font-family: Arial, sans-serif;
+    background-color: black;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: white;
+  }
 
-    .game-info {
-      display: flex;
-      justify-content: space-around;
-      width: min(95vw, 800px);
-      max-width: 100%;
-      margin-bottom: 10px;
-      background-color: var(--info-bg, yellow);
-      color: var(--info-text, black);
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      font-size: 1.2em;
-    }
+  .game-info {
+    display: flex;
+    justify-content: space-around;
+    width: min(95vw, 600px);
+    max-width: 100%;
+    margin-bottom: 10px;
+    background-color: var(--info-bg, yellow);
+    color: var(--info-text, black);
+    padding: 10px;
+    border-radius: 8px;
+    font-weight: bold;
+    font-size: 1.1em;
+  }
 
-    .game-container {
-      position: relative;
-      width: min(95vw, 800px);
-      max-width: 100%;
-      aspect-ratio: calc(var(--cols) / var(--rows));
-      margin-bottom: 20px;
-    }
+  .game-container {
+    position: relative;
+    width: min(95vw, 600px);
+    max-width: 100%;
+    aspect-ratio: calc(var(--cols) / var(--rows));
+    margin-bottom: 20px;
+  }
 
-    .grid {
-      display: grid;
-      width: 100%;
-      height: 100%;
-      grid-template-columns: repeat(var(--cols), 1fr);
-      grid-template-rows: repeat(var(--rows), 1fr);
-      gap: 1px;
-      background-color: gray;
-      border: 2px solid gray;
-    }
+  .grid {
+    display: grid;
+    width: 100%;
+    height: 100%;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-template-rows: repeat(var(--rows), 1fr);
+    gap: 1px;
+    background-color: gray;
+    border: 2px solid gray;
+  }
 
-    .cell {
-      background-color: white;
-      display: flex;
-      justify-content: center;
-      align-items: flex-end;
-      position: relative;
-      overflow: hidden;
-    }
+  .cell {
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    position: relative;
+    overflow: hidden;
+    min-height: 30px;
+    min-width: 30px;
+    /* Адаптивный размер клетки: min 30px, max 60px, динамично под экран */
+    width: clamp(30px, 5vw, 60px);
+    height: clamp(30px, 5vw, 60px);
+  }
 
-    .cell img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
+  .cell img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 
-    .charge-bar {
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      right: 2px;
-      height: 6px;
-      border-radius: 3px;
-      background-color: #ccc;
-      overflow: hidden;
-    }
+  .charge-bar {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    right: 2px;
+    height: 6px;
+    border-radius: 3px;
+    background-color: #ccc;
+    overflow: hidden;
+  }
 
-    .charge-level {
-      height: 100%;
-      width: 0%;
-    }
+  .charge-level {
+    height: 100%;
+    width: 0%;
+  }
 
-    .overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(128, 128, 128, 0.7);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 3em;
-      font-weight: bold;
-      color: red;
-      z-index: 10;
-      display: none;
-    }
+  .overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(128, 128, 128, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 2.5em;
+    font-weight: bold;
+    color: red;
+    z-index: 10;
+    display: none;
+  }
 
-    button {
-      background-color: var(--btn-bg, yellow);
-      color: var(--btn-text, black);
-      border: none;
-      padding: 12px 24px;
-      font-size: 1.2em;
-      font-weight: bold;
-      border-radius: 8px;
-      cursor: pointer;
-      width: min(95vw, 800px);
-      max-width: 100%;
-    }
+  button {
+    background-color: var(--btn-bg, yellow);
+    color: var(--btn-text, black);
+    border: none;
+    padding: 12px 24px;
+    font-size: 1.2em;
+    font-weight: bold;
+    border-radius: 8px;
+    cursor: pointer;
+    width: min(95vw, 600px);
+    max-width: 100%;
+  }
 
-    button:hover {
-      background-color: #ffcc00;
-    }
-  </style>
+  button:hover {
+    background-color: #ffcc00;
+  }
+</style>
 </head>
 <body>
 
@@ -129,23 +134,17 @@
 
   <button id="new-game">Новая игра</button>
 
-  <script>
-  // === КОНФИГУРАЦИЯ ИГРЫ (МОЖНО МЕНЯТЬ ЗДЕСЬ) ===
+<script>
+  // === КОНФИГУРАЦИЯ ИГРЫ ===
   const CONFIG = {
-    // Размеры поля
     rows: 13,
     cols: 10,
-
-    // Время игры (в минутах)
     gameMinutes: 20,
-
-    // Объекты
     numColumns: 8,
     numShelves: 10,
     numRobots: 3,
     numChargingStations: 3,
 
-    // Диапазоны размещения
     shelfRows: { min: 3, max: 12 },
     shelfCols: { min: 0, max: 9 },
     robotRows: { min: 3, max: 12 },
@@ -155,23 +154,18 @@
     chargingCenterRows: { min: 4, max: 8 },
     chargingCenterCols: { min: 3, max: 7 },
 
-    // Минимальные расстояния
     minDistanceShelf: 2,
     minDistanceRobot: 4,
     minDistanceColumn: 4,
 
-    // Начальный заряд
     chargeRobotFirstMin: 25,
     chargeRobotFirstMax: 50,
     chargeOtherRobotsMin: 50,
     chargeOtherRobotsMax: 100,
 
-    // Расход и зарядка
     chargeCostPerMove: 5,
     chargeGainPerTick: 2,
-    criticalCharge: 25,
 
-    // Пути к изображениям
     images: {
       parking: 'Parking.png',
       column: 'Column.png',
@@ -183,7 +177,6 @@
       parkedShelf: 'Parking_Shelf.png'
     },
 
-    // Стили
     styles: {
       '--rows': 13,
       '--cols': 10,
@@ -199,14 +192,14 @@
     document.documentElement.style.setProperty(key, CONFIG.styles[key]);
   });
 
-  // Элементы DOM
+  // DOM
   const grid = document.getElementById("grid");
   const chargeDisplay = document.getElementById("robot-charge");
   const timerDisplay = document.getElementById("game-timer");
   const overlay = document.getElementById("overlay");
   const newGameBtn = document.getElementById("new-game");
 
-  // Состояние игры
+  // Состояние
   let cells = [];
   let robots = [];
   let shelves = [];
@@ -220,7 +213,7 @@
   let gameStarted = false;
   let gameEnded = false;
 
-  // Инициализация поля
+  // Инициализация
   function initGrid() {
     grid.innerHTML = "";
     const { rows, cols } = CONFIG;
@@ -232,7 +225,7 @@
     parkingSpots = [];
     robotCharge = [];
 
-    // Парковка — верхний ряд
+    // Парковка
     for (let c = 0; c < cols; c++) {
       parkingSpots.push({ r: 0, c });
       cells[0][c] = "parking";
@@ -267,13 +260,7 @@
           break;
         }
       }
-      if (!placed) {
-        const free = findFreeCell();
-        if (free) {
-          cells[free.r][free.c] = "charging";
-          chargingStations.push(free);
-        }
-      }
+      // Если не удалось — пропускаем, не останавливаем игру
     }
 
     // Столы
@@ -320,15 +307,6 @@
     return r >= 0 && r < CONFIG.rows && c >= 0 && c < CONFIG.cols;
   }
 
-  function findFreeCell() {
-    for (let r = 0; r < CONFIG.rows; r++) {
-      for (let c = 0; c < CONFIG.cols; c++) {
-        if (cells[r][c] === "free") return { r, c };
-      }
-    }
-    return null;
-  }
-
   function shuffle(array) {
     return array.sort(() => Math.random() - 0.5);
   }
@@ -344,24 +322,23 @@
         cell.dataset.col = c;
 
         const type = cells[r][c];
-        if (type === "parking") {
-          setImg(cell, CONFIG.images.parking);
-        } else if (type === "column") {
-          setImg(cell, CONFIG.images.column);
-        } else if (type === "charging") {
-          setImg(cell, CONFIG.images.charging);
-        } else if (type === "shelf") {
-          setImg(cell, CONFIG.images.shelf);
-        } else if (type === "robot") {
+        if (type === "parking") setImg(cell, CONFIG.images.parking);
+        else if (type === "column") setImg(cell, CONFIG.images.column);
+        else if (type === "charging") setImg(cell, CONFIG.images.charging);
+        else if (type === "shelf") setImg(cell, CONFIG.images.shelf);
+        else if (type === "robot") {
           setImg(cell, CONFIG.images.robot);
           addChargeBar(cell, getRobotIndex(r, c));
-        } else if (type === "robot_charging") {
+        }
+        else if (type === "robot_charging") {
           setImg(cell, CONFIG.images.robotCharging);
           addChargeBar(cell, getRobotIndex(r, c));
-        } else if (type === "robot_with_shelf") {
+        }
+        else if (type === "robot_with_shelf") {
           setImg(cell, CONFIG.images.robotWithShelf);
           addChargeBar(cell, getRobotIndex(r, c));
-        } else if (type === "shelf_parked") {
+        }
+        else if (type === "shelf_parked") {
           setImg(cell, CONFIG.images.parkedShelf);
         }
 
@@ -385,10 +362,7 @@
     level.classList.add("charge-level");
     const charge = robotCharge[robotIdx];
     level.style.width = `${charge}%`;
-    if (charge <= 25) level.style.backgroundColor = "red";
-    else if (charge <= 50) level.style.backgroundColor = "orange";
-    else if (charge <= 75) level.style.backgroundColor = "yellow";
-    else level.style.backgroundColor = "green";
+    level.style.backgroundColor = charge <= 25 ? "red" : charge <= 50 ? "orange" : charge <= 75 ? "yellow" : "green";
     bar.appendChild(level);
     cell.appendChild(bar);
   }
@@ -400,19 +374,32 @@
     return -1;
   }
 
-  // Логика кликов
+  // === КЛИК: старт — только по роботу ===
   function handleCellClick(r, c) {
     if (gameEnded) return;
-    if (!gameStarted) startGame();
 
     const robotIdx = getRobotIndex(r, c);
 
+    // Показ заряда при клике на любого робота (даже если уже стартовал)
+    if (robotIdx !== -1) {
+      chargeDisplay.textContent = robotCharge[robotIdx] + "%";
+    }
+
+    // Старт игры — только при клике на робота
+    if (!gameStarted && robotIdx !== -1) {
+      startGame();
+    }
+
+    if (!gameStarted) return;
+
+    // Логика выбора робота
     if (robotIdx !== -1 && !selectedRobot) {
       selectedRobot = { r, c, idx: robotIdx };
       highlightMoves(r, c);
       return;
     }
 
+    // Выбор цели
     if (selectedRobot) {
       if (isValidMove(selectedRobot.r, selectedRobot.c, r, c)) {
         moveRobot(selectedRobot.idx, r, c);
@@ -499,27 +486,22 @@
     updateChargeDisplay();
   }
 
-  // === ТАЙМЕР ТЕПЕРЬ ОБНОВЛЯЕТСЯ РОВНО РАЗ В СЕКУНДУ ===
   function startGame() {
     if (gameStarted) return;
     gameStarted = true;
     updateChargeDisplay();
-    gameInterval = setInterval(updateTimer, 1000); // 🟢 Теперь ровно 1 секунда
+    gameInterval = setInterval(updateTimer, 1000);
   }
 
   function updateTimer() {
     timer--;
-
-    // Обновляем отображение времени
     updateTimerDisplay();
 
-    // Проверка окончания времени
     if (timer <= 0) {
       endGame(false);
       return;
     }
 
-    // Проверка заряда
     for (const charge of robotCharge) {
       if (charge <= 0) {
         endGame(false);
@@ -527,23 +509,19 @@
       }
     }
 
-    // Подзарядка (раз в секунду)
-    let chargingHappened = false;
+    // Подзарядка
+    let needsRender = false;
     for (let i = 0; i < robots.length; i++) {
       const r = robots[i].r;
       const c = robots[i].c;
       if (cells[r][c] === "robot_charging" && robotCharge[i] < 100) {
         robotCharge[i] = Math.min(100, robotCharge[i] + CONFIG.chargeGainPerTick);
-        chargingHappened = true;
+        needsRender = true;
       }
     }
 
     updateChargeDisplay();
-
-    // Если было изменение (зарядка), перерисовываем
-    if (chargingHappened) {
-      renderGrid();
-    }
+    if (needsRender) renderGrid();
   }
 
   function updateTimerDisplay() {
