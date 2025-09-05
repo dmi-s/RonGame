@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=0.95">
     <title>Роботы</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- Подключение шрифта Nexa-Bold -->
     <style>
         @font-face {
@@ -17,32 +17,22 @@
             font-family: 'Nexa Bold', Arial, sans-serif;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-        canvas {
-            margin-top: 5px;
-            cursor: pointer;
-            display: none;
-            margin-bottom: 5px;
-            width: 100%;
-            max-width: 400px;
-            height: auto;
-        }
-        body {
-            text-align: center;
-            background-color: #000000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            background-color: #000000;
         }
         #gameContainer {
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 100%;
-            max-width: 400px;
+            width: 95vw;
+            max-width: 450px;
+            height: 95vw;
+            max-height: 450px;
+            padding: 2.5vw;
             box-sizing: border-box;
         }
         #score {
@@ -76,21 +66,19 @@
         }
         #info-container {
             display: flex;
-            gap: 10px;
+            gap: 2vw;
             width: 100%;
-            max-width: 400px;
             margin: 0 auto;
             justify-content: center;
-            box-sizing: border-box;
         }
         .info-box {
-            width: calc(50% - 5px);
-            height: 20px;
+            width: 48%;
+            height: 4vw;
             background-color: yellow;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 14px;
+            font-size: 2.5vw;
             font-weight: bold;
             margin: 0;
             border: none;
@@ -106,63 +94,106 @@
         }
         #status-row {
             display: flex;
-            gap: 10px;
-            margin: 5px auto 5px auto;
+            gap: 2vw;
+            margin: 2vw auto 2vw auto;
             width: 100%;
-            max-width: 400px;
             justify-content: center;
-            box-sizing: border-box;
         }
         #timer {
             width: 100%;
-            max-width: 400px;
-            height: 40px;
+            height: 8vw;
             background-color: yellow;
-            font-size: 30px;
+            font-size: 4vw;
             font-weight: bold;
             border-radius: 3px;
-            margin: 5px auto 0 auto;
+            margin: 2vw auto 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
         }
         #startImage {
             width: 100%;
-            max-width: 400px;
-            height: auto;
-            margin: 5px auto;
+            height: 70vw;
+            margin: 2vw auto;
             cursor: pointer;
             display: block;
         }
         #gameEndScreen {
             width: 100%;
-            max-width: 400px;
-            height: auto;
+            height: 70vw;
             background-color: black;
             color: yellow;
-            font-size: 24px;
+            font-size: 4vw;
             font-weight: bold;
             display: none;
             align-items: center;
             justify-content: center;
             text-align: center;
-            margin: 5px auto;
+            margin: 2vw auto;
         }
-        button {
+        #startButton {
             width: 100%;
-            max-width: 400px;
-            height: 40px;
+            height: 8vw;
             background-color: yellow;
             border: none;
             font-weight: bold;
             border-radius: 3px;
             font-family: 'Nexa Bold', Arial, sans-serif;
-            font-size: 24px;
+            font-size: 4vw;
+            margin: 2vw 0;
+        }
+        #gameCanvas {
+            width: 100%;
+            height: 70vw;
+            max-width: 400px;
+            max-height: 400px;
+            margin: 2vw 0;
+            cursor: pointer;
+        }
+
+        /* Адаптивные стили для мобильных устройств */
+        @media screen and (max-width: 480px) {
+            #gameContainer {
+                width: 95vw;
+                height: 95vw;
+                padding: 2.5vw;
+            }
+
+            #timer {
+                height: 8vw;
+                font-size: 4vw;
+            }
+
+            #info-container {
+                width: 100%;
+            }
+
+            .info-box {
+                width: 48%;
+                height: 4vw;
+                font-size: 2.5vw;
+            }
+
+            #startImage {
+                width: 100%;
+                height: 70vw;
+            }
+
+            #gameEndScreen {
+                width: 100%;
+                height: 70vw;
+                font-size: 4vw;
+            }
+
+            #startButton {
+                width: 100%;
+                height: 8vw;
+                font-size: 4vw;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- Остальной код остается без изменений -->
     <div id="gameContainer">
         <div id="timer">3:00</div>
         <div id="status-row">
@@ -175,8 +206,8 @@
         </div>
         <img id="startImage" src="Ronavi.png" alt="Стартовое изображение" onclick="startGame()">
         <div id="gameEndScreen"></div>
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
-        <button style="width: 100%; max-width: 400px; height: 40px; background-color: yellow; border: none; font-weight: bold; border-radius: 3px; font-family: 'Nexa Bold', Arial, sans-serif; font-size: 24px;" onclick="startGame()">Начать игру</button>
+        <canvas id="gameCanvas"></canvas>
+        <button id="startButton" onclick="startGame()">Начать игру</button>
         <div id="gameOver">Игра окончена!</div>
     </div>
     <script>
@@ -191,11 +222,36 @@
     const cargoStatusElement = document.getElementById('cargoStatus');
     const timerElement = document.getElementById('timer');
     const gameEndScreen = document.getElementById('gameEndScreen');
-    // Размер одной ячейки сетки в пикселях
-    const gridSize = 40;
-    // Количество ячеек по ширине и высоте игрового поля
-    const gridWidth = canvas.width / gridSize;
-    const gridHeight = canvas.height / gridSize;
+
+    // Адаптивный расчет размера ячейки
+    let gridSize = 40;
+    let gridWidth = 10;
+    let gridHeight = 10;
+
+    // Функция для пересчета размеров при изменении размеров окна
+    function resizeCanvas() {
+        const container = document.getElementById('gameContainer');
+        const containerWidth = container.clientWidth;
+        const containerHeight = container.clientHeight;
+
+        // Устанавливаем размер canvas равным размеру контейнера
+        canvas.width = containerWidth;
+        canvas.height = containerWidth;
+
+        // Рассчитываем новый размер ячейки (примерно 10x10 сетка)
+        gridSize = Math.max(20, Math.min(containerWidth, containerHeight) / 10);
+        gridWidth = Math.floor(canvas.width / gridSize);
+        gridHeight = Math.floor(canvas.height / gridSize);
+
+        // Перерисовываем
+        if (gameRunning) {
+            draw();
+        }
+    }
+
+    // Обработчик изменения размера окна
+    window.addEventListener('resize', resizeCanvas);
+
     // Массив для хранения всех змейок
     let snakes = [];
     // Массив для хранения координат еды (3 штуки)
@@ -260,6 +316,7 @@
     chargingImage.src = 'Charging.png';
     parkingImage.src = 'Parking.png';
     obstacleImage.src = 'Column.png';
+
     // Функция проверки, является ли точка препятствием
     function isObstacle(x, y) {
         for (let obstacle of obstacles) {
@@ -269,6 +326,7 @@
         }
         return false;
     }
+
     // Функция проверки, является ли точка зарядной станцией
     function isChargingStation(x, y) {
         for (let i = 0; i < chargingStations.length; i++) {
@@ -278,6 +336,7 @@
         }
         return -1; // Не является станцией
     }
+
     // Функция проверки, является ли точка парковочным местом
     function isParkingSpot(x, y) {
         for (let i = 0; i < parkingSpots.length; i++) {
@@ -287,6 +346,7 @@
         }
         return -1; // Не является парковочным местом
     }
+
     // Функция проверки, является ли точка другой змейкой
     function isOtherSnake(x, y, snakeIndex) {
         for (let i = 0; i < snakes.length; i++) {
@@ -300,6 +360,7 @@
         }
         return false;
     }
+
     // Функция проверки, является ли точка едой
     function isFood(x, y) {
         for (let f of food) {
@@ -309,6 +370,7 @@
         }
         return false;
     }
+
     // Функция проверки, пересекаются ли маршруты двух змейок
     function routesIntersect(snakeIndex1, snakeIndex2) {
         if (snakeRoutes[snakeIndex1].length === 0 || snakeRoutes[snakeIndex2].length === 0) {
@@ -325,6 +387,7 @@
         }
         return false;
     }
+
     // Алгоритм A* для построения маршрута
     function aStar(startX, startY, endX, endY, snakeIndex) {
         function heuristic(a, b) {
@@ -395,12 +458,15 @@
         }
         return [];
     }
+
     function startKey(point) {
         return point.x + ',' + point.y;
     }
+
     function buildRoute(startX, startY, endX, endY, snakeIndex) {
         return aStar(startX, startY, endX, endY, snakeIndex);
     }
+
     function initGame() {
         snakes = [];
         selectedSnakeIndex = -1;
@@ -452,11 +518,13 @@
         timeLeft = 180;
         updateTimerDisplay();
     }
+
     function updateTimerDisplay() {
         const minutes = Math.floor(timeLeft / 60);
         const seconds = timeLeft % 60;
         timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     }
+
     function generateObstacles() {
         obstacles = [];
         const obstacleCount = 5;
@@ -505,6 +573,7 @@
             obstacles.push(newObstacle);
         }
     }
+
     function generateChargingStations() {
         chargingStations = [];
         const stationCount = 2;
@@ -545,6 +614,7 @@
             chargingStations.push(newStation);
         }
     }
+
     function generateParkingSpots() {
         parkingSpots = [];
         const parkingCount = 3;
@@ -584,6 +654,7 @@
         console.error(`Не удалось сгенерировать парковочные места за ${maxAttempts} попыток`);
         parkingSpots = [];
     }
+
     function generateFood() {
         food = [];
         for (let i = 0; i < 3; i++) {
@@ -646,6 +717,7 @@
             food.push(newFood);
         }
     }
+
     function update() {
         if (!gameStarted) return;
         for (let i = 0; i < snakes.length; i++) {
@@ -795,6 +867,7 @@
             }
         }
     }
+
     function startCharging(snakeIndex) {
         if (chargingTimers[snakeIndex]) clearInterval(chargingTimers[snakeIndex]);
         chargingTimers[snakeIndex] = setInterval(() => {
@@ -806,12 +879,14 @@
             }
         }, 1000);
     }
+
     function stopCharging(snakeIndex) {
         if (chargingTimers[snakeIndex]) {
             clearInterval(chargingTimers[snakeIndex]);
             chargingTimers[snakeIndex] = null;
         }
     }
+
     function generateNewFood() {
         let newFood;
         let validPosition = false;
@@ -867,6 +942,7 @@
         }
         if (attempts < 1000) food.push(newFood);
     }
+
     function draw() {
         ctx.fillStyle = 'white';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -987,10 +1063,12 @@
             }
         });
     }
+
     function gameStep() {
         update();
         draw();
     }
+
     function startGame() {
         document.getElementById('startImage').style.display = 'none';
         document.getElementById('gameCanvas').style.display = 'block';
@@ -1011,7 +1089,10 @@
                 gameOver();
             }
         }, 1000);
+        // Инициализируем размеры при запуске игры
+        resizeCanvas();
     }
+
     function gameOver() {
         gameRunning = false;
         chargingTimers.forEach(t => t && clearInterval(t));
@@ -1022,6 +1103,7 @@
         gameEndScreen.style.display = 'flex';
         gameEndScreen.innerHTML = '<div>Игра завершена<br>Вы заработали ' + score + ' очков</div>';
     }
+
     canvas.addEventListener('click', (event) => {
         if (!gameRunning) return;
         const rect = canvas.getBoundingClientRect();
@@ -1112,7 +1194,9 @@
             }
         }
     });
-</script>
+
+    // Инициализация при загрузке
+    window.addEventListener('load', resizeCanvas);
+    </script>
 </body>
 </html>
-
