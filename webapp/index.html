@@ -17,22 +17,32 @@
             font-family: 'Nexa Bold', Arial, sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
+        }
+        canvas {
+            margin-top: 5px;
+            cursor: pointer;
+            display: none;
+            margin-bottom: 5px;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+        }
+        body {
+            text-align: center;
+            background-color: #000000;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background-color: #000000;
-            overflow-x: hidden;
         }
         #gameContainer {
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 500px;
-            margin: 0 auto;
-            padding: 10px;
+            max-width: 400px;
             box-sizing: border-box;
         }
         #score {
@@ -75,7 +85,7 @@
         }
         .info-box {
             width: calc(50% - 5px);
-            height: 40px;
+            height: 20px;
             background-color: yellow;
             display: flex;
             align-items: center;
@@ -85,18 +95,14 @@
             margin: 0;
             border: none;
             border-radius: 3px;
-            box-sizing: border-box;
-            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #score, #snakeCharge {
             flex: 1;
             text-align: center;
-            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #selectedSnake, #cargoStatus {
             flex: 1;
             text-align: center;
-            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #status-row {
             display: flex;
@@ -110,17 +116,15 @@
         #timer {
             width: 100%;
             max-width: 400px;
-            height: 50px;
+            height: 40px;
             background-color: yellow;
-            font-size: 24px;
+            font-size: 30px;
             font-weight: bold;
             border-radius: 3px;
             margin: 5px auto 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-sizing: border-box;
-            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #startImage {
             width: 100%;
@@ -129,12 +133,11 @@
             margin: 5px auto;
             cursor: pointer;
             display: block;
-            aspect-ratio: 1/1;
         }
         #gameEndScreen {
             width: 100%;
             max-width: 400px;
-            height: 400px;
+            height: auto;
             background-color: black;
             color: yellow;
             font-size: 24px;
@@ -144,57 +147,22 @@
             justify-content: center;
             text-align: center;
             margin: 5px auto;
-            box-sizing: border-box;
-            font-family: 'Nexa Bold', Arial, sans-serif;
-        }
-        canvas {
-            margin-top: 5px;
-            cursor: pointer;
-            display: none;
-            margin-bottom: 5px;
-            width: 100%;
-            max-width: 400px;
-            height: auto;
-            aspect-ratio: 1/1;
         }
         button {
             width: 100%;
             max-width: 400px;
-            height: 50px;
+            height: 40px;
             background-color: yellow;
             border: none;
             font-weight: bold;
             border-radius: 3px;
             font-family: 'Nexa Bold', Arial, sans-serif;
             font-size: 24px;
-
-            box-sizing: border-box;
-        }
-        /* Адаптивные стили для мобильных устройств */
-        @media (max-width: 500px) {
-            #info-container {
-                flex-direction: column;
-                width: 100%;
-            }
-            .info-box {
-                width: 100%;
-            }
-            #status-row {
-                flex-direction: column;
-                width: 100%;
-            }
-            #timer {
-                font-size: 20px;
-                height: 40px;
-            }
-            button {
-                font-size: 20px;
-                height: 45px;
-            }
         }
     </style>
 </head>
 <body>
+    <!-- Остальной код остается без изменений -->
     <div id="gameContainer">
         <div id="timer">3:00</div>
         <div id="status-row">
@@ -208,11 +176,10 @@
         <img id="startImage" src="Ronavi.png" alt="Стартовое изображение" onclick="startGame()">
         <div id="gameEndScreen"></div>
         <canvas id="gameCanvas" width="400" height="400"></canvas>
-        <button onclick="startGame()">Начать игру</button>
+        <button style="width: 100%; max-width: 400px; height: 40px; background-color: yellow; border: none; font-weight: bold; border-radius: 3px; font-family: 'Nexa Bold', Arial, sans-serif; font-size: 24px;" onclick="startGame()">Начать игру</button>
         <div id="gameOver">Игра окончена!</div>
     </div>
     <script>
-
     // Получаем ссылку на холст и 2D контекст для рисования
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
