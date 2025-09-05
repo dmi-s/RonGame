@@ -23,38 +23,33 @@
             justify-content: center;
             min-height: 100vh;
             background-color: #000000;
-        }
-        canvas {
-            margin-top: 5px;
-            cursor: pointer;
-            display: none;
-            margin-bottom: 5px;
-            max-width: 100%;
-            height: auto;
+            overflow-x: hidden;
         }
         #gameContainer {
             display: flex;
             flex-direction: column;
             align-items: center;
             width: 100%;
-            max-width: 400px;
+            max-width: 500px;
             margin: 0 auto;
+            padding: 10px;
+            box-sizing: border-box;
         }
         #score {
             font-weight: bold;
         }
         #gameOver {
-            font-size: clamp(24px, 6vw, 32px);
+            font-size: 32px;
             color: red;
             display: none;
         }
         #instructions {
-            font-size: clamp(14px, 4vw, 18px);
+            font-size: 18px;
             margin: 10px;
             color: #666;
         }
         #startInstructions {
-            font-size: clamp(14px, 4vw, 18px);
+            font-size: 18px;
             margin: 10px;
             color: #666;
         }
@@ -73,52 +68,59 @@
             display: flex;
             gap: 10px;
             width: 100%;
+            max-width: 400px;
             margin: 0 auto;
             justify-content: center;
-            flex-wrap: wrap;
+            box-sizing: border-box;
         }
         .info-box {
-            width: clamp(150px, 48%, 195px);
-            height: clamp(20px, 5vw, 20px);
+            width: calc(50% - 5px);
+            height: 40px;
             background-color: yellow;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: clamp(12px, 3vw, 14px);
+            font-size: 14px;
             font-weight: bold;
             margin: 0;
             border: none;
             border-radius: 3px;
-            flex-shrink: 0;
+            box-sizing: border-box;
+            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #score, #snakeCharge {
             flex: 1;
             text-align: center;
+            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #selectedSnake, #cargoStatus {
             flex: 1;
             text-align: center;
+            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #status-row {
             display: flex;
             gap: 10px;
             margin: 5px auto 5px auto;
             width: 100%;
+            max-width: 400px;
             justify-content: center;
-            flex-wrap: wrap;
+            box-sizing: border-box;
         }
         #timer {
             width: 100%;
             max-width: 400px;
-            height: clamp(30px, 8vw, 40px);
+            height: 50px;
             background-color: yellow;
-            font-size: clamp(24px, 6vw, 30px);
+            font-size: 24px;
             font-weight: bold;
             border-radius: 3px;
             margin: 5px auto 0 auto;
             display: flex;
             align-items: center;
             justify-content: center;
+            box-sizing: border-box;
+            font-family: 'Nexa Bold', Arial, sans-serif;
         }
         #startImage {
             width: 100%;
@@ -127,47 +129,72 @@
             margin: 5px auto;
             cursor: pointer;
             display: block;
+            aspect-ratio: 1/1;
         }
         #gameEndScreen {
             width: 100%;
             max-width: 400px;
-            height: clamp(200px, 50vh, 400px);
+            height: 400px;
             background-color: black;
             color: yellow;
-            font-size: clamp(18px, 5vw, 24px);
+            font-size: 24px;
             font-weight: bold;
             display: none;
             align-items: center;
             justify-content: center;
             text-align: center;
             margin: 5px auto;
+            box-sizing: border-box;
+            font-family: 'Nexa Bold', Arial, sans-serif;
         }
-        @media (max-width: 480px) {
-            #gameContainer {
-                padding: 0 10px;
+        canvas {
+            margin-top: 5px;
+            cursor: pointer;
+            display: none;
+            margin-bottom: 5px;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        button {
+            width: 100%;
+            max-width: 400px;
+            height: 50px;
+            background-color: yellow;
+            border: none;
+            font-weight: bold;
+            border-radius: 3px;
+            font-family: 'Nexa Bold', Arial, sans-serif;
+            font-size: 24px;
+
+            box-sizing: border-box;
+        }
+        /* Адаптивные стили для мобильных устройств */
+        @media (max-width: 500px) {
+            #info-container {
+                flex-direction: column;
+                width: 100%;
             }
             .info-box {
-                width: calc(50% - 5px);
-                font-size: 12px;
+                width: 100%;
+            }
+            #status-row {
+                flex-direction: column;
+                width: 100%;
             }
             #timer {
-                font-size: 24px;
-                height: 35px;
+                font-size: 20px;
+                height: 40px;
             }
-        }
-        @media (min-width: 768px) {
-            #gameContainer {
-                max-width: 500px;
-            }
-            .info-box {
-                width: 220px;
-                font-size: 16px;
+            button {
+                font-size: 20px;
+                height: 45px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Остальной код остается без изменений -->
     <div id="gameContainer">
         <div id="timer">3:00</div>
         <div id="status-row">
@@ -181,10 +208,11 @@
         <img id="startImage" src="Ronavi.png" alt="Стартовое изображение" onclick="startGame()">
         <div id="gameEndScreen"></div>
         <canvas id="gameCanvas" width="400" height="400"></canvas>
-        <button style="width: 100%; max-width: 400px; height: clamp(30px, 8vw, 40px); background-color: yellow; border: none; font-weight: bold; border-radius: 3px; font-family: 'Nexa Bold', Arial, sans-serif; font-size: clamp(18px, 5vw, 24px);" onclick="startGame()">Начать игру</button>
+        <button onclick="startGame()">Начать игру</button>
         <div id="gameOver">Игра окончена!</div>
     </div>
     <script>
+
     // Получаем ссылку на холст и 2D контекст для рисования
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
