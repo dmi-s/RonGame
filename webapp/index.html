@@ -2,1119 +2,605 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Роботы</title>
+    <!-- Подключение шрифта Nexa-Bold -->
     <style>
-    canvas {
-        margin-top: 5px;
-        cursor: pointer;
-        display: none; /* Скрываем холст по умолчанию */
-        margin-bottom: 5px; /* Добавляем отступ снизу */
-    }
-    body {
-        text-align: center;
-        background-color: #000000;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        min-height: 100vh;
-    }
-    #gameContainer {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-    #score {
-        font-weight: bold;
-    }
-    #gameOver {
-        font-size: 32px;
-        color: red;
-        display: none;
-    }
-    #instructions {
-        font-size: 18px;
-        margin: 10px;
-        color: #666;
-    }
-    #startInstructions {
-        font-size: 18px;
-        margin: 10px;
-        color: #666;
-    }
-    #selectedSnake {
-        font-weight: bold;
-        justify-content: center;
-    }
-    #snakeCharge {
-        font-weight: bold;
-        color: #333;
-    }
-    #cargoStatus {
-        font-weight: bold;
-        justify-content: center;
-    }
-    #info-container {
-        display: flex;
-        gap: 10px;
-        width: 400px;
-        margin:  0 auto;
-        justify-content: center;
-    }
-    .info-box {
-        width: 195px;
-        height: 20px;
-        background-color: yellow;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 14px;
-        font-weight: bold;
-        margin: 0;
-        border: none;
-        border-radius: 3px;
-    }
-    #score, #snakeCharge {
-        flex: 1;
-        text-align: center;
-    }
-    #selectedSnake, #cargoStatus {
-        flex: 1;
-        text-align: center;
-    }
-    /* Добавлено для размещения элементов в одной строке */
-    #status-row {
-        display: flex;
-        gap: 10px;
-        margin: 5px auto 5px auto; /* Изменено: добавлен отступ снизу 5px */
-        width: 400px;
-        justify-content: center;
-    }
-    /* Добавлен таймер */
-    #timer {
-        width: 400px;
-        height: 40px;
-        background-color: yellow;
-        font-size: 30px;
-        font-weight: bold;
-        border-radius: 3px;
-        margin: 5px auto 0 auto;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    /* Добавлен стиль для изображения */
-    #startImage {
-        width: 400px;
-        height: 400px;
-        margin: 5px auto;
-        cursor: pointer;
-        display: block;
-    }
+        @font-face {
+            font-family: 'Nexa Bold';
+            src: url('Nexa-Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        /* Резервные шрифты */
+        body {
+            font-family: 'Nexa Bold', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #000000;
+        }
+        canvas {
+            margin-top: 5px;
+            cursor: pointer;
+            display: none;
+            margin-bottom: 5px;
+            max-width: 100%;
+            height: auto;
+        }
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        #score {
+            font-weight: bold;
+        }
+        #gameOver {
+            font-size: clamp(24px, 6vw, 32px);
+            color: red;
+            display: none;
+        }
+        #instructions {
+            font-size: clamp(14px, 4vw, 18px);
+            margin: 10px;
+            color: #666;
+        }
+        #startInstructions {
+            font-size: clamp(14px, 4vw, 18px);
+            margin: 10px;
+            color: #666;
+        }
+        #selectedSnake {
+            font-weight: bold;
+            justify-content: center;
+        }
+        #snakeCharge {
+            font-weight: bold;
+        }
+        #cargoStatus {
+            font-weight: bold;
+            justify-content: center;
+        }
+        #info-container {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            margin: 0 auto;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .info-box {
+            width: clamp(150px, 48%, 195px);
+            height: clamp(20px, 5vw, 20px);
+            background-color: yellow;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(12px, 3vw, 14px);
+            font-weight: bold;
+            margin: 0;
+            border: none;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        #score, #snakeCharge {
+            flex: 1;
+            text-align: center;
+        }
+        #selectedSnake, #cargoStatus {
+            flex: 1;
+            text-align: center;
+        }
+        #status-row {
+            display: flex;
+            gap: 10px;
+            margin: 5px auto 5px auto;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        #timer {
+            width: 100%;
+            max-width: 400px;
+            height: clamp(30px, 8vw, 40px);
+            background-color: yellow;
+            font-size: clamp(24px, 6vw, 30px);
+            font-weight: bold;
+            border-radius: 3px;
+            margin: 5px auto 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #startImage {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            margin: 5px auto;
+            cursor: pointer;
+            display: block;
+        }
+        #gameEndScreen {
+            width: 100%;
+            max-width: 400px;
+            height: clamp(200px, 50vh, 400px);
+            background-color: black;
+            color: yellow;
+            font-size: clamp(18px, 5vw, 24px);
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin: 5px auto;
+        }
+        @media (max-width: 480px) {
+            #gameContainer {
+                padding: 0 10px;
+            }
+            .info-box {
+                width: calc(50% - 5px);
+                font-size: 12px;
+            }
+            #timer {
+                font-size: 24px;
+                height: 35px;
+            }
+        }
+        @media (min-width: 768px) {
+            #gameContainer {
+                max-width: 500px;
+            }
+            .info-box {
+                width: 220px;
+                font-size: 16px;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Остальной код остается без изменений -->
     <div id="gameContainer">
-        <h1>Роботы</h1>
-        <!-- Добавлен таймер -->
         <div id="timer">3:00</div>
-        <!-- Добавлен контейнер для первой строки элементов -->
         <div id="status-row">
-            <div id="selectedSnake" class="info-box">Робот №: Нет</div>
+            <div id="selectedSnake" class="info-box">Робот: Нет</div>
             <div id="cargoStatus" class="info-box">Статус: Нет</div>
         </div>
-        <!-- Добавлен контейнер для второй строки элементов -->
         <div id="info-container">
             <div id="snakeCharge" class="info-box">Заряд робота: Нет</div>
             <div id="score" class="info-box">Счет: 0</div>
         </div>
-        <!-- Добавлено изображение на стартовой странице -->
         <img id="startImage" src="Ronavi.png" alt="Стартовое изображение" onclick="startGame()">
+        <div id="gameEndScreen"></div>
         <canvas id="gameCanvas" width="400" height="400"></canvas>
-        <button style="width: 400px; height: 40px;  background-color: yellow; border: none; font-weight: bold; border-radius: 3px;" onclick="startGame()">Начать игру</button>
+        <button style="width: 100%; max-width: 400px; height: clamp(30px, 8vw, 40px); background-color: yellow; border: none; font-weight: bold; border-radius: 3px; font-family: 'Nexa Bold', Arial, sans-serif; font-size: clamp(18px, 5vw, 24px);" onclick="startGame()">Начать игру</button>
         <div id="gameOver">Игра окончена!</div>
     </div>
     <script>
-        // Получаем ссылку на холст и 2D контекст для рисования
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        // Получаем элементы для отображения счета и сообщения об окончании игры
-        const scoreElement = document.getElementById('score');
-        const gameOverElement = document.getElementById('gameOver');
-        const selectedSnakeElement = document.getElementById('selectedSnake');
-        const snakeChargeElement = document.getElementById('snakeCharge');
-        const cargoStatusElement = document.getElementById('cargoStatus');
-        const timerElement = document.getElementById('timer');
-        // Размер одной ячейки сетки в пикселях
-        const gridSize = 40;
-        // Количество ячеек по ширине и высоте игрового поля
-        const gridWidth = canvas.width / gridSize;
-        const gridHeight = canvas.height / gridSize;
-        // Массив для хранения всех змейок
-        let snakes = [];
-        // Массив для хранения координат еды (3 штуки)
-        let food = [];
-        // Массив для хранения препятствий (5 штук)
-        let obstacles = [];
-        // Массив для хранения зарядных станций (2 штуки)
-        let chargingStations = [];
-        // Массив для хранения парковочных мест (3 штуки)
-        let parkingSpots = [];
-        // Счет игрока
-        let score = 0;
-        // Флаг, показывающий запущена ли игра
-        let gameRunning = false;
-        // Флаг, показывающий, началась ли игра (змейки начали двигаться)
-        let gameStarted = false;
-        // Целевые точки для каждой змейки
-        let targetPoints = [];
-        // Индекс выбранной змейки (-1 если ни одна не выбрана)
-        let selectedSnakeIndex = -1;
-        // Переменная для хранения интервала игры
-        let gameLoop;
-        // Переменная для таймера
-        let timer;
-        // Время в секундах (3 минуты = 180 секунд)
-        let timeLeft = 180;
-        // Заряды для каждой змейки
-        let snakeCharges = [100, 100, 100];
-        // Счетчик ходов для каждой змейки (для отслеживания прохождения 2 клеток)
-        let moveCounts = [0, 0, 0];
-        // Флаг для отслеживания, стоит ли змейка на зарядной станции
-        let onChargingStation = [-1, -1, -1]; // -1 - не стоит, иначе индекс станции
-        // Таймеры для восстановления заряда на станциях
-        let chargingTimers = [null, null, null];
-        // Статус перевозки еды для каждой змейки (true - с грузом, false - без груза)
-        let hasCargo = [false, false, false];
-        // Координаты еды, которую перевозит змейка (для отслеживания)
-        let cargoFood = [null, null, null];
-        // Флаг для отслеживания, находится ли змейка на парковке
-        let onParking = [-1, -1, -1]; // -1 - не на парковке, иначе индекс парковки
-        // Маршруты для каждой змейки
-        let snakeRoutes = [[], [], []];
-        // Прогресс по маршруту для каждой змейки
-        let routeProgress = [0, 0, 0];
-        // Флаги остановки для каждой змейки
-        let shouldStop = [false, false, false];
-        // Глобальные переменные для изображений
-        let snakeHeadImage = new Image();
-        let snakeHeadWithShelfImage = new Image();
-        let snakeHeadChargingImage = new Image();
-        let foodImage = new Image();
-        let chargingImage = new Image();
-        let parkingImage = new Image();
-        let obstacleImage = new Image();
-        // Загружаем изображения
-        snakeHeadImage.src = 'Robot.png';
-        snakeHeadWithShelfImage.src = 'Robot_Shelf.png';
-        snakeHeadChargingImage.src = 'Robot_Charg.png';
-        foodImage.src = 'Shelf.png';
-        chargingImage.src = 'Charging.png';
-        parkingImage.src = 'Parking.png';
-        obstacleImage.src = 'Column.png';
-        // Функция проверки, является ли точка препятствием
-        function isObstacle(x, y) {
-            for (let obstacle of obstacles) {
-                if (obstacle.x === x && obstacle.y === y) {
-                    return true;
-                }
+    // Получаем ссылку на холст и 2D контекст для рисования
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    // Получаем элементы для отображения счета и сообщения об окончании игры
+    const scoreElement = document.getElementById('score');
+    const gameOverElement = document.getElementById('gameOver');
+    const selectedSnakeElement = document.getElementById('selectedSnake');
+    const snakeChargeElement = document.getElementById('snakeCharge');
+    const cargoStatusElement = document.getElementById('cargoStatus');
+    const timerElement = document.getElementById('timer');
+    const gameEndScreen = document.getElementById('gameEndScreen');
+    // Размер одной ячейки сетки в пикселях
+    const gridSize = 40;
+    // Количество ячеек по ширине и высоте игрового поля
+    const gridWidth = canvas.width / gridSize;
+    const gridHeight = canvas.height / gridSize;
+    // Массив для хранения всех змейок
+    let snakes = [];
+    // Массив для хранения координат еды (3 штуки)
+    let food = [];
+    // Массив для хранения препятствий (5 штук)
+    let obstacles = [];
+    // Массив для хранения зарядных станций (2 штуки)
+    let chargingStations = [];
+    // Массив для хранения парковочных мест (3 штуки)
+    let parkingSpots = [];
+    // Счет игрока
+    let score = 0;
+    // Флаг, показывающий запущена ли игра
+    let gameRunning = false;
+    // Флаг, показывающий, началась ли игра (змейки начали двигаться)
+    let gameStarted = false;
+    // Целевые точки для каждой змейки
+    let targetPoints = [];
+    // Индекс выбранной змейки (-1 если ни одна не выбрана)
+    let selectedSnakeIndex = -1;
+    // Переменная для хранения интервала игры
+    let gameLoop;
+    // Переменная для таймера
+    let timer;
+    // Время в секундах (3 минуты = 180 секунд)
+    let timeLeft = 180;
+    // Заряды для каждой змейки
+    let snakeCharges = [100, 100, 100];
+    // Счетчик ходов для каждой змейки (для отслеживания прохождения 2 клеток)
+    let moveCounts = [0, 0, 0];
+    // Флаг для отслеживания, стоит ли змейка на зарядной станции
+    let onChargingStation = [-1, -1, -1]; // -1 - не стоит, иначе индекс станции
+    // Таймеры для восстановления заряда на станциях
+    let chargingTimers = [null, null, null];
+    // Статус перевозки еды для каждой змейки (true - с грузом, false - без груза)
+    let hasCargo = [false, false, false];
+    // Координаты еды, которую перевозит змейка (для отслеживания)
+    let cargoFood = [null, null, null];
+    // Флаг для отслеживания, находится ли змейка на парковке
+    let onParking = [-1, -1, -1]; // -1 - не на парковке, иначе индекс парковки
+    // Маршруты для каждой змейки
+    let snakeRoutes = [[], [], []];
+    // Прогресс по маршруту для каждой змейки
+    let routeProgress = [0, 0, 0];
+    // === НОВОЕ: отслеживание заблокированных целей ===
+    let reservedTargets = {}; // Формат: "x,y" -> snakeIndex
+    // === НОВОЕ: отслеживание времени отправки маршрутов ===
+    let snakeRouteTimestamps = [0, 0, 0];
+    // Глобальные переменные для изображений
+    let snakeHeadImage = new Image();
+    let snakeHeadWithShelfImage = new Image();
+    let snakeHeadChargingImage = new Image();
+    let foodImage = new Image();
+    let chargingImage = new Image();
+    let parkingImage = new Image();
+    let obstacleImage = new Image();
+    // Загружаем изображения
+    snakeHeadImage.src = 'Robot.png';
+    snakeHeadWithShelfImage.src = 'Robot_Shelf.png';
+    snakeHeadChargingImage.src = 'Robot_Charg.png';
+    foodImage.src = 'Shelf.png';
+    chargingImage.src = 'Charging.png';
+    parkingImage.src = 'Parking.png';
+    obstacleImage.src = 'Column.png';
+    // Функция проверки, является ли точка препятствием
+    function isObstacle(x, y) {
+        for (let obstacle of obstacles) {
+            if (obstacle.x === x && obstacle.y === y) {
+                return true;
             }
-            return false;
         }
-        // Функция проверки, является ли точка зарядной станцией
-        function isChargingStation(x, y) {
-            for (let i = 0; i < chargingStations.length; i++) {
-                if (chargingStations[i].x === x && chargingStations[i].y === y) {
-                    return i; // Возвращаем индекс станции
-                }
+        return false;
+    }
+    // Функция проверки, является ли точка зарядной станцией
+    function isChargingStation(x, y) {
+        for (let i = 0; i < chargingStations.length; i++) {
+            if (chargingStations[i].x === x && chargingStations[i].y === y) {
+                return i; // Возвращаем индекс станции
             }
-            return -1; // Не является станцией
         }
-        // Функция проверки, является ли точка парковочным местом
-        function isParkingSpot(x, y) {
-            for (let i = 0; i < parkingSpots.length; i++) {
-                if (parkingSpots[i].x === x && parkingSpots[i].y === y) {
-                    return i; // Возвращаем индекс парковки
-                }
+        return -1; // Не является станцией
+    }
+    // Функция проверки, является ли точка парковочным местом
+    function isParkingSpot(x, y) {
+        for (let i = 0; i < parkingSpots.length; i++) {
+            if (parkingSpots[i].x === x && parkingSpots[i].y === y) {
+                return i; // Возвращаем индекс парковки
             }
-            return -1; // Не является парковочным местом
         }
-        // Функция проверки, является ли точка другой змейкой
-        function isOtherSnake(x, y, snakeIndex) {
-            for (let i = 0; i < snakes.length; i++) {
-                if (i !== snakeIndex) {
-                    for (let segment of snakes[i]) {
-                        if (segment.x === x && segment.y === y) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-        // Функция проверки, является ли точка едой
-        function isFood(x, y) {
-            for (let f of food) {
-                if (f.x === x && f.y === y) {
-                    return true;
-                }
-            }
-            return false;
-        }
-        // Функция проверки, пересекаются ли маршруты двух змейок
-        function routesIntersect(snakeIndex1, snakeIndex2) {
-            if (snakeRoutes[snakeIndex1].length === 0 || snakeRoutes[snakeIndex2].length === 0) {
-                return false;
-            }
-            // Проверяем все точки маршрута первой змейки на наличие в маршруте второй
-            for (let i = routeProgress[snakeIndex1]; i < snakeRoutes[snakeIndex1].length; i++) {
-                const point1 = snakeRoutes[snakeIndex1][i];
-                for (let j = routeProgress[snakeIndex2]; j < snakeRoutes[snakeIndex2].length; j++) {
-                    const point2 = snakeRoutes[snakeIndex2][j];
-                    if (point1.x === point2.x && point1.y === point2.y) {
+        return -1; // Не является парковочным местом
+    }
+    // Функция проверки, является ли точка другой змейкой
+    function isOtherSnake(x, y, snakeIndex) {
+        for (let i = 0; i < snakes.length; i++) {
+            if (i !== snakeIndex) {
+                for (let segment of snakes[i]) {
+                    if (segment.x === x && segment.y === y) {
                         return true;
                     }
                 }
             }
-            return false;
         }
-        // Функция проверки, находится ли точка на маршруте другой змейки
-        function isPointOnOtherRoute(snakeIndex, x, y) {
-            for (let i = 0; i < snakes.length; i++) {
-                if (i !== snakeIndex && snakeRoutes[i].length > 0) {
-                    for (let j = routeProgress[i]; j < snakeRoutes[i].length; j++) {
-                        const point = snakeRoutes[i][j];
-                        if (point.x === x && point.y === y) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-        // Алгоритм A* для построения маршрута
-        function aStar(startX, startY, endX, endY, snakeIndex) {
-            // Функция расчета эвристической стоимости (расстояние по Манхэттену)
-            function heuristic(a, b) {
-                return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
-            }
-            // Функция проверки, можно ли переместиться в точку
-            function canMoveTo(x, y, snakeIndex) {
-                // Проверяем границы поля
-                if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) {
-                    return false;
-                }
-                // Проверяем препятствия
-                if (isObstacle(x, y)) {
-                    return false;
-                }
-                // Проверяем другие змейки
-                if (isOtherSnake(x, y, snakeIndex)) {
-                    return false;
-                }
-                // Проверяем еду (если змейка с грузом)
-                if (hasCargo[snakeIndex] && isFood(x, y)) {
-                    return false;
-                }
+        return false;
+    }
+    // Функция проверки, является ли точка едой
+    function isFood(x, y) {
+        for (let f of food) {
+            if (f.x === x && f.y === y) {
                 return true;
             }
-            // Открытый список (узлы, которые нужно проверить)
-            let openSet = [];
-            // Закрытый список (узлы, которые уже были проверены)
-            let closedSet = [];
-            // Карта родителей для восстановления пути
-            let cameFrom = {};
-            // Карта g-стоимости (стоимость от старта до узла)
-            let gScore = {};
-            // Карта f-стоимости (g-стоимость + эвристика)
-            let fScore = {};
-            // Начальная точка
-            const start = {x: startX, y: startY};
-            const end = {x: endX, y: endY};
-            // Инициализация
-            openSet.push(start);
-            gScore[startKey(start)] = 0;
-            fScore[startKey(start)] = heuristic(start, end);
-            while (openSet.length > 0) {
-                // Находим узел с наименьшей f-стоимостью
-                let current = openSet.reduce((min, node) => {
-                    return fScore[startKey(node)] < fScore[startKey(min)] ? node : min;
-                });
-                // Если дошли до цели
-                if (current.x === end.x && current.y === end.y) {
-                    // Восстанавливаем путь
-                    let path = [];
-                    let temp = current;
-                    while (temp) {
-                        path.unshift(temp);
-                        temp = cameFrom[startKey(temp)];
-                    }
-                    return path;
+        }
+        return false;
+    }
+    // Функция проверки, пересекаются ли маршруты двух змейок
+    function routesIntersect(snakeIndex1, snakeIndex2) {
+        if (snakeRoutes[snakeIndex1].length === 0 || snakeRoutes[snakeIndex2].length === 0) {
+            return false;
+        }
+        for (let i = routeProgress[snakeIndex1]; i < snakeRoutes[snakeIndex1].length; i++) {
+            const point1 = snakeRoutes[snakeIndex1][i];
+            for (let j = routeProgress[snakeIndex2]; j < snakeRoutes[snakeIndex2].length; j++) {
+                const point2 = snakeRoutes[snakeIndex2][j];
+                if (point1.x === point2.x && point1.y === point2.y) {
+                    return true;
                 }
-                // Перемещаем текущий узел из открытого списка в закрытый
-                const currentIndex = openSet.indexOf(current);
-                openSet.splice(currentIndex, 1);
-                closedSet.push(current);
-                // Проверяем соседей (вверх, вниз, влево, вправо)
-                const neighbors = [
-                    {x: current.x, y: current.y - 1}, // вверх
-                    {x: current.x, y: current.y + 1}, // вниз
-                    {x: current.x - 1, y: current.y}, // влево
-                    {x: current.x + 1, y: current.y}  // вправо
-                ];
-                for (let neighbor of neighbors) {
-                    // Пропускаем, если сосед не доступен
-                    if (!canMoveTo(neighbor.x, neighbor.y, snakeIndex)) {
-                        continue;
-                    }
-                    // Пропускаем, если сосед уже в закрытом списке
-                    if (closedSet.some(node => node.x === neighbor.x && node.y === neighbor.y)) {
-                        continue;
-                    }
-                    // Считаем стоимость перехода к соседу
-                    const tentativeGScore = gScore[startKey(current)] + 1;
-                    // Проверяем, если сосед уже в открытом списке
-                    const neighborInOpen = openSet.find(node => node.x === neighbor.x && node.y === neighbor.y);
-                    if (!neighborInOpen) {
-                        // Добавляем соседа в открытый список
-                        openSet.push(neighbor);
-                        gScore[startKey(neighbor)] = tentativeGScore;
-                        fScore[startKey(neighbor)] = gScore[startKey(neighbor)] + heuristic(neighbor, end);
-                        cameFrom[startKey(neighbor)] = current;
-                    } else if (tentativeGScore < gScore[startKey(neighbor)]) {
-                        // Обновляем стоимость, если нашли лучший путь
-                        gScore[startKey(neighbor)] = tentativeGScore;
-                        fScore[startKey(neighbor)] = gScore[startKey(neighbor)] + heuristic(neighbor, end);
-                        cameFrom[startKey(neighbor)] = current;
+            }
+        }
+        return false;
+    }
+    // Алгоритм A* для построения маршрута
+    function aStar(startX, startY, endX, endY, snakeIndex) {
+        function heuristic(a, b) {
+            return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        }
+        function canMoveTo(x, y, snakeIndex) {
+            if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) return false;
+            if (isObstacle(x, y)) return false;
+            if (isOtherSnake(x, y, snakeIndex)) return false;
+            // Запрет на заезд на зарядку с грузом
+            if (hasCargo[snakeIndex] && isChargingStation(x, y) !== -1) return false;
+            if (hasCargo[snakeIndex] && isFood(x, y)) return false;
+            // === НОВОЕ: блокировка чужой цели ===
+            const targetKey = `${x},${y}`;
+            if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== snakeIndex) {
+                return false;
+            }
+            return true;
+        }
+        const start = {x: startX, y: startY};
+        const end = {x: endX, y: endY};
+        let openSet = [start];
+        let closedSet = [];
+        let cameFrom = {};
+        let gScore = {};
+        let fScore = {};
+        gScore[startKey(start)] = 0;
+        fScore[startKey(start)] = heuristic(start, end);
+        while (openSet.length > 0) {
+            let current = openSet.reduce((min, node) => {
+                return fScore[startKey(node)] < fScore[startKey(min)] ? node : min;
+            });
+            if (current.x === end.x && current.y === end.y) {
+                let path = [];
+                let temp = current;
+                while (temp) {
+                    path.unshift(temp);
+                    temp = cameFrom[startKey(temp)];
+                }
+                return path;
+            }
+            const currentIndex = openSet.indexOf(current);
+            openSet.splice(currentIndex, 1);
+            closedSet.push(current);
+            const neighbors = [
+                {x: current.x, y: current.y - 1},
+                {x: current.x, y: current.y + 1},
+                {x: current.x - 1, y: current.y},
+                {x: current.x + 1, y: current.y}
+            ];
+            for (let neighbor of neighbors) {
+                if (!canMoveTo(neighbor.x, neighbor.y, snakeIndex)) continue;
+                if (closedSet.some(node => node.x === neighbor.x && node.y === neighbor.y)) continue;
+                const tentativeGScore = gScore[startKey(current)] + 1;
+                const neighborKey = startKey(neighbor);
+                const neighborInOpen = openSet.find(node => node.x === neighbor.x && node.y === neighbor.y);
+                if (!neighborInOpen) {
+                    openSet.push(neighbor);
+                    gScore[neighborKey] = tentativeGScore;
+                    fScore[neighborKey] = tentativeGScore + heuristic(neighbor, end);
+                    cameFrom[neighborKey] = current;
+                } else if (tentativeGScore < gScore[neighborKey]) {
+                    gScore[neighborKey] = tentativeGScore;
+                    fScore[neighborKey] = tentativeGScore + heuristic(neighbor, end);
+                    cameFrom[neighborKey] = current;
+                }
+            }
+        }
+        return [];
+    }
+    function startKey(point) {
+        return point.x + ',' + point.y;
+    }
+    function buildRoute(startX, startY, endX, endY, snakeIndex) {
+        return aStar(startX, startY, endX, endY, snakeIndex);
+    }
+    function initGame() {
+        snakes = [];
+        selectedSnakeIndex = -1;
+        targetPoints = [];
+        snakeCharges = [100, 100, 100];
+        moveCounts = [0, 0, 0];
+        onChargingStation = [-1, -1, -1];
+        chargingTimers = [null, null, null];
+        hasCargo = [false, false, false];
+        cargoFood = [null, null, null];
+        onParking = [-1, -1, -1];
+        snakeRoutes = [[], [], []];
+        routeProgress = [0, 0, 0];
+        reservedTargets = {}; // Очистка заблокированных целей
+        snakeRouteTimestamps = [0, 0, 0]; // Очистка времени отправки маршрутов
+        let positions = [];
+        for (let i = 0; i < 3; i++) {
+            let validPosition = false;
+            let newPosition;
+            while (!validPosition) {
+                newPosition = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let pos of positions) {
+                    if (pos.x === newPosition.x && pos.y === newPosition.y) {
+                        validPosition = false;
+                        break;
                     }
                 }
             }
-            // Путь не найден
-            return [];
+            positions.push(newPosition);
+            snakes.push([{x: newPosition.x, y: newPosition.y}]);
+            targetPoints.push(null);
         }
-        // Вспомогательная функция для создания ключа из точки
-        function startKey(point) {
-            return point.x + ',' + point.y;
-        }
-        // Функция построения маршрута
-        function buildRoute(startX, startY, endX, endY, snakeIndex) {
-            // Используем алгоритм A* для построения маршрута
-            const route = aStar(startX, startY, endX, endY, snakeIndex);
-            return route;
-        }
-        // Функция инициализации игры
-        function initGame() {
-            // Создаем три змейки в случайных местах
-            snakes = [];
-            selectedSnakeIndex = -1;
-            targetPoints = [];
-            snakeCharges = [100, 100, 100]; // Сброс зарядов
-            moveCounts = [0, 0, 0]; // Сброс счетчиков ходов
-            onChargingStation = [-1, -1, -1]; // Сброс статуса на станциях
-            chargingTimers = [null, null, null]; // Сброс таймеров
-            hasCargo = [false, false, false]; // Сброс статуса перевозки
-            cargoFood = [null, null, null]; // Сброс информации о перевозимой еде
-            onParking = [-1, -1, -1]; // Сброс статуса на парковке
-            snakeRoutes = [[], [], []]; // Сброс маршрутов
-            routeProgress = [0, 0, 0]; // Сброс прогресса маршрутов
-            shouldStop = [false, false, false]; // Сброс флагов остановки
-            // Генерируем уникальные начальные позиции для трех змейок
-            let positions = [];
-            for (let i = 0; i < 3; i++) {
-                let validPosition = false;
-                let newPosition;
-                while (!validPosition) {
-                    newPosition = {
-                        x: Math.floor(Math.random() * gridWidth),
-                        y: Math.floor(Math.random() * gridHeight)
-                    };
-                    // Проверяем, чтобы позиция не совпадала с уже существующими
-                    validPosition = true;
-                    for (let pos of positions) {
-                        if (pos.x === newPosition.x && pos.y === newPosition.y) {
+        generateObstacles();
+        generateChargingStations();
+        generateParkingSpots();
+        generateFood();
+        score = 0;
+        scoreElement.textContent = 'Счет: ' + score;
+        gameOverElement.style.display = 'none';
+        gameEndScreen.style.display = 'none';
+        gameStarted = false;
+        selectedSnakeElement.textContent = 'Робот: Нет';
+        snakeChargeElement.textContent = 'Заряд робота: Нет';
+        cargoStatusElement.textContent = 'Статус: Нет';
+        timeLeft = 180;
+        updateTimerDisplay();
+    }
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
+    function generateObstacles() {
+        obstacles = [];
+        const obstacleCount = 5;
+        for (let i = 0; i < obstacleCount; i++) {
+            let newObstacle;
+            let validPosition = false;
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
+                attempts++;
+                newObstacle = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let snake of snakes) {
+                    for (let segment of snake) {
+                        if (segment.x === newObstacle.x && segment.y === newObstacle.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    if (!validPosition) break;
+                }
+                if (validPosition) {
+                    for (let existingFood of food) {
+                        if (existingFood.x === newObstacle.x && existingFood.y === newObstacle.y) {
                             validPosition = false;
                             break;
                         }
                     }
                 }
-                positions.push(newPosition);
-                // Создаем змейку с одной головой
-                snakes.push([
-                    {x: newPosition.x, y: newPosition.y}   // Голова змейки
-                ]);
-                // Инициализируем целевую точку для каждой змейки
-                targetPoints.push(null);
+                if (validPosition) {
+                    for (let existingObstacle of obstacles) {
+                        const distance = Math.abs(existingObstacle.x - newObstacle.x) + Math.abs(existingObstacle.y - newObstacle.y);
+                        if (distance <= 2) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
             }
-            // Генерируем препятствия
-            generateObstacles();
-            // Генерируем зарядные станции
-            generateChargingStations();
-            // Генерируем парковочные места
-            generateParkingSpots();
-            // Генерируем три еды в случайных позициях
-            generateFood();
-            // Сбрасываем счет
-            score = 0;
-            // Обновляем отображение счета на экране
-            scoreElement.textContent = 'Счет: ' + score;
-            // Скрываем сообщение об окончании игры
-            gameOverElement.style.display = 'none';
-            // Сбрасываем флаг начала игры
-            gameStarted = false;
-            // Обновляем отображение выбранной змейки
-            selectedSnakeElement.textContent = 'Робот №: Нет';
-            snakeChargeElement.textContent = 'Заряд робота: Нет';
-            cargoStatusElement.textContent = 'Статус: Нет';
-            // Сбрасываем таймер
-            timeLeft = 180;
-            updateTimerDisplay();
-        }
-        // Функция обновления отображения таймера
-        function updateTimerDisplay() {
-            const minutes = Math.floor(timeLeft / 60);
-            const seconds = timeLeft % 60;
-            timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        }
-        // Функция генерации препятствий с учетом расстояния между ними
-        function generateObstacles() {
-            obstacles = [];
-            const obstacleCount = 5; // Количество препятствий
-            for (let i = 0; i < obstacleCount; i++) {
-                let newObstacle;
-                let validPosition = false;
-                let attempts = 0; // Счетчик попыток
-                // Повторяем пока не найдем подходящую позицию
-                while (!validPosition && attempts < 1000) { // Ограничение попыток
-                    attempts++;
-                    newObstacle = {
-                        x: Math.floor(Math.random() * gridWidth),  // Случайная координата X
-                        y: Math.floor(Math.random() * gridHeight)  // Случайная координата Y
-                    };
-                    // Проверяем, чтобы препятствие не появилось на змейке
-                    validPosition = true;
-                    for (let snake of snakes) {
-                        for (let segment of snake) {
-                            if (segment.x === newObstacle.x && segment.y === newObstacle.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                        if (!validPosition) break;
-                    }
-                    // Проверяем, чтобы препятствие не появилось на еде
-                    if (validPosition) {
-                        for (let existingFood of food) {
-                            if (existingFood.x === newObstacle.x && existingFood.y === newObstacle.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                    }
-                    // Проверяем, чтобы препятствие не пересекалось с другими препятствиями
-                    if (validPosition) {
-                        for (let existingObstacle of obstacles) {
-                            // Проверяем расстояние между препятствиями (минимум 2 клетки)
-                            const distance = Math.abs(existingObstacle.x - newObstacle.x) + Math.abs(existingObstacle.y - newObstacle.y);
-                            if (distance <= 2) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (attempts >= 1000) {
-                    console.error("Не удалось сгенерировать препятствие за 1000 попыток");
-                    break;
-                }
-                // Добавляем новое препятствие в массив
-                obstacles.push(newObstacle);
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать препятствие за 1000 попыток");
+                break;
             }
+            obstacles.push(newObstacle);
         }
-        // Функция генерации зарядных станций
-        function generateChargingStations() {
-            chargingStations = [];
-            const stationCount = 2; // Количество зарядных станций
-            // Для каждой станции ищем место рядом с препятствием
-            for (let i = 0; i < stationCount; i++) {
-                let validPosition = false;
-                let newStation;
-                let obstacleUsed = null; // Чтобы не использовать одно препятствие для двух станций
-                let attempts = 0; // Счетчик попыток
-                // Ищем препятствие для размещения станции рядом с ним
-                while (!validPosition && attempts < 1000) { // Ограничение попыток
-                    attempts++;
-                    // Выбираем случайное препятствие
-                    const obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
-                    // Проверяем, не использовали ли мы это препятствие для другой станции
-                    if (obstacleUsed && obstacleUsed.x === obstacle.x && obstacleUsed.y === obstacle.y) {
-                        continue;
-                    }
-                    // Генерируем случайное направление (верх, низ, лево, право)
-                    const directions = [
-                        {x: 0, y: -1}, // верх
-                        {x: 0, y: 1},  // низ
-                        {x: -1, y: 0}, // лево
-                        {x: 1, y: 0}   // право
-                    ];
-                    const randomDirection = directions[Math.floor(Math.random() * directions.length)];
-                    // Вычисляем позицию для станции (за 1 клетку от препятствия)
-                    newStation = {
-                        x: obstacle.x + randomDirection.x * 1,
-                        y: obstacle.y + randomDirection.y * 1
-                    };
-                    // Проверяем, что позиция находится внутри игрового поля
-                    if (newStation.x >= 0 && newStation.x < gridWidth &&
-                        newStation.y >= 0 && newStation.y < gridHeight) {
-                        // Проверяем, чтобы станция не находилась на препятствии
-                        let onObstacle = false;
-                        for (let obstacle of obstacles) {
-                            if (obstacle.x === newStation.x && obstacle.y === newStation.y) {
-                                onObstacle = true;
-                                break;
-                            }
-                        }
-                        if (!onObstacle) {
-                            // Проверяем, чтобы станция не находилась на змейке
-                            let onSnake = false;
-                            for (let snake of snakes) {
-                                for (let segment of snake) {
-                                    if (segment.x === newStation.x && segment.y === newStation.y) {
-                                        onSnake = true;
-                                        break;
-                                    }
-                                }
-                                if (onSnake) break;
-                            }
-                            if (!onSnake) {
-                                // Проверяем, чтобы станция не находилась на еде
-                                let onFood = false;
-                                for (let f of food) {
-                                    if (f.x === newStation.x && f.y === newStation.y) {
-                                        onFood = true;
-                                        break;
-                                    }
-                                }
-                                if (!onFood) {
-                                    // Проверяем, чтобы станция не находилась на другой станции
-                                    let onStation = false;
-                                    for (let station of chargingStations) {
-                                        if (station.x === newStation.x && station.y === newStation.y) {
-                                            onStation = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!onStation) {
-                                        validPosition = true;
-                                        obstacleUsed = obstacle; // Запоминаем использованное препятствие
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                if (attempts >= 1000) {
-                    console.error("Не удалось сгенерировать зарядную станцию за 1000 попыток");
-                    break;
-                }
-                chargingStations.push(newStation);
-            }
-        }
-        // Функция генерации парковочных мест
-        function generateParkingSpots() {
-            parkingSpots = [];
-            const parkingCount = 3; // Количество парковочных мест
-            // Повторяем попытки генерации парковочных мест
+    }
+    function generateChargingStations() {
+        chargingStations = [];
+        const stationCount = 2;
+        for (let i = 0; i < stationCount; i++) {
+            let validPosition = false;
+            let newStation;
+            let obstacleUsed = null;
             let attempts = 0;
-            let maxAttempts = 1000;
-            while (attempts < maxAttempts) {
+            while (!validPosition && attempts < 1000) {
                 attempts++;
-                // Ищем место для группы из 3 парковочных мест
-                let validPosition = false;
-                let parkingGroup = [];
-                // Повторяем попытки выбора препятствия
-                let obstacleAttempts = 0;
-                let obstacleMaxAttempts = 100;
-                let obstacle = null;
-                while (obstacleAttempts < obstacleMaxAttempts && !obstacle) {
-                    obstacleAttempts++;
-                    // Выбираем случайное препятствие
-                    if (obstacles.length > 0) {
-                        obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
-                    }
+                const obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+                if (obstacleUsed && obstacleUsed.x === obstacle.x && obstacleUsed.y === obstacle.y) {
+                    continue;
                 }
-                if (!obstacle) {
-                    console.error("Не удалось найти препятствие для парковки");
-                    return;
-                }
-                // Генерируем случайное направление (горизонтально или вертикально)
-                const isHorizontal = Math.random() > 0.5;
-                // Создаем три парковочных места в ряд
-                parkingGroup = [];
-                // Первое место - за 3 клетки от препятствия
-                let firstSpot = {
-                    x: obstacle.x,
-                    y: obstacle.y
+                const directions = [
+                    {x: 0, y: -1}, {x: 0, y: 1}, {x: -1, y: 0}, {x: 1, y: 0}
+                ];
+                const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+                newStation = {
+                    x: obstacle.x + randomDirection.x,
+                    y: obstacle.y + randomDirection.y
                 };
-                if (isHorizontal) {
-                    // Горизонтальная группа
-                    firstSpot.x = obstacle.x + 3;
-                    parkingGroup.push(firstSpot);
-                    parkingGroup.push({x: firstSpot.x + 1, y: firstSpot.y});
-                    parkingGroup.push({x: firstSpot.x + 2, y: firstSpot.y});
-                } else {
-                    // Вертикальная группа
-                    firstSpot.y = obstacle.y + 3;
-                    parkingGroup.push(firstSpot);
-                    parkingGroup.push({x: firstSpot.x, y: firstSpot.y + 1});
-                    parkingGroup.push({x: firstSpot.x, y: firstSpot.y + 2});
-                }
-                // Проверяем, что все места находятся внутри игрового поля
-                validPosition = true;
-                for (let spot of parkingGroup) {
-                    if (spot.x < 0 || spot.x >= gridWidth || spot.y < 0 || spot.y >= gridHeight) {
-                        validPosition = false;
-                        break;
+                if (newStation.x >= 0 && newStation.x < gridWidth && newStation.y >= 0 && newStation.y < gridHeight) {
+                    let onObstacle = obstacles.some(o => o.x === newStation.x && o.y === newStation.y);
+                    let onSnake = snakes.some(s => s.some(seg => seg.x === newStation.x && seg.y === newStation.y));
+                    let onFood = food.some(f => f.x === newStation.x && f.y === newStation.y);
+                    let onStation = chargingStations.some(s => s.x === newStation.x && s.y === newStation.y);
+                    if (!onObstacle && !onSnake && !onFood && !onStation) {
+                        validPosition = true;
+                        obstacleUsed = obstacle;
                     }
-                }
-                // Проверяем, чтобы парковочные места не находились на препятствиях
-                if (validPosition) {
-                    for (let spot of parkingGroup) {
-                        for (let obstacle of obstacles) {
-                            if (obstacle.x === spot.x && obstacle.y === spot.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                        if (!validPosition) break;
-                    }
-                }
-                // Проверяем, чтобы парковочные места не находились на змейках
-                if (validPosition) {
-                    for (let spot of parkingGroup) {
-                        for (let snake of snakes) {
-                            for (let segment of snake) {
-                                if (segment.x === spot.x && segment.y === spot.y) {
-                                    validPosition = false;
-                                    break;
-                                }
-                            }
-                            if (!validPosition) break;
-                        }
-                        if (!validPosition) break;
-                    }
-                }
-                // Проверяем, чтобы парковочные места не находились на еде
-                if (validPosition) {
-                    for (let spot of parkingGroup) {
-                        for (let f of food) {
-                            if (f.x === spot.x && f.y === spot.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                        if (!validPosition) break;
-                    }
-                }
-                // Проверяем, чтобы парковочные места не находились на зарядных станциях
-                if (validPosition) {
-                    for (let spot of parkingGroup) {
-                        for (let station of chargingStations) {
-                            if (station.x === spot.x && station.y === spot.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                        if (!validPosition) break;
-                    }
-                }
-                // Проверяем, чтобы парковочные места не находились слишком близко к препятствиям
-                if (validPosition) {
-                    for (let spot of parkingGroup) {
-                        for (let obstacle of obstacles) {
-                            // Проверяем расстояние до препятствия (минимум 3 клетки)
-                            const distance = Math.abs(obstacle.x - spot.x) + Math.abs(obstacle.y - spot.y);
-                            if (distance <= 0) { // 2 клетки = 3 клетки расстояния (включая саму клетку)
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                        if (!validPosition) break;
-                    }
-                }
-                // Если позиция подходит, сохраняем парковочные места
-                if (validPosition) {
-                    parkingSpots = parkingGroup;
-                    return; // Успешно сгенерировано
                 }
             }
-            // Если не удалось сгенерировать за максимальное количество попыток
-            console.error(`Не удалось сгенерировать парковочные места за ${maxAttempts} попыток`);
-            // Создаем запасной вариант - пустой массив
-            parkingSpots = [];
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать зарядную станцию за 1000 попыток");
+                break;
+            }
+            chargingStations.push(newStation);
         }
-        // Функция генерации еды в случайных позициях (3 штуки)
-        function generateFood() {
-            // Инициализируем массив еды
-            food = [];
-            // Генерируем три еды
-            for (let i = 0; i < 3; i++) {
-                let newFood;
-                let validPosition = false;
-                let attempts = 0; // Счетчик попыток
-                // Повторяем пока не найдем подходящую позицию
-                while (!validPosition && attempts < 1000) { // Ограничение попыток
-                    attempts++;
-                    newFood = {
-                        x: Math.floor(Math.random() * gridWidth),  // Случайная координата X
-                        y: Math.floor(Math.random() * gridHeight)  // Случайная координата Y
-                    };
-                    // Проверяем, чтобы еда не появилась на змейках
-                    validPosition = true;
-                    for (let snake of snakes) {
-                        for (let segment of snake) {
-                            if (segment.x === newFood.x && segment.y === newFood.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                        if (!validPosition) break;
-                    }
-                    // Проверяем, чтобы еда не появилась на препятствиях
-                    if (validPosition) {
-                        for (let obstacle of obstacles) {
-                            if (obstacle.x === newFood.x && obstacle.y === newFood.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                    }
-                    // Проверяем, чтобы еда не появилась на зарядных станциях
-                    if (validPosition) {
-                        for (let station of chargingStations) {
-                            if (station.x === newFood.x && station.y === newFood.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                    }
-                    // Проверяем, чтобы еда не появилась на парковочных местах
-                    if (validPosition) {
-                        for (let parking of parkingSpots) {
-                            if (parking.x === newFood.x && parking.y === newFood.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                    }
-                    // Проверяем, чтобы еда не пересекалась с другими едами
-                    if (validPosition) {
-                        for (let existingFood of food) {
-                            if (existingFood.x === newFood.x && existingFood.y === newFood.y) {
-                                validPosition = false;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (attempts >= 1000) {
-                    console.error("Не удалось сгенерировать еду за 1000 попыток");
+    }
+    function generateParkingSpots() {
+        parkingSpots = [];
+        const parkingCount = 3;
+        let attempts = 0;
+        let maxAttempts = 1000;
+        while (attempts < maxAttempts) {
+            attempts++;
+            let obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+            const isHorizontal = Math.random() > 0.5;
+            let parkingGroup = [];
+            if (isHorizontal) {
+                parkingGroup.push({x: obstacle.x + 3, y: obstacle.y});
+                parkingGroup.push({x: obstacle.x + 4, y: obstacle.y});
+                parkingGroup.push({x: obstacle.x + 5, y: obstacle.y});
+            } else {
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 3});
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 4});
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 5});
+            }
+            let validPosition = true;
+            for (let spot of parkingGroup) {
+                if (spot.x < 0 || spot.x >= gridWidth || spot.y < 0 || spot.y >= gridHeight) {
+                    validPosition = false;
                     break;
                 }
-                // Добавляем новую еду в массив
-                food.push(newFood);
+                if (obstacles.some(o => o.x === spot.x && o.y === spot.y)) validPosition = false;
+                if (snakes.some(s => s.some(seg => seg.x === spot.x && seg.y === spot.y))) validPosition = false;
+                if (food.some(f => f.x === spot.x && f.y === spot.y)) validPosition = false;
+                if (chargingStations.some(s => s.x === spot.x && s.y === spot.y)) validPosition = false;
+                if (obstacles.some(o => Math.abs(o.x - spot.x) + Math.abs(o.y - spot.y) <= 0)) validPosition = false;
             }
-        }
-        // Функция обновления состояния игры
-        function update() {
-            // Если игра еще не начата, не двигаем змейки
-            if (!gameStarted) {
+            if (validPosition) {
+                parkingSpots = parkingGroup;
                 return;
             }
-            // Сначала проверяем, не пересекаются ли маршруты
-            let intersections = [];
-            for (let i = 0; i < snakes.length; i++) {
-                for (let j = i + 1; j < snakes.length; j++) {
-                    if (routesIntersect(i, j)) {
-                        intersections.push([i, j]);
-                    }
-                }
-            }
-            // Для каждой змейки проверяем, нужно ли ей остановиться
-            shouldStop = new Array(snakes.length).fill(false);
-            // Если есть пересечения, определяем, какие змейки должны остановиться
-            for (let [snake1, snake2] of intersections) {
-                // Определяем, какая змейка ближе к точке пересечения
-                const head1 = snakes[snake1][0];
-                const head2 = snakes[snake2][0];
-                // Находим ближайшую точку пересечения для каждой змейки
-                let closestIntersection1 = null;
-                let closestIntersection2 = null;
-                let minDistance1 = Infinity;
-                let minDistance2 = Infinity;
-                for (let i = routeProgress[snake1]; i < snakeRoutes[snake1].length; i++) {
-                    const point1 = snakeRoutes[snake1][i];
-                    for (let j = routeProgress[snake2]; j < snakeRoutes[snake2].length; j++) {
-                        const point2 = snakeRoutes[snake2][j];
-                        if (point1.x === point2.x && point1.y === point2.y) {
-                            // Вычисляем расстояние от головы до точки пересечения
-                            const dist1 = Math.abs(head1.x - point1.x) + Math.abs(head1.y - point1.y);
-                            const dist2 = Math.abs(head2.x - point1.x) + Math.abs(head2.y - point1.y);
-                            if (dist1 < minDistance1) {
-                                minDistance1 = dist1;
-                                closestIntersection1 = point1;
-                            }
-                            if (dist2 < minDistance2) {
-                                minDistance2 = dist2;
-                                closestIntersection2 = point1;
-                            }
-                        }
-                    }
-                }
-                // Если есть точка пересечения, останавливаем ту змейку, которая дальше
-                if (closestIntersection1 && closestIntersection2) {
-                    if (minDistance1 > minDistance2) {
-                        shouldStop[snake1] = true;
-                    } else {
-                        shouldStop[snake2] = true;
-                    }
-                }
-            }
-            // Обновляем каждую змейку независимо
-            for (let i = 0; i < snakes.length; i++) {
-                const snake = snakes[i];
-                const targetPoint = targetPoints[i];
-                // Если у змейки нет целевой точки или нет маршрута, пропускаем её
-                if (!targetPoint || snakeRoutes[i].length === 0) {
-                    continue;
-                }
-                // Если змейка должна остановиться из-за пересечения маршрутов, пропускаем её обновление
-                if (shouldStop[i]) {
-                    continue;
-                }
-                // Проверяем, есть ли у змейки заряд
-                if (snakeCharges[i] <= 0) {
-                    continue;
-                }
-                // Получаем координаты головы змейки
-                const head = snake[0];
-                // Проверяем, достигли ли мы текущей точки маршрута
-                if (routeProgress[i] < snakeRoutes[i].length) {
-                    const nextPoint = snakeRoutes[i][routeProgress[i]];
-                    // Если голова змейки уже на следующей точке маршрута, переходим к следующей точке
-                    if (head.x === nextPoint.x && head.y === nextPoint.y) {
-                        routeProgress[i]++;
-                        // Если прошли весь маршрут, очищаем его
-                        if (routeProgress[i] >= snakeRoutes[i].length) {
-                            snakeRoutes[i] = [];
-                            routeProgress[i] = 0;
-                            targetPoints[i] = null;
-                            continue;
-                        }
-                    }
-                }
-                // Если у нас есть маршрут, двигаемся по нему
-                if (routeProgress[i] < snakeRoutes[i].length) {
-                    const nextPoint = snakeRoutes[i][routeProgress[i]];
-                    // Проверяем, не будет ли змейка врезаться в маршрут другой змейки
-                    if (isPointOnOtherRoute(i, nextPoint.x, nextPoint.y)) {
-                        // Если следующая точка занята, останавливаем змейку
-                        continue;
-                    }
-                    // Определяем направление движения к следующей точке маршрута
-                    const dx = nextPoint.x - head.x;
-                    const dy = nextPoint.y - head.y;
-                    // Создаем новую голову змейки на основе текущей головы
-                    const newHead = {x: head.x, y: head.y};
-                    // Определяем новую позицию головы в зависимости от направления
-                    if (dx > 0) {
-                        newHead.x++;
-                    } else if (dx < 0) {
-                        newHead.x--;
-                    } else if (dy > 0) {
-                        newHead.y++;
-                    } else if (dy < 0) {
-                        newHead.y--;
-                    }
-                    // Проверка столкновения с границами игрового поля
-                    if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
-                        // Если змейка вышла за пределы поля, завершаем игру
-                        gameOver();
-                        return;
-                    }
-                    // Проверка столкновения змейки с самой собой
-                    for (let j = 0; j < snake.length; j++) {
-                        // Если голова змейки попадает на любой сегмент тела
-                        if (snake[j].x === newHead.x && snake[j].y === newHead.y) {
-                            // Завершаем игру
-                            gameOver();
-                            return;
-                        }
-                    }
-                    // Проверка столкновения с препятствиями
-                    for (let obstacle of obstacles) {
-                        if (obstacle.x === newHead.x && obstacle.y === newHead.y) {
-                            // Завершаем игру
-                            gameOver();
-                            return;
-                        }
-                    }
-                    // Проверка столкновения с другими змейками
-                    for (let j = 0; j < snakes.length; j++) {
-                        if (i !== j) { // Не проверяем саму себя
-                            for (let segment of snakes[j]) {
-                                if (segment.x === newHead.x && segment.y === newHead.y) {
-                                    // Завершаем игру
-                                    gameOver();
-                                    return;
-                                }
-                            }
-                        }
-                    }
-                    // Проверяем, находится ли новая позиция на зарядной станции
-                    let stationIndex = isChargingStation(newHead.x, newHead.y);
-                    // Проверяем, находится ли новая позиция на парковочном месте
-                    let parkingIndex = isParkingSpot(newHead.x, newHead.y);
-                    // Увеличиваем счетчик ходов
-                    moveCounts[i]++;
-                    // Отнимаем заряд при прохождении 2 клеток, если не на зарядной станции и не на парковке
-                    if (moveCounts[i] >= 2 && stationIndex === -1 && parkingIndex === -1) {
-                        snakeCharges[i]--;
-                        moveCounts[i] = 0; // Сбрасываем счетчик
-                    }
-                    // Если на зарядной станции, проверяем, является ли это конечной точкой маршрута
-                    if (stationIndex !== -1) {
-                        // Проверяем, является ли текущая позиция конечной точкой маршрута
-                        const targetPoint = targetPoints[i];
-                        if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
-                            // Это конечная точка маршрута - змейка может заряжаться
-                            if (hasCargo[i]) {
-                                // Если змейка с грузом, она не может заряжаться
-                                if (onChargingStation[i] === -1) {
-                                    onChargingStation[i] = stationIndex;
-                                }
-                            } else {
-                                // Если змейка без груза, может заряжаться
-                                if (onChargingStation[i] === -1) {
-                                    onChargingStation[i] = stationIndex;
-                                    startCharging(i);
-                                } else if (onChargingStation[i] === stationIndex) {
-                                    // Заряд уже восстанавливается
-                                }
-                            }
-                        } else {
-                            // Это промежуточная точка маршрута - не заряжаемся
-                            if (onChargingStation[i] !== -1) {
-                                stopCharging(i);
-                                onChargingStation[i] = -1;
-                            }
-                        }
-                    } else {
-                        // Если змейка уехала с зарядной станции
-                        if (onChargingStation[i] !== -1) {
-                            stopCharging(i);
-                            onChargingStation[i] = -1;
-                        }
-                    }
-                    // Проверяем, находится ли змейка на парковке
-                    if (parkingIndex !== -1) {
-                        // Если змейка только что приехала на парковку
-                        if (onParking[i] === -1) {
-                            onParking[i] = parkingIndex;
-                            // Если у змейки есть груз, то сбрасываем его и зачисляем очки
-                            if (hasCargo[i]) {
-                                hasCargo[i] = false;
-                                cargoFood[i] = null;
-                                score += 10;
-                                scoreElement.textContent = 'Счет: ' + score;
-                                cargoStatusElement.textContent = 'Статус: Нет';
-                            }
-                        }
-                    } else {
-                        // Если змейка уехала с парковки
-                        if (onParking[i] !== -1) {
-                            onParking[i] = -1;
-                        }
-                    }
-                    // Обновляем позицию головы змейки (удаляем старую голову и добавляем новую)
-                    snake[0] = newHead;
-                    // Проверяем, съела ли змейка одну из ед
-                    let foodEaten = false;
-                    let foodIndex = -1;
-                    // Проверяем каждую еду
-                    for (let j = 0; j < food.length; j++) {
-                        if (newHead.x === food[j].x && newHead.y === food[j].y) {
-                            // Проверяем, является ли текущая позиция конечной точкой маршрута
-                            const targetPoint = targetPoints[i];
-                            if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
-                                // Если змейка едет к этой еде (это конечная точка маршрута)
-                                // Если у змейки уже есть груз, она не может брать новую еду
-                                if (hasCargo[i]) {
-                                    continue;
-                                }
-                                foodEaten = true;
-                                foodIndex = j;
-                                break;
-                            }
-                        }
-                    }
-                    if (foodEaten) {
-                        // Если съедена одна из ед, устанавливаем флаг перевозки
-                        hasCargo[i] = true;
-                        cargoFood[i] = {x: food[foodIndex].x, y: food[foodIndex].y};
-                        cargoStatusElement.textContent = 'Статус: С грузом';
-                        // Удаляем съеденную еду из массива
-                        food.splice(foodIndex, 1);
-                        // Генерируем новую еду в случайном месте
-                        generateNewFood();
-                        // Не добавляем новый сегмент - змейка не увеличивается при поедании еды
-                        // Не зачисляем очки при поедании еды
-                    }
-                    // Обновляем отображение заряда выбранной змейки
-                    if (selectedSnakeIndex === i) {
-                        snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
-                    }
-                }
-            }
         }
-        // Функция запуска восстановления заряда на станции
-        function startCharging(snakeIndex) {
-            // Останавливаем предыдущий таймер, если он был
-            if (chargingTimers[snakeIndex]) {
-                clearInterval(chargingTimers[snakeIndex]);
-            }
-            // Запускаем новый таймер (восстановление на 2 единицы каждую секунду)
-            chargingTimers[snakeIndex] = setInterval(() => {
-                if (snakeCharges[snakeIndex] < 100) {
-                    snakeCharges[snakeIndex] = Math.min(100, snakeCharges[snakeIndex] + 2);
-                    // Обновляем отображение заряда
-                    if (selectedSnakeIndex === snakeIndex) {
-                        snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[snakeIndex];
-                    }
-                }
-            }, 1000);
-        }
-        // Функция остановки восстановления заряда на станции
-        function stopCharging(snakeIndex) {
-            if (chargingTimers[snakeIndex]) {
-                clearInterval(chargingTimers[snakeIndex]);
-                chargingTimers[snakeIndex] = null;
-            }
-        }
-        // Функция генерации новой еды в случайном месте
-        function generateNewFood() {
+        console.error(`Не удалось сгенерировать парковочные места за ${maxAttempts} попыток`);
+        parkingSpots = [];
+    }
+    function generateFood() {
+        food = [];
+        for (let i = 0; i < 3; i++) {
             let newFood;
             let validPosition = false;
-            let attempts = 0; // Счетчик попыток
-            // Повторяем пока не найдем подходящую позицию
-            while (!validPosition && attempts < 1000) { // Ограничение попыток
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
                 attempts++;
                 newFood = {
-                    x: Math.floor(Math.random() * gridWidth),  // Случайная координата X
-                    y: Math.floor(Math.random() * gridHeight)  // Случайная координата Y
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
                 };
-                // Проверяем, чтобы новая еда не появилась на змейках
                 validPosition = true;
                 for (let snake of snakes) {
                     for (let segment of snake) {
@@ -1125,7 +611,6 @@
                     }
                     if (!validPosition) break;
                 }
-                // Проверяем, чтобы новая еда не появилась на препятствиях
                 if (validPosition) {
                     for (let obstacle of obstacles) {
                         if (obstacle.x === newFood.x && obstacle.y === newFood.y) {
@@ -1134,7 +619,6 @@
                         }
                     }
                 }
-                // Проверяем, чтобы новая еда не появилась на зарядных станциях
                 if (validPosition) {
                     for (let station of chargingStations) {
                         if (station.x === newFood.x && station.y === newFood.y) {
@@ -1143,7 +627,6 @@
                         }
                     }
                 }
-                // Проверяем, чтобы новая еда не появилась на парковочных местах
                 if (validPosition) {
                     for (let parking of parkingSpots) {
                         if (parking.x === newFood.x && parking.y === newFood.y) {
@@ -1152,7 +635,6 @@
                         }
                     }
                 }
-                // Проверяем, чтобы новая еда не пересекалась с существующими едами
                 if (validPosition) {
                     for (let existingFood of food) {
                         if (existingFood.x === newFood.x && existingFood.y === newFood.y) {
@@ -1163,301 +645,478 @@
                 }
             }
             if (attempts >= 1000) {
-                console.error("Не удалось сгенерировать новую еду за 1000 попыток");
-                return;
+                console.error("Не удалось сгенерировать еду за 1000 попыток");
+                break;
             }
-            // Добавляем новую еду в массив
             food.push(newFood);
         }
-        // Функция отрисовки игры
-        function draw() {
-            // Заполняем весь холст черным цветом (фон игры)
-            ctx.fillStyle = 'white';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            // Рисуем сетку с серыми рамками для каждой клетки
-ctx.strokeStyle = 'black';
-ctx.lineWidth = 1;
-for (let x = 0; x <= gridWidth; x++) {
-    ctx.beginPath();
-    ctx.moveTo(x * gridSize, 0);
-    ctx.lineTo(x * gridSize, canvas.height);
-    ctx.stroke();
-}
-for (let y = 0; y <= gridHeight; y++) {
-    ctx.beginPath();
-    ctx.moveTo(0, y * gridSize);
-    ctx.lineTo(canvas.width, y * gridSize);
-    ctx.stroke();
-}
-            // Рисуем препятствия (Column.png)
-            obstacles.forEach(obstacle => {
-                if (obstacleImage.complete) {
-                    ctx.drawImage(obstacleImage, obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
-                } else {
-                    // Запасной вариант - фиолетовый квадрат
-                    ctx.fillStyle = '#800080'; // Фиолетовый цвет
-                    ctx.fillRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
-                    ctx.strokeStyle = 'black';
-                    ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
-                }
-            });
-            // Рисуем зарядные станции (Charging.png)
-            chargingStations.forEach((station, index) => {
-                // Проверяем, не находится ли змейка на этой станции (с грузом или без)
-                let onStation = false;
-                for (let i = 0; i < snakes.length; i++) {
-                    const head = snakes[i][0];
-                    if (head.x === station.x && head.y === station.y) {
-                        onStation = true;
+    }
+    function update() {
+        if (!gameStarted) return;
+        for (let i = 0; i < snakes.length; i++) {
+            const snake = snakes[i];
+            const targetPoint = targetPoints[i];
+            if (!targetPoint || snakeRoutes[i].length === 0) continue;
+            if (snakeCharges[i] <= 0) continue;
+            // === НОВОЕ: Проверка приоритета только при пересечении ===
+            let mustStop = false;
+            for (let j = 0; j < snakes.length; j++) {
+                if (i === j || snakeRoutes[j].length === 0) continue;
+                // Проверяем пересечение маршрутов
+                if (routesIntersect(i, j)) {
+                    // Только если есть пересечение, применяем приоритеты
+                    // Змейка, которая была отправлена позже, должна остановиться
+                    if (snakeRouteTimestamps[j] < snakeRouteTimestamps[i]) {
+                        mustStop = true;
                         break;
                     }
                 }
-                // Рисуем станцию только если нет змейки на ней
-                if (!onStation) {
-                    if (chargingImage.complete) {
-                        ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
-                    } else {
-                        // Запасной вариант - розовый квадрат
-                        ctx.fillStyle = '#ff69b4'; // Розовый цвет
-                        ctx.fillRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
-                        ctx.strokeStyle = 'black';
-                        ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+            }
+            if (mustStop) continue;
+            const head = snake[0];
+            if (routeProgress[i] < snakeRoutes[i].length) {
+                const nextPoint = snakeRoutes[i][routeProgress[i]];
+                if (head.x === nextPoint.x && head.y === nextPoint.y) {
+                    routeProgress[i]++;
+                    if (routeProgress[i] >= snakeRoutes[i].length) {
+                        // === ОСВОБОЖДАЕМ ЦЕЛЬ ПОСЛЕ ДОСТИЖЕНИЯ ===
+                        if (targetPoints[i]) {
+                            const key = `${targetPoints[i].x},${targetPoints[i].y}`;
+                            if (reservedTargets[key] === i) {
+                                delete reservedTargets[key];
+                            }
+                            targetPoints[i] = null;
+                        }
+                        snakeRoutes[i] = [];
+                        routeProgress[i] = 0;
+                        continue;
                     }
                 }
-            });
-            // Рисуем все три еды (Shelf.png)
-            food.forEach(f => {
-                if (foodImage.complete) {
-                    ctx.drawImage(foodImage, f.x * gridSize, f.y * gridSize, gridSize, gridSize);
-                } else {
-                    // Запасной вариант - красный квадрат
-                    ctx.fillStyle = 'red';
-                    ctx.fillRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
-                    ctx.strokeStyle = 'darkred';
-                    ctx.strokeRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+            }
+            if (routeProgress[i] < snakeRoutes[i].length) {
+                const nextPoint = snakeRoutes[i][routeProgress[i]];
+                const dx = nextPoint.x - head.x;
+                const dy = nextPoint.y - head.y;
+                const newHead = {x: head.x, y: head.y};
+                if (dx > 0) newHead.x++;
+                else if (dx < 0) newHead.x--;
+                else if (dy > 0) newHead.y++;
+                else if (dy < 0) newHead.y--;
+                if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
+                    gameOver(); return;
                 }
-            });
-            // Рисуем каждую змейку
-            snakes.forEach((snake, snakeIndex) => {
-                // Все змейки зеленые
-                let colors = ['#00ff00', '#00ff00', '#00ff00']; // Все зеленые
-                snake.forEach((segment, index) => {
-                    // Определяем изображение головы змейки в зависимости от состояния
-                    if (index === 0) {
-                        // Проверяем состояние змейки
-                        let headImageToUse = snakeHeadImage; // По умолчанию стандартная голова
-                        // Если змейка с грузом
-                        if (hasCargo[snakeIndex]) {
-                            headImageToUse = snakeHeadWithShelfImage;
+                for (let j = 0; j < snake.length; j++) {
+                    if (snake[j].x === newHead.x && snake[j].y === newHead.y) {
+                        gameOver(); return;
+                    }
+                }
+                for (let obstacle of obstacles) {
+                    if (obstacle.x === newHead.x && obstacle.y === newHead.y) {
+                        gameOver(); return;
+                    }
+                }
+                for (let j = 0; j < snakes.length; j++) {
+                    if (i !== j) {
+                        for (let segment of snakes[j]) {
+                            if (segment.x === newHead.x && segment.y === newHead.y) {
+                                gameOver(); return;
+                            }
                         }
-                        // Если змейка на зарядной станции (без груза)
-                        else if (onChargingStation[snakeIndex] !== -1) {
-                            headImageToUse = snakeHeadChargingImage;
-                        }
-                        // Рисуем изображение головы змейки
-                        if (headImageToUse.complete) {
-                            ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                    }
+                }
+                let stationIndex = isChargingStation(newHead.x, newHead.y);
+                let parkingIndex = isParkingSpot(newHead.x, newHead.y);
+                moveCounts[i]++;
+                if (moveCounts[i] >= 2 && stationIndex === -1 && parkingIndex === -1) {
+                    snakeCharges[i]--;
+                    moveCounts[i] = 0;
+                }
+                if (stationIndex !== -1) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
+                        if (hasCargo[i]) {
+                            // Если у змейки есть груз, она не может заряжаться
+                            if (onChargingStation[i] === -1) {
+                                // Можно просто игнорировать попытку зарядки с грузом
+                                // или установить флаг, что змейка не может заряжаться
+                                // Но в текущей логике это не требуется, так как маршрут не будет строиться
+                                // на зарядку с грузом благодаря aStar
+                            }
                         } else {
-                            // Запасной вариант - зеленый квадрат
-                            ctx.fillStyle = colors[snakeIndex];
-                            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                            if (onChargingStation[i] === -1) {
+                                onChargingStation[i] = stationIndex;
+                                startCharging(i);
+                            }
                         }
                     } else {
-                        // Тело змейки - чуть темнее зеленого
-                        ctx.fillStyle = '#00cc00';
+                        if (onChargingStation[i] !== -1) {
+                            stopCharging(i);
+                            onChargingStation[i] = -1;
+                        }
+                    }
+                } else {
+                    if (onChargingStation[i] !== -1) {
+                        stopCharging(i);
+                        onChargingStation[i] = -1;
+                    }
+                }
+                if (parkingIndex !== -1) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
+                        if (hasCargo[i]) {
+                            hasCargo[i] = false;
+                            cargoFood[i] = null;
+                            score += 10;
+                            scoreElement.textContent = 'Счет: ' + score;
+                            cargoStatusElement.textContent = 'Статус: Нет';
+                        }
+                    }
+                } else {
+                    if (onParking[i] !== -1) onParking[i] = -1;
+                }
+                snake[0] = newHead;
+                let foodEaten = false;
+                let foodIndex = -1;
+                for (let j = 0; j < food.length; j++) {
+                    if (newHead.x === food[j].x && newHead.y === food[j].y) {
+                        const targetPoint = targetPoints[i];
+                        if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y && !hasCargo[i]) {
+                            foodEaten = true;
+                            foodIndex = j;
+                            break;
+                        }
+                    }
+                }
+                if (foodEaten) {
+                    hasCargo[i] = true;
+                    cargoFood[i] = {x: food[foodIndex].x, y: food[foodIndex].y};
+                    cargoStatusElement.textContent = 'Статус: С грузом';
+                    food.splice(foodIndex, 1);
+                    generateNewFood();
+                }
+                if (selectedSnakeIndex === i) {
+                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
+                }
+            }
+        }
+    }
+    function startCharging(snakeIndex) {
+        if (chargingTimers[snakeIndex]) clearInterval(chargingTimers[snakeIndex]);
+        chargingTimers[snakeIndex] = setInterval(() => {
+            if (snakeCharges[snakeIndex] < 100) {
+                snakeCharges[snakeIndex] = Math.min(100, snakeCharges[snakeIndex] + 2);
+                if (selectedSnakeIndex === snakeIndex) {
+                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[snakeIndex];
+                }
+            }
+        }, 1000);
+    }
+    function stopCharging(snakeIndex) {
+        if (chargingTimers[snakeIndex]) {
+            clearInterval(chargingTimers[snakeIndex]);
+            chargingTimers[snakeIndex] = null;
+        }
+    }
+    function generateNewFood() {
+        let newFood;
+        let validPosition = false;
+        let attempts = 0;
+        while (!validPosition && attempts < 1000) {
+            attempts++;
+            newFood = {
+                x: Math.floor(Math.random() * gridWidth),
+                y: Math.floor(Math.random() * gridHeight)
+            };
+            validPosition = true;
+            for (let snake of snakes) {
+                for (let segment of snake) {
+                    if (segment.x === newFood.x && segment.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                if (!validPosition) break;
+            }
+            if (validPosition) {
+                for (let obstacle of obstacles) {
+                    if (obstacle.x === newFood.x && obstacle.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let station of chargingStations) {
+                    if (station.x === newFood.x && station.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let parking of parkingSpots) {
+                    if (parking.x === newFood.x && parking.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let existingFood of food) {
+                    if (existingFood.x === newFood.x && existingFood.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (attempts < 1000) food.push(newFood);
+    }
+    function draw() {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= gridWidth; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * gridSize, 0);
+            ctx.lineTo(x * gridSize, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= gridHeight; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * gridSize);
+            ctx.lineTo(canvas.width, y * gridSize);
+            ctx.stroke();
+        }
+        obstacles.forEach(obstacle => {
+            if (obstacleImage.complete) {
+                ctx.drawImage(obstacleImage, obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+            } else {
+                ctx.fillStyle = '#800080';
+                ctx.fillRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+            }
+        });
+        chargingStations.forEach((station, index) => {
+            let onStation = snakes.some(s => s[0].x === station.x && s[0].y === station.y);
+            if (!onStation) {
+                if (chargingImage.complete) {
+                    ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                } else {
+                    ctx.fillStyle = '#ff69b4';
+                    ctx.fillRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = 'black';
+                    ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                }
+            }
+        });
+        food.forEach(f => {
+            if (foodImage.complete) {
+                ctx.drawImage(foodImage, f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+            } else {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = 'darkred';
+                ctx.strokeRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+            }
+        });
+        snakes.forEach((snake, snakeIndex) => {
+            let colors = ['#00ff00', '#00ff00', '#00ff00'];
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    let headImageToUse = snakeHeadImage;
+                    if (hasCargo[snakeIndex]) {
+                        headImageToUse = snakeHeadWithShelfImage;
+                    } else if (onChargingStation[snakeIndex] !== -1) {
+                        headImageToUse = snakeHeadChargingImage;
+                    }
+                    if (headImageToUse.complete) {
+                        ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                    } else {
+                        ctx.fillStyle = colors[snakeIndex];
                         ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
                     }
-                    // Рисуем черную рамку вокруг сегмента
-                    ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-                    ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-                });
+                } else {
+                    ctx.fillStyle = '#00cc00';
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                }
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
+                ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
             });
-            // Рисуем парковочные места (Parking.png) - после змейки
-            parkingSpots.forEach(parking => {
+        });
+        parkingSpots.forEach(parking => {
+            let showParking = true;
+            for (let i = 0; i < snakes.length; i++) {
+                const head = snakes[i][0];
+                if (head.x === parking.x && head.y === parking.y) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && targetPoint.x === parking.x && targetPoint.y === parking.y) {
+                        showParking = true;
+                    } else if (hasCargo[i]) {
+                        showParking = false;
+                    }
+                    break;
+                }
+            }
+            if (showParking) {
                 if (parkingImage.complete) {
                     ctx.drawImage(parkingImage, parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
                 } else {
-                    // Запасной вариант - синий квадрат
-                    ctx.fillStyle = '#0000ff'; // Синий цвет
+                    ctx.fillStyle = '#0000ff';
                     ctx.fillRect(parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
                     ctx.strokeStyle = 'black';
                     ctx.strokeRect(parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
                 }
-            });
-            // Рисуем маршрут для каждой змейки
-            snakeRoutes.forEach((route, snakeIndex) => {
-                if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
-                    ctx.strokeStyle = 'yellow';
-                    ctx.lineWidth = 1;
-                    ctx.beginPath();
-                    // Рисуем маршрут от головы змейки до последней точки
-                    const head = snakes[snakeIndex][0];
-                    ctx.moveTo(head.x * gridSize + gridSize/2, head.y * gridSize + gridSize/2);
-                    // Рисуем отрезки маршрута до точки, где змейка уже прошла
-                    for (let i = routeProgress[snakeIndex]; i < route.length; i++) {
-                        const point = route[i];
-                        ctx.lineTo(point.x * gridSize + gridSize/2, point.y * gridSize + gridSize/2);
-                    }
-                    ctx.stroke();
-                }
-            });
-            // Рисуем целевые точки для всех змейок
-            targetPoints.forEach((point, index) => {
-                if (point) {
-                   // ctx.fillStyle = 'yellow';
-                    //ctx.fillRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
-                    ctx.strokeStyle = 'yellow';
-                    ctx.strokeRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
-                }
-            });
-        }
-        // Основная функция игрового цикла
-        function gameStep() {
-            // Обновляем состояние игры
-            update();
-            // Отрисовываем все элементы игры
-            draw();
-        }
-        // Функция запуска игры
-        function startGame() {
-            // Скрываем изображение
-            document.getElementById('startImage').style.display = 'none';
-            // Показываем холст
-            document.getElementById('gameCanvas').style.display = 'block';
-
-            // Если игра уже запущена, останавливаем предыдущий цикл
-            if (gameRunning) {
-                clearInterval(gameLoop);
-                clearInterval(timer);
-                // Останавливаем все таймеры зарядки
-                for (let i = 0; i < chargingTimers.length; i++) {
-                    if (chargingTimers[i]) {
-                        clearInterval(chargingTimers[i]);
-                        chargingTimers[i] = null;
-                    }
-                }
             }
-            // Инициализируем новую игру
-            initGame();
-            // Устанавливаем флаг запущенной игры
-            gameRunning = true;
-            // Запускаем игровой цикл с интервалом 150 миллисекунд
-            gameLoop = setInterval(gameStep, 150);
-            // Запускаем таймер
-            timer = setInterval(() => {
-                timeLeft--;
-                updateTimerDisplay();
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    gameOver();
+        });
+        snakeRoutes.forEach((route, snakeIndex) => {
+            if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                const head = snakes[snakeIndex][0];
+                ctx.moveTo(head.x * gridSize + gridSize/2, head.y * gridSize + gridSize/2);
+                for (let i = routeProgress[snakeIndex]; i < route.length; i++) {
+                    const point = route[i];
+                    ctx.lineTo(point.x * gridSize + gridSize/2, point.y * gridSize + gridSize/2);
                 }
-            }, 1000);
-        }
-        // Функция завершения игры
-        function gameOver() {
-            // Устанавливаем флаг остановки игры
-            gameRunning = false;
-            // Останавливаем игровые таймеры
-            for (let i = 0; i < chargingTimers.length; i++) {
-                if (chargingTimers[i]) {
-                    clearInterval(chargingTimers[i]);
-                }
+                ctx.stroke();
             }
-            // Останавливаем игровой цикл
+        });
+        targetPoints.forEach((point, index) => {
+            if (point) {
+                ctx.strokeStyle = 'yellow';
+                ctx.strokeRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
+            }
+        });
+    }
+    function gameStep() {
+        update();
+        draw();
+    }
+    function startGame() {
+        document.getElementById('startImage').style.display = 'none';
+        document.getElementById('gameCanvas').style.display = 'block';
+        gameEndScreen.style.display = 'none';
+        if (gameRunning) {
             clearInterval(gameLoop);
-            // Останавливаем таймер
             clearInterval(timer);
-            // Скрываем инструкции
-            // Показываем сообщение об окончании игры
-            gameOverElement.style.display = 'block';
+            chargingTimers.forEach(t => t && clearInterval(t));
         }
-        // Обработчик кликов мыши для выбора змейки и задания направления движения
-        canvas.addEventListener('click', (event) => {
-            if (!gameRunning) return;
-            // Получаем координаты клика относительно холста
-            const rect = canvas.getBoundingClientRect();
-            const mouseX = event.clientX - rect.left;
-            const mouseY = event.clientY - rect.top;
-            // Преобразуем координаты в координаты сетки
-            const clickX = Math.floor(mouseX / gridSize);
-            const clickY = Math.floor(mouseY / gridSize);
-            // Если игра еще не начата, пытаемся выбрать змейку
-            if (!gameStarted) {
-                // Проверяем, кликнули ли на змейку
-                for (let i = 0; i < snakes.length; i++) {
-                    const head = snakes[i][0];
-                    if (head.x === clickX && head.y === clickY) {
-                        // Выбираем эту змейку
-                        selectedSnakeIndex = i;
-                        selectedSnakeElement.textContent = 'Робот №: ' + (i+1);
-                        snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
-                        cargoStatusElement.textContent = 'Статус: ' + (hasCargo[i] ? 'С грузом' : 'Нет');
-                        // Строим маршрут от головы змейки до точки клика
-                        const head = snakes[i][0];
-                        snakeRoutes[i] = buildRoute(head.x, head.y, clickX, clickY, i);
-                        routeProgress[i] = 0;
-                        // Устанавливаем целевую точку
-                        targetPoints[i] = {x: clickX, y: clickY};
-                        gameStarted = true;
-                        return;
-                    }
-                }
-                // Если не кликнули на змейку, игнорируем клик
-                return;
+        initGame();
+        gameRunning = true;
+        gameLoop = setInterval(gameStep, 250);
+        timer = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                gameOver();
             }
-            // Если игра уже начата, проверяем, кликнули ли на змейку
+        }, 1000);
+    }
+    function gameOver() {
+        gameRunning = false;
+        chargingTimers.forEach(t => t && clearInterval(t));
+        clearInterval(gameLoop);
+        clearInterval(timer);
+        document.getElementById('gameCanvas').style.display = 'none';
+        gameOverElement.style.display = 'none';
+        gameEndScreen.style.display = 'flex';
+        gameEndScreen.innerHTML = '<div>Игра завершена<br>Вы заработали ' + score + ' очков</div>';
+    }
+    canvas.addEventListener('click', (event) => {
+        if (!gameRunning) return;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const clickX = Math.floor(mouseX / gridSize);
+        const clickY = Math.floor(mouseY / gridSize);
+        if (!gameStarted) {
             for (let i = 0; i < snakes.length; i++) {
                 const head = snakes[i][0];
                 if (head.x === clickX && head.y === clickY) {
-                    // Выбираем эту змейку
                     selectedSnakeIndex = i;
-                    selectedSnakeElement.textContent = 'Робот №: ' + (i+1);
+                    selectedSnakeElement.textContent = 'Робот: ' + (i+1);
                     snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
                     cargoStatusElement.textContent = 'Статус: ' + (hasCargo[i] ? 'С грузом' : 'Нет');
-                    return;
-                }
-            }
-            // Если кликнули не на змейку, проверяем, не является ли точка препятствием
-            if (selectedSnakeIndex !== -1) {
-                // Проверяем, не является ли целевая точка препятствием
-                if (isObstacle(clickX, clickY)) {
-                    // Если точка препятствие, не устанавливаем целевую точку и не показываем маркер
-                    return;
-                }
-                // Проверяем, не является ли точка зарядной станцией
-                const stationIndex = isChargingStation(clickX, clickY);
-                if (stationIndex !== -1) {
-                    // Если кликнули на зарядную станцию, отправляем выбранную змейку туда
-                    const head = snakes[selectedSnakeIndex][0];
-                    snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
-                    routeProgress[selectedSnakeIndex] = 0;
-                    targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
-                } else {
-                    // Проверяем, не является ли точка едой
-                    let isFood = false;
-                    for (let f of food) {
-                        if (f.x === clickX && f.y === clickY) {
-                            isFood = true;
-                            // Если у змейки есть груз, не позволяем ей ехать к еде
-                            if (hasCargo[selectedSnakeIndex]) {
-                                return;
-                            }
-                            break;
-                        }
+                    const head = snakes[i][0];
+                    // === РЕЗЕРВИРУЕМ ЦЕЛЬ ===
+                    const targetKey = `${clickX},${clickY}`;
+                    if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== i) {
+                        return; // нельзя назначить чужую цель
                     }
-                    // Строим маршрут от головы выбранной змейки до точки клика
-                    const head = snakes[selectedSnakeIndex][0];
-                    snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
-                    routeProgress[selectedSnakeIndex] = 0;
-                    // Устанавливаем новую целевую точку для выбранной змейки
-                    targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
+                    // Освобождаем старую
+                    if (targetPoints[i]) {
+                        const oldKey = `${targetPoints[i].x},${targetPoints[i].y}`;
+                        if (reservedTargets[oldKey] === i) delete reservedTargets[oldKey];
+                    }
+                    snakeRoutes[i] = buildRoute(head.x, head.y, clickX, clickY, i);
+                    routeProgress[i] = 0;
+                    targetPoints[i] = {x: clickX, y: clickY};
+                    reservedTargets[targetKey] = i;
+                    // === НОВОЕ: Записываем время отправки маршрута ===
+                    snakeRouteTimestamps[i] = Date.now();
+                    gameStarted = true;
+                    return;
                 }
             }
-        });
-        // При загрузке страницы вызываем функцию для отрисовки начального состояния
-        window.onload = function() {
-            // draw(); // Убрано, так как изображение будет отображаться вместо этого
-        };
-    </script>
+            return;
+        }
+        for (let i = 0; i < snakes.length; i++) {
+            const head = snakes[i][0];
+            if (head.x === clickX && head.y === clickY) {
+                selectedSnakeIndex = i;
+                selectedSnakeElement.textContent = 'Робот: ' + (i+1);
+                snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
+                cargoStatusElement.textContent = 'Статус: ' + (hasCargo[i] ? 'С грузом' : 'Нет');
+                return;
+            }
+        }
+        if (selectedSnakeIndex !== -1) {
+            if (isObstacle(clickX, clickY)) return;
+            const stationIndex = isChargingStation(clickX, clickY);
+            if (stationIndex !== -1) {
+                // Запрет на построение маршрута на зарядку с грузом
+                if (hasCargo[selectedSnakeIndex]) return;
+                const head = snakes[selectedSnakeIndex][0];
+                const targetKey = `${clickX},${clickY}`;
+                if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
+                    return; // нельзя назначить чужую цель
+                }
+                if (targetPoints[selectedSnakeIndex]) {
+                    const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                    if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                }
+                snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
+                routeProgress[selectedSnakeIndex] = 0;
+                targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
+                reservedTargets[targetKey] = selectedSnakeIndex;
+                // === НОВОЕ: Записываем время отправки маршрута ===
+                snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
+            } else {
+                let isFood = food.some(f => f.x === clickX && f.y === clickY);
+                if (isFood && hasCargo[selectedSnakeIndex]) return;
+                const head = snakes[selectedSnakeIndex][0];
+                const targetKey = `${clickX},${clickY}`;
+                if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
+                    return; // нельзя назначить чужую цель
+                }
+                if (targetPoints[selectedSnakeIndex]) {
+                    const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                    if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                }
+                snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
+                routeProgress[selectedSnakeIndex] = 0;
+                targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
+                reservedTargets[targetKey] = selectedSnakeIndex;
+                // === НОВОЕ: Записываем время отправки маршрута ===
+                snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
+            }
+        }
+    });
+</script>
 </body>
 </html>
