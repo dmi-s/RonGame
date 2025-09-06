@@ -1,113 +1,1054 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <style>
-    /* 🔥 УБИРАЕМ ВСЕ ОТСТУПЫ И МАРГИНЫ */
-    * {
-      box-sizing: border-box;
-    }
-    html, body {
-      margin: 0;
-      padding: 0;
-      background: #000;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-    }
+    <meta charset="UTF-8">
+    <title>Роботы</title>
+    <style>
+        @font-face {
+            font-family: 'Nexa Bold';
+            src: url('Nexa-Bold.ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        body {
+            font-family: 'Nexa Bold', Arial, sans-serif;
+        }
+        canvas {
+            margin-top: 10px;
+            cursor: pointer;
+            display: none;
+            margin-bottom: 10px;
+        }
+        body {
+            text-align: center;
+            background-color: #000000;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            min-height: 100vh;
+            padding-top: 20px;
+        }
+        #gameContainer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 400px;
+        }
 
-    /* 🔥 КОНТЕЙНЕР ИГРЫ — ЦЕНТРИРОВАН ЧЕРЕЗ FLEX */
-    #game-container {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-    }
+        /* Таймер — крупный, жирный, с мягкими скруглениями */
+        #timer {
+            width: 400px;
+            height: 50px;
+            background-color: #FFD700; /* Ярко-жёлтый */
+            font-size: 32px;
+            font-weight: 900;
+            border-radius: 12px;
+            margin: 10px auto 10px auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000000; /* Чёрный текст */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            font-family: 'Nexa Bold', Arial, sans-serif;
+        }
 
-    /* 🔥 ИГРА — ЦЕНТРИРОВАНА, МАСШТАБИРУЕТСЯ */
-    #game {
-      width: 420px;
-      height: 720px;
-      background: #333;
-      border: 2px solid #555;
-      position: relative;
-      transform-origin: center center;
-      /* Будет масштабировано через JS */
-    }
+        /* Общий контейнер для инфо-панелей */
+        #info-panel {
+            width: 400px;
+            background: #FFD700;
+            border-radius: 12px;
+            padding: 12px 0;
+            margin: 10px auto;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
 
-    /* 🔥 ТЕСТОВЫЕ ЭЛЕМЕНТЫ — ПОКАЖУМ СТРУКТУРУ */
-    .test-red {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 400px;
-      height: 400px;
-      background: red;
-      opacity: 0.3;
-    }
+        /* Стиль каждой строки внутри инфо-панели */
+        #info-panel div {
+            font-size: 18px;
+            font-weight: 700;
+            color: #000000;
+            text-align: center;
+            padding: 6px 0;
+            margin: 0;
+            font-family: 'Nexa Bold', Arial, sans-serif;
+        }
 
-    .test-green {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 400px;
-      height: 300px;
-      background: green;
-      opacity: 0.3;
-    }
-  </style>
+        /* Стиль кнопки "Начать игру" */
+        button {
+            width: 400px;
+            height: 50px;
+            background-color: #FFD700;
+            border: none;
+            border-radius: 12px;
+            font-size: 24px;
+            font-weight: 900;
+            color: #000000;
+            margin: 20px auto 10px auto;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            transition: all 0.2s ease;
+            font-family: 'Nexa Bold', Arial, sans-serif;
+        }
+
+        /* Эффект при наведении на кнопку */
+        button:hover {
+            background-color: #FFC107; /* Чуть темнее при наведении */
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+        }
+
+        /* Эффект при нажатии на кнопку */
+        button:active {
+            transform: translateY(0);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        #startImage {
+            width: 400px;
+            height: 400px;
+            margin: 5px auto;
+            cursor: pointer;
+            display: block;
+        }
+        #gameEndScreen {
+            width: 400px;
+            height: 400px;
+            background-color: black;
+            color: yellow;
+            font-size: 24px;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin: 5px auto;
+        }
+    </style>
 </head>
 <body>
+    <div id="gameContainer">
+        <!-- 1. Таймер -->
+        <div id="timer">3:00</div>
 
-  <!-- 🔥 ОБЕРТКА ДЛЯ ЦЕНТРИРОВАНИЯ -->
-  <div id="game-container">
-    <div id="game">
-      <div class="test-red"></div>
-      <div class="test-green"></div>
+        <!-- 2. Информационная панель (3 строки в одном блоке) -->
+        <div id="info-panel">
+            <div id="selectedSnake">Робот: Нет</div>
+            <div id="cargoStatus">Статус: Нет</div>
+            <div id="snakeCharge">Заряд робота: Нет</div>
+            <div id="score">Счет: 0</div>
+        </div>
+
+        <!-- 3. Поле игры -->
+        <img id="startImage" src="Ronavi.png" alt="Стартовое изображение" onclick="startGame()">
+        <div id="gameEndScreen"></div>
+        <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+        <!-- 4. Кнопка "Начать игру" -->
+        <button onclick="startGame()">Начать игру</button>
     </div>
-  </div>
+    <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreElement = document.getElementById('score');
+    const selectedSnakeElement = document.getElementById('selectedSnake');
+    const snakeChargeElement = document.getElementById('snakeCharge');
+    const cargoStatusElement = document.getElementById('cargoStatus');
+    const timerElement = document.getElementById('timer');
+    const gameEndScreen = document.getElementById('gameEndScreen');
+    const gridSize = 40;
+    const gridWidth = canvas.width / gridSize;
+    const gridHeight = canvas.height / gridSize;
+    let snakes = [];
+    let food = [];
+    let obstacles = [];
+    let chargingStations = [];
+    let parkingSpots = [];
+    let score = 0;
+    let gameRunning = false;
+    let gameStarted = false;
+    let targetPoints = [];
+    let selectedSnakeIndex = -1;
+    let activeRobotIndex = -1; // <-- ГЛОБАЛЬНЫЙ ИНДЕКС АКТИВНОГО РОБОТА
+    let gameLoop;
+    let timer;
+    let timeLeft = 180;
+    let snakeCharges = [100, 100, 100];
+    let moveCounts = [0, 0, 0];
+    let onChargingStation = [-1, -1, -1];
+    let chargingTimers = [null, null, null];
+    let hasCargo = [false, false, false];
+    let cargoFood = [null, null, null];
+    let onParking = [-1, -1, -1];
+    let isBlinking = [false, false, false]; // <-- ДОБАВЛЕНА ПЕРЕМЕННАЯ ДЛЯ МИГАНИЯ
+    let snakeRoutes = [[], [], []];
+    let routeProgress = [0, 0, 0];
+    let reservedTargets = {};
+    let snakeRouteTimestamps = [0, 0, 0];
+    let snakeHeadImage = new Image();
+    let snakeHeadWithShelfImage = new Image();
+    let snakeHeadChargingImage = new Image();
+    let foodImage = new Image();
+    let chargingImage = new Image();
+    let parkingImage = new Image();
+    let obstacleImage = new Image();
+    snakeHeadImage.src = 'Robot.png';
+    snakeHeadWithShelfImage.src = 'Robot_Shelf.png';
+    snakeHeadChargingImage.src = 'Robot_Charg.png';
+    foodImage.src = 'Shelf.png';
+    chargingImage.src = 'Charging.png';
+    parkingImage.src = 'Parking.png';
+    obstacleImage.src = 'Column.png';
 
-  <script>
-    function resizeGame() {
-      const game = document.getElementById('game');
-      const baseWidth = 420;
-      const baseHeight = 720;
-
-      // 🔥 Используем visualViewport для iOS
-      const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-
-      // 🔥 Масштаб по минимальному
-      const scale = Math.min(vw / baseWidth, vh / baseHeight);
-
-      // 🔥 Применяем масштаб
-      game.style.transform = `scale(${scale})`;
-
-      // 🔥 Обеспечиваем центрирование
-      game.style.position = 'absolute';
-      game.style.left = '50%';
-      game.style.top = '50%';
-      game.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    function isObstacle(x, y) {
+        for (let obstacle of obstacles) {
+            if (obstacle.x === x && obstacle.y === y) {
+                return true;
+            }
+        }
+        return false;
     }
-
-    // Запускаем
-    window.addEventListener('load', resizeGame);
-    window.addEventListener('resize', resizeGame);
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', resizeGame);
+    function isChargingStation(x, y) {
+        for (let i = 0; i < chargingStations.length; i++) {
+            if (chargingStations[i].x === x && chargingStations[i].y === y) {
+                return i;
+            }
+        }
+        return -1;
     }
-
-    // 🔥 Сброс скролла
-    setTimeout(() => {
-      window.scrollTo(0, 0);
-    }, 100);
-  </script>
-
+    function isParkingSpot(x, y) {
+        for (let i = 0; i < parkingSpots.length; i++) {
+            if (parkingSpots[i].x === x && parkingSpots[i].y === y) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    function isOtherSnake(x, y, snakeIndex) {
+        for (let i = 0; i < snakes.length; i++) {
+            if (i !== snakeIndex) {
+                for (let segment of snakes[i]) {
+                    if (segment.x === x && segment.y === y) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    function isFood(x, y) {
+        for (let f of food) {
+            if (f.x === x && f.y === y) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function routesIntersect(snakeIndex1, snakeIndex2) {
+        if (snakeRoutes[snakeIndex1].length === 0 || snakeRoutes[snakeIndex2].length === 0) {
+            return false;
+        }
+        for (let i = routeProgress[snakeIndex1]; i < snakeRoutes[snakeIndex1].length; i++) {
+            const point1 = snakeRoutes[snakeIndex1][i];
+            for (let j = routeProgress[snakeIndex2]; j < snakeRoutes[snakeIndex2].length; j++) {
+                const point2 = snakeRoutes[snakeIndex2][j];
+                if (point1.x === point2.x && point1.y === point2.y) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    function aStar(startX, startY, endX, endY, snakeIndex) {
+        function heuristic(a, b) {
+            return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        }
+        function canMoveTo(x, y, snakeIndex) {
+            if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) return false;
+            if (isObstacle(x, y)) return false;
+            if (isOtherSnake(x, y, snakeIndex)) return false;
+            if (hasCargo[snakeIndex] && isChargingStation(x, y) !== -1) return false;
+            if (hasCargo[snakeIndex] && isFood(x, y)) return false;
+            const targetKey = `${x},${y}`;
+            if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== snakeIndex) {
+                return false;
+            }
+            return true;
+        }
+        const start = {x: startX, y: startY};
+        const end = {x: endX, y: endY};
+        let openSet = [start];
+        let closedSet = [];
+        let cameFrom = {};
+        let gScore = {};
+        let fScore = {};
+        gScore[startKey(start)] = 0;
+        fScore[startKey(start)] = heuristic(start, end);
+        while (openSet.length > 0) {
+            let current = openSet.reduce((min, node) => {
+                return fScore[startKey(node)] < fScore[startKey(min)] ? node : min;
+            });
+            if (current.x === end.x && current.y === end.y) {
+                let path = [];
+                let temp = current;
+                while (temp) {
+                    path.unshift(temp);
+                    temp = cameFrom[startKey(temp)];
+                }
+                return path;
+            }
+            const currentIndex = openSet.indexOf(current);
+            openSet.splice(currentIndex, 1);
+            closedSet.push(current);
+            const neighbors = [
+                {x: current.x, y: current.y - 1},
+                {x: current.x, y: current.y + 1},
+                {x: current.x - 1, y: current.y},
+                {x: current.x + 1, y: current.y}
+            ];
+            for (let neighbor of neighbors) {
+                if (!canMoveTo(neighbor.x, neighbor.y, snakeIndex)) continue;
+                if (closedSet.some(node => node.x === neighbor.x && node.y === neighbor.y)) continue;
+                const tentativeGScore = gScore[startKey(current)] + 1;
+                const neighborKey = startKey(neighbor);
+                const neighborInOpen = openSet.find(node => node.x === neighbor.x && node.y === neighbor.y);
+                if (!neighborInOpen) {
+                    openSet.push(neighbor);
+                    gScore[neighborKey] = tentativeGScore;
+                    fScore[neighborKey] = tentativeGScore + heuristic(neighbor, end);
+                    cameFrom[neighborKey] = current;
+                } else if (tentativeGScore < gScore[neighborKey]) {
+                    gScore[neighborKey] = tentativeGScore;
+                    fScore[neighborKey] = tentativeGScore + heuristic(neighbor, end);
+                    cameFrom[neighborKey] = current;
+                }
+            }
+        }
+        return [];
+    }
+    function startKey(point) {
+        return point.x + ',' + point.y;
+    }
+    function buildRoute(startX, startY, endX, endY, snakeIndex) {
+        return aStar(startX, startY, endX, endY, snakeIndex);
+    }
+    function initGame() {
+        snakes = [];
+        selectedSnakeIndex = -1;
+        activeRobotIndex = -1; // <-- Сбрасываем при старте
+        targetPoints = [];
+        snakeCharges = [100, 100, 100];
+        moveCounts = [0, 0, 0];
+        onChargingStation = [-1, -1, -1];
+        chargingTimers = [null, null, null];
+        hasCargo = [false, false, false];
+        cargoFood = [null, null, null];
+        onParking = [-1, -1, -1];
+        isBlinking = [false, false, false]; // <-- Сбрасываем мигание при старте игры
+        snakeRoutes = [[], [], []];
+        routeProgress = [0, 0, 0];
+        reservedTargets = {};
+        snakeRouteTimestamps = [0, 0, 0];
+        let positions = [];
+        for (let i = 0; i < 3; i++) {
+            let validPosition = false;
+            let newPosition;
+            while (!validPosition) {
+                newPosition = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let pos of positions) {
+                    if (pos.x === newPosition.x && pos.y === newPosition.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            positions.push(newPosition);
+            snakes.push([{x: newPosition.x, y: newPosition.y}]);
+            targetPoints.push(null);
+        }
+        generateObstacles();
+        generateChargingStations();
+        generateParkingSpots();
+        generateFood();
+        score = 0;
+        scoreElement.textContent = 'Счет: ' + score;
+        gameEndScreen.style.display = 'none';
+        gameStarted = false;
+        selectedSnakeElement.textContent = 'Робот: Нет';
+        snakeChargeElement.textContent = 'Заряд робота: Нет';
+        cargoStatusElement.textContent = 'Статус: Нет';
+        timeLeft = 180;
+        updateTimerDisplay();
+    }
+    function updateTimerDisplay() {
+        const minutes = Math.floor(timeLeft / 60);
+        const seconds = timeLeft % 60;
+        timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+    }
+    function generateObstacles() {
+        obstacles = [];
+        const obstacleCount = 5;
+        for (let i = 0; i < obstacleCount; i++) {
+            let newObstacle;
+            let validPosition = false;
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
+                attempts++;
+                newObstacle = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let snake of snakes) {
+                    for (let segment of snake) {
+                        if (segment.x === newObstacle.x && segment.y === newObstacle.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    if (!validPosition) break;
+                }
+                if (validPosition) {
+                    for (let existingFood of food) {
+                        if (existingFood.x === newObstacle.x && existingFood.y === newObstacle.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                if (validPosition) {
+                    for (let existingObstacle of obstacles) {
+                        const distance = Math.abs(existingObstacle.x - newObstacle.x) + Math.abs(existingObstacle.y - newObstacle.y);
+                        if (distance <= 2) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать препятствие за 1000 попыток");
+                break;
+            }
+            obstacles.push(newObstacle);
+        }
+    }
+    function generateChargingStations() {
+        chargingStations = [];
+        const stationCount = 2;
+        for (let i = 0; i < stationCount; i++) {
+            let validPosition = false;
+            let newStation;
+            let obstacleUsed = null;
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
+                attempts++;
+                const obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+                if (obstacleUsed && obstacleUsed.x === obstacle.x && obstacleUsed.y === obstacle.y) {
+                    continue;
+                }
+                const directions = [
+                    {x: 0, y: -1}, {x: 0, y: 1}, {x: -1, y: 0}, {x: 1, y: 0}
+                ];
+                const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+                newStation = {
+                    x: obstacle.x + randomDirection.x,
+                    y: obstacle.y + randomDirection.y
+                };
+                if (newStation.x >= 0 && newStation.x < gridWidth && newStation.y >= 0 && newStation.y < gridHeight) {
+                    let onObstacle = obstacles.some(o => o.x === newStation.x && o.y === newStation.y);
+                    let onSnake = snakes.some(s => s.some(seg => seg.x === newStation.x && seg.y === newStation.y));
+                    let onFood = food.some(f => f.x === newStation.x && f.y === newStation.y);
+                    let onStation = chargingStations.some(s => s.x === newStation.x && s.y === newStation.y);
+                    if (!onObstacle && !onSnake && !onFood && !onStation) {
+                        validPosition = true;
+                        obstacleUsed = obstacle;
+                    }
+                }
+            }
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать зарядную станцию за 1000 попыток");
+                break;
+            }
+            chargingStations.push(newStation);
+        }
+    }
+    function generateParkingSpots() {
+        parkingSpots = [];
+        const parkingCount = 3;
+        let attempts = 0;
+        let maxAttempts = 1000;
+        while (attempts < maxAttempts) {
+            attempts++;
+            let obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+            const isHorizontal = Math.random() > 0.5;
+            let parkingGroup = [];
+            if (isHorizontal) {
+                parkingGroup.push({x: obstacle.x + 3, y: obstacle.y});
+                parkingGroup.push({x: obstacle.x + 4, y: obstacle.y});
+                parkingGroup.push({x: obstacle.x + 5, y: obstacle.y});
+            } else {
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 3});
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 4});
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 5});
+            }
+            let validPosition = true;
+            for (let spot of parkingGroup) {
+                if (spot.x < 0 || spot.x >= gridWidth || spot.y < 0 || spot.y >= gridHeight) {
+                    validPosition = false;
+                    break;
+                }
+                if (obstacles.some(o => o.x === spot.x && o.y === spot.y)) validPosition = false;
+                if (snakes.some(s => s.some(seg => seg.x === spot.x && seg.y === spot.y))) validPosition = false;
+                if (food.some(f => f.x === spot.x && f.y === spot.y)) validPosition = false;
+                if (chargingStations.some(s => s.x === spot.x && s.y === spot.y)) validPosition = false;
+                if (obstacles.some(o => Math.abs(o.x - spot.x) + Math.abs(o.y - spot.y) <= 0)) validPosition = false;
+            }
+            if (validPosition) {
+                parkingSpots = parkingGroup;
+                return;
+            }
+        }
+        console.error(`Не удалось сгенерировать парковочные места за ${maxAttempts} попыток`);
+        parkingSpots = [];
+    }
+    function generateFood() {
+        food = [];
+        for (let i = 0; i < 3; i++) {
+            let newFood;
+            let validPosition = false;
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
+                attempts++;
+                newFood = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let snake of snakes) {
+                    for (let segment of snake) {
+                        if (segment.x === newFood.x && segment.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    if (!validPosition) break;
+                }
+                if (validPosition) {
+                    for (let obstacle of obstacles) {
+                        if (obstacle.x === newFood.x && obstacle.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                if (validPosition) {
+                    for (let station of chargingStations) {
+                        if (station.x === newFood.x && station.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                if (validPosition) {
+                    for (let parking of parkingSpots) {
+                        if (parking.x === newFood.x && parking.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                if (validPosition) {
+                    for (let existingFood of food) {
+                        if (existingFood.x === newFood.x && existingFood.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать еду за 1000 попыток");
+                break;
+            }
+            food.push(newFood);
+        }
+    }
+    function update() {
+        if (!gameStarted) return;
+        for (let i = 0; i < snakes.length; i++) {
+            const snake = snakes[i];
+            const targetPoint = targetPoints[i];
+            if (!targetPoint || snakeRoutes[i].length === 0) continue;
+            if (snakeCharges[i] <= 0) continue;
+            let mustStop = false;
+            for (let j = 0; j < snakes.length; j++) {
+                if (i === j || snakeRoutes[j].length === 0) continue;
+                if (routesIntersect(i, j)) {
+                    if (snakeRouteTimestamps[j] < snakeRouteTimestamps[i]) {
+                        mustStop = true;
+                        break;
+                    }
+                }
+            }
+            if (mustStop) continue;
+            const head = snake[0];
+            if (routeProgress[i] < snakeRoutes[i].length) {
+                const nextPoint = snakeRoutes[i][routeProgress[i]];
+                if (head.x === nextPoint.x && head.y === nextPoint.y) {
+                    routeProgress[i]++;
+                    if (routeProgress[i] >= snakeRoutes[i].length) {
+                        if (targetPoints[i]) {
+                            const key = `${targetPoints[i].x},${targetPoints[i].y}`;
+                            if (reservedTargets[key] === i) {
+                                delete reservedTargets[key];
+                            }
+                            targetPoints[i] = null;
+                        }
+                        snakeRoutes[i] = [];
+                        routeProgress[i] = 0;
+                        // >>> ИСПРАВЛЕНО: МИГАЕТ ТОЛЬКО АКТИВНЫЙ РОБОТ <<<
+                        if (i === activeRobotIndex) {
+                            isBlinking[i] = true;
+                        }
+                        continue;
+                    }
+                }
+            }
+            if (routeProgress[i] < snakeRoutes[i].length) {
+                const nextPoint = snakeRoutes[i][routeProgress[i]];
+                const dx = nextPoint.x - head.x;
+                const dy = nextPoint.y - head.y;
+                const newHead = {x: head.x, y: head.y};
+                if (dx > 0) newHead.x++;
+                else if (dx < 0) newHead.x--;
+                else if (dy > 0) newHead.y++;
+                else if (dy < 0) newHead.y--;
+                if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
+                    gameOver(); return;
+                }
+                for (let j = 0; j < snake.length; j++) {
+                    if (snake[j].x === newHead.x && snake[j].y === newHead.y) {
+                        gameOver(); return;
+                    }
+                }
+                for (let obstacle of obstacles) {
+                    if (obstacle.x === newHead.x && obstacle.y === newHead.y) {
+                        gameOver(); return;
+                    }
+                }
+                for (let j = 0; j < snakes.length; j++) {
+                    if (i !== j) {
+                        for (let segment of snakes[j]) {
+                            if (segment.x === newHead.x && segment.y === newHead.y) {
+                                gameOver(); return;
+                            }
+                        }
+                    }
+                }
+                let stationIndex = isChargingStation(newHead.x, newHead.y);
+                let parkingIndex = isParkingSpot(newHead.x, newHead.y);
+                moveCounts[i]++;
+                if (moveCounts[i] >= 2 && stationIndex === -1 && parkingIndex === -1) {
+                    snakeCharges[i]--;
+                    moveCounts[i] = 0;
+                }
+                if (stationIndex !== -1) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
+                        if (hasCargo[i]) {
+                        } else {
+                            if (onChargingStation[i] === -1) {
+                                onChargingStation[i] = stationIndex;
+                                startCharging(i);
+                            }
+                        }
+                    } else {
+                        if (onChargingStation[i] !== -1) {
+                            stopCharging(i);
+                            onChargingStation[i] = -1;
+                        }
+                    }
+                } else {
+                    if (onChargingStation[i] !== -1) {
+                        stopCharging(i);
+                        onChargingStation[i] = -1;
+                    }
+                }
+                if (parkingIndex !== -1) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
+                        if (hasCargo[i]) {
+                            hasCargo[i] = false;
+                            cargoFood[i] = null;
+                            score += 10;
+                            scoreElement.textContent = 'Счет: ' + score;
+                            cargoStatusElement.textContent = 'Статус: Нет';
+                        }
+                    }
+                } else {
+                    if (onParking[i] !== -1) onParking[i] = -1;
+                }
+                snake[0] = newHead;
+                let foodEaten = false;
+                let foodIndex = -1;
+                for (let j = 0; j < food.length; j++) {
+                    if (newHead.x === food[j].x && newHead.y === food[j].y) {
+                        const targetPoint = targetPoints[i];
+                        if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y && !hasCargo[i]) {
+                            foodEaten = true;
+                            foodIndex = j;
+                            break;
+                        }
+                    }
+                }
+                if (foodEaten) {
+                    hasCargo[i] = true;
+                    cargoFood[i] = {x: food[foodIndex].x, y: food[foodIndex].y};
+                    cargoStatusElement.textContent = 'Статус: С грузом';
+                    food.splice(foodIndex, 1);
+                    generateNewFood();
+                }
+                if (selectedSnakeIndex === i) {
+                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
+                }
+            }
+        }
+    }
+    function startCharging(snakeIndex) {
+        if (chargingTimers[snakeIndex]) clearInterval(chargingTimers[snakeIndex]);
+        chargingTimers[snakeIndex] = setInterval(() => {
+            if (snakeCharges[snakeIndex] < 100) {
+                snakeCharges[snakeIndex] = Math.min(100, snakeCharges[snakeIndex] + 2);
+                if (selectedSnakeIndex === snakeIndex) {
+                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[snakeIndex];
+                }
+            }
+        }, 1000);
+    }
+    function stopCharging(snakeIndex) {
+        if (chargingTimers[snakeIndex]) {
+            clearInterval(chargingTimers[snakeIndex]);
+            chargingTimers[snakeIndex] = null;
+        }
+    }
+    function generateNewFood() {
+        let newFood;
+        let validPosition = false;
+        let attempts = 0;
+        while (!validPosition && attempts < 1000) {
+            attempts++;
+            newFood = {
+                x: Math.floor(Math.random() * gridWidth),
+                y: Math.floor(Math.random() * gridHeight)
+            };
+            validPosition = true;
+            for (let snake of snakes) {
+                for (let segment of snake) {
+                    if (segment.x === newFood.x && segment.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                if (!validPosition) break;
+            }
+            if (validPosition) {
+                for (let obstacle of obstacles) {
+                    if (obstacle.x === newFood.x && obstacle.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let station of chargingStations) {
+                    if (station.x === newFood.x && station.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let parking of parkingSpots) {
+                    if (parking.x === newFood.x && parking.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let existingFood of food) {
+                    if (existingFood.x === newFood.x && existingFood.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (attempts < 1000) food.push(newFood);
+    }
+    function draw() {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= gridWidth; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * gridSize, 0);
+            ctx.lineTo(x * gridSize, canvas.height);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= gridHeight; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * gridSize);
+            ctx.lineTo(canvas.width, y * gridSize);
+            ctx.stroke();
+        }
+        obstacles.forEach(obstacle => {
+            if (obstacleImage.complete) {
+                ctx.drawImage(obstacleImage, obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+            } else {
+                ctx.fillStyle = '#800080';
+                ctx.fillRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+            }
+        });
+        chargingStations.forEach((station, index) => {
+            let onStation = snakes.some(s => s[0].x === station.x && s[0].y === station.y);
+            if (!onStation) {
+                if (chargingImage.complete) {
+                    ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                } else {
+                    ctx.fillStyle = '#ff69b4';
+                    ctx.fillRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = 'black';
+                    ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                }
+            }
+        });
+        food.forEach(f => {
+            if (foodImage.complete) {
+                ctx.drawImage(foodImage, f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+            } else {
+                ctx.fillStyle = 'red';
+                ctx.fillRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = 'darkred';
+                ctx.strokeRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+            }
+        });
+        snakes.forEach((snake, snakeIndex) => {
+            let colors = ['#00ff00', '#00ff00', '#00ff00'];
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    let headImageToUse = snakeHeadImage;
+                    if (hasCargo[snakeIndex]) {
+                        headImageToUse = snakeHeadWithShelfImage;
+                    } else if (onChargingStation[snakeIndex] !== -1) {
+                        headImageToUse = snakeHeadChargingImage;
+                    }
+                    // Логика мигания: рисуем только на каждом втором кадре, если isBlinking[snakeIndex] === true
+                    if (isBlinking[snakeIndex] && Math.floor(Date.now() / 250) % 2 === 0) {
+                        ctx.fillStyle = 'white';
+                        ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                    } else {
+                        if (headImageToUse.complete) {
+                            ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                        } else {
+                            ctx.fillStyle = colors[snakeIndex];
+                            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                        }
+                    }
+                } else {
+                    ctx.fillStyle = '#00cc00';
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                }
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
+                ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+            });
+        });
+        parkingSpots.forEach(parking => {
+            let showParking = true;
+            for (let i = 0; i < snakes.length; i++) {
+                const head = snakes[i][0];
+                if (head.x === parking.x && head.y === parking.y) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && targetPoint.x === parking.x && targetPoint.y === parking.y) {
+                        showParking = true;
+                    } else if (hasCargo[i]) {
+                        showParking = false;
+                    }
+                    break;
+                }
+            }
+            if (showParking) {
+                if (parkingImage.complete) {
+                    ctx.drawImage(parkingImage, parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
+                } else {
+                    ctx.fillStyle = '#0000ff';
+                    ctx.fillRect(parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = 'black';
+                    ctx.strokeRect(parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
+                }
+            }
+        });
+        snakeRoutes.forEach((route, snakeIndex) => {
+            if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                const head = snakes[snakeIndex][0];
+                ctx.moveTo(head.x * gridSize + gridSize/2, head.y * gridSize + gridSize/2);
+                for (let i = routeProgress[snakeIndex]; i < route.length; i++) {
+                    const point = route[i];
+                    ctx.lineTo(point.x * gridSize + gridSize/2, point.y * gridSize + gridSize/2);
+                }
+                ctx.stroke();
+            }
+        });
+        targetPoints.forEach((point, index) => {
+            if (point) {
+                ctx.strokeStyle = 'yellow';
+                ctx.strokeRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
+            }
+        });
+    }
+    function gameStep() {
+        update();
+        draw();
+    }
+    function startGame() {
+        document.getElementById('startImage').style.display = 'none';
+        document.getElementById('gameCanvas').style.display = 'block';
+        gameEndScreen.style.display = 'none';
+        if (gameRunning) {
+            clearInterval(gameLoop);
+            clearInterval(timer);
+            chargingTimers.forEach(t => t && clearInterval(t));
+        }
+        initGame();
+        gameRunning = true;
+        gameLoop = setInterval(gameStep, 250);
+        timer = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                gameOver();
+            }
+        }, 1000);
+    }
+    function gameOver() {
+        gameRunning = false;
+        chargingTimers.forEach(t => t && clearInterval(t));
+        clearInterval(gameLoop);
+        clearInterval(timer);
+        document.getElementById('gameCanvas').style.display = 'none';
+        gameEndScreen.style.display = 'flex';
+        gameEndScreen.innerHTML = '<div>Игра завершена<br>Вы заработали ' + score + ' очков</div>';
+    }
+    canvas.addEventListener('click', (event) => {
+        if (!gameRunning) return;
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = event.clientX - rect.left;
+        const mouseY = event.clientY - rect.top;
+        const clickX = Math.floor(mouseX / gridSize);
+        const clickY = Math.floor(mouseY / gridSize);
+        if (!gameStarted) {
+            for (let i = 0; i < snakes.length; i++) {
+                const head = snakes[i][0];
+                if (head.x === clickX && head.y === clickY) {
+                    selectedSnakeIndex = i;
+                    activeRobotIndex = i; // <-- УСТАНАВЛИВАЕМ АКТИВНОГО
+                    selectedSnakeElement.textContent = 'Робот: ' + (i+1);
+                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
+                    cargoStatusElement.textContent = 'Статус: ' + (hasCargo[i] ? 'С грузом' : 'Нет');
+                    const head = snakes[i][0];
+                    const targetKey = `${clickX},${clickY}`;
+                    if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== i) {
+                        return;
+                    }
+                    if (targetPoints[i]) {
+                        const oldKey = `${targetPoints[i].x},${targetPoints[i].y}`;
+                        if (reservedTargets[oldKey] === i) delete reservedTargets[oldKey];
+                    }
+                    snakeRoutes[i] = buildRoute(head.x, head.y, clickX, clickY, i);
+                    routeProgress[i] = 0;
+                    targetPoints[i] = {x: clickX, y: clickY};
+                    reservedTargets[targetKey] = i;
+                    snakeRouteTimestamps[i] = Date.now();
+                    // Выключаем мигание при назначении цели
+                    isBlinking[i] = false;
+                    gameStarted = true;
+                    return;
+                }
+            }
+            return;
+        }
+        for (let i = 0; i < snakes.length; i++) {
+            const head = snakes[i][0];
+            if (head.x === clickX && head.y === clickY) {
+                selectedSnakeIndex = i;
+                activeRobotIndex = i; // <-- УСТАНАВЛИВАЕМ АКТИВНОГО
+                selectedSnakeElement.textContent = 'Робот: ' + (i+1);
+                snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
+                cargoStatusElement.textContent = 'Статус: ' + (hasCargo[i] ? 'С грузом' : 'Нет');
+                // Сбрасываем мигание у всех роботов
+                isBlinking = [false, false, false];
+                // Включаем мигание только для активного
+                isBlinking[i] = true;
+                return;
+            }
+        }
+        if (selectedSnakeIndex !== -1) {
+            if (isObstacle(clickX, clickY)) return;
+            const stationIndex = isChargingStation(clickX, clickY);
+            if (stationIndex !== -1) {
+                if (hasCargo[selectedSnakeIndex]) return;
+                const head = snakes[selectedSnakeIndex][0];
+                const targetKey = `${clickX},${clickY}`;
+                if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
+                    return;
+                }
+                if (targetPoints[selectedSnakeIndex]) {
+                    const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                    if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                }
+                snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
+                routeProgress[selectedSnakeIndex] = 0;
+                targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
+                reservedTargets[targetKey] = selectedSnakeIndex;
+                snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
+                // Выключаем мигание для выбранного робота при назначении цели
+                isBlinking[selectedSnakeIndex] = false;
+            } else {
+                let isFood = food.some(f => f.x === clickX && f.y === clickY);
+                if (isFood && hasCargo[selectedSnakeIndex]) return;
+                const head = snakes[selectedSnakeIndex][0];
+                const targetKey = `${clickX},${clickY}`;
+                if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
+                    return;
+                }
+                if (targetPoints[selectedSnakeIndex]) {
+                    const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                    if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                }
+                snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
+                routeProgress[selectedSnakeIndex] = 0;
+                targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
+                reservedTargets[targetKey] = selectedSnakeIndex;
+                snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
+                // Выключаем мигание для выбранного робота при назначении цели
+                isBlinking[selectedSnakeIndex] = false;
+            }
+        }
+    });
+    </script>
 </body>
 </html>
