@@ -1,921 +1,113 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Логистические роботы</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            user-select: none;
-        }
-        body {
-            background: black;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        .container {
-            background: black;
-            border-radius: 0;
-            padding: 8px;
-            box-shadow: none;
-            text-align: center;
-            width: 100vw;
-            max-width: 100%;
-            max-height: 100vh;
-            margin: 4px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow: hidden;
-        }
-        .stats-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            padding: 0 6px;
-            gap: 8px;
-            width: 100%;
-            max-width: 550px;
-        }
-        .stat-item {
-            background: #ecf0f1;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-weight: bold;
-            font-size: min(0.9em, 4vw);
-            flex: 1;
-            min-width: 0;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        .game-wrapper {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            padding: 1px;
-            overflow: hidden;
-        }
-        .game-board {
-            display: grid;
-            grid-template-columns: repeat(10, 1fr);
-            grid-template-rows: repeat(13, 1fr);
-            gap: 1px;
-            width: min(94vw, 94vh * (10/13), 480px);
-            height: min(94vh, 94vw * (13/10), 624px);
-            max-width: 100%;
-            max-height: 100%;
-            border: 2px solid #34495e;
-            background: #bdc3c7;
-            position: relative;
-            overflow: hidden;
-            aspect-ratio: 10 / 13;
-            padding: 2px;
-        }
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <style>
+    /* 🔥 УБИРАЕМ ВСЕ ОТСТУПЫ И МАРГИНЫ */
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+    }
 
-        /* === ОСНОВНОЙ КОНТЕЙНЕР КЛЕТКИ === */
-        .cell {
-            position: relative;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: all 0.1s ease;
-            border-radius: 1px;
-            overflow: hidden;
-            background-color: #ecf0f1;
-            box-shadow: 0 0 0 1px #bdc3c7;
-        }
-        .cell:hover {
-            transform: scale(0.95);
-            opacity: 0.9;
-            z-index: 2;
-        }
+    /* 🔥 КОНТЕЙНЕР ИГРЫ — ЦЕНТРИРОВАН ЧЕРЕЗ FLEX */
+    #game-container {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-        /* === СЛОИ КЛЕТКИ === */
-        .cell-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-            pointer-events: none;
-        }
+    /* 🔥 ИГРА — ЦЕНТРИРОВАНА, МАСШТАБИРУЕТСЯ */
+    #game {
+      width: 420px;
+      height: 720px;
+      background: #333;
+      border: 2px solid #555;
+      position: relative;
+      transform-origin: center center;
+      /* Будет масштабировано через JS */
+    }
 
-        /* Фоновые слои */
-        .cell-bg { z-index: 1; }
-        .cell-selection { z-index: 2; }
-        .cell-path { z-index: 3; }
-        .cell-target { z-index: 4; }
+    /* 🔥 ТЕСТОВЫЕ ЭЛЕМЕНТЫ — ПОКАЖУМ СТРУКТУРУ */
+    .test-red {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 400px;
+      height: 400px;
+      background: red;
+      opacity: 0.3;
+    }
 
-        /* Основные объекты */
-        .cell-object { z-index: 5; }
-        .cell-robot { z-index: 6; }
-        .cell-robot-shelf { z-index: 6; }
-        .cell-robot-charging { z-index: 6; }
-
-        /* Полоса заряда */
-        .charge-bar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background-color: #ccc;
-            z-index: 7;
-        }
-        .charge-level {
-            height: 100%;
-            transition: width 0.3s ease;
-        }
-        .charge-level.low { background-color: #e74c3c; }
-        .charge-level.medium { background-color: #f39c12; }
-        .charge-level.good { background-color: #f1c40f; }
-        .charge-level.high { background-color: #27ae60; }
-
-        /* === АКТИВНЫЕ СОСТОЯНИЯ === */
-        .cell.selected {
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .cell.selected::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, #000, #ffff00);
-            background-size: 200% 200%;
-            animation: pulseGradient 2s ease infinite;
-            z-index: 1;
-            border-radius: 1px;
-            pointer-events: none;
-        }
-
-        @keyframes pulseGradient {
-            0% { background-position: 0% 50%; }
-            50% { background-position: 100% 50%; }
-            100% { background-position: 0% 50%; }
-        }
-
-        /* === АНИМАЦИЯ ЦЕЛЕЙ === */
-        .cell.is-target {
-            position: relative;
-            overflow: hidden;
-            animation: blinkTarget 1s ease infinite;
-        }
-
-        @keyframes blinkTarget {
-            0%, 100% { background-color: #ecf0f1; }
-            50% { background-color: #ffff77; }
-        }
-
-        /* Бегущие красные огни */
-        .blinking-cell {
-            position: relative;
-            overflow: hidden;
-        }
-
-        .moving-part {
-            position: absolute;
-            background: red;
-            pointer-events: none;
-            z-index: 8;
-        }
-
-        .moving-part.top {
-            top: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            animation: runTop 1s linear infinite;
-        }
-
-        .moving-part.right {
-            top: 0;
-            right: 0;
-            width: 2px;
-            height: 0;
-            animation: runRight 1s linear infinite 0.25s;
-        }
-
-        .moving-part.bottom {
-            bottom: 0;
-            right: 0;
-            width: 0;
-            height: 2px;
-            animation: runBottom 1s linear infinite 0.5s;
-        }
-
-        .moving-part.left {
-            bottom: 0;
-            left: 0;
-            width: 2px;
-            height: 0;
-            animation: runLeft 1s linear infinite 0.75s;
-        }
-
-        @keyframes runTop {
-            0% { width: 0; }
-            100% { width: 100%; }
-        }
-
-        @keyframes runRight {
-            0% { height: 0; }
-            100% { height: 100%; }
-        }
-
-        @keyframes runBottom {
-            0% { width: 0; }
-            100% { width: 100%; }
-        }
-
-        @keyframes runLeft {
-            0% { height: 0; }
-            100% { height: 100%; }
-        }
-
-        /* === ИЗОБРАЖЕНИЯ === */
-        .bg-parking { background-image: url('Parking.png'); }
-        .bg-charging { background-image: url('Charging.png'); }
-        .bg-shelf { background-image: url('Shelf.png'); }
-        .bg-column { background-image: url('Column.png'); }
-
-        .obj-robot { background-image: url('Robot.png'); }
-        .obj-robot-shelf { background-image: url('Robot_Shelf.png'); }
-        .obj-robot-charging { background-image: url('Robot_Charg.png'); }
-
-        button {
-            background: yellow;
-            color: black;
-            border: none;
-            padding: 12px 16px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: min(1em, 4.5vw);
-            font-weight: bold;
-            transition: background 0.3s;
-            margin-top: 12px;
-            width: 100%;
-            max-width: 550px;
-        }
-        button:hover {
-            background: #ffeb3b;
-        }
-
-        .splash-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: url('Ronavi.png') no-repeat center center;
-            background-size: cover;
-            z-index: 900;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-    </style>
+    .test-green {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 400px;
+      height: 300px;
+      background: green;
+      opacity: 0.3;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="stats-container">
-            <div id="moves" class="stat-item">Заряд робота: 100%</div>
-            <div id="timer" class="stat-item">Время: 20:00</div>
-        </div>
-        <div class="game-wrapper">
-            <div class="game-board" id="game-board">
-                <div class="splash-screen"></div>
-            </div>
-        </div>
-        <button id="reset-btn">Новая игра</button>
+
+  <!-- 🔥 ОБЕРТКА ДЛЯ ЦЕНТРИРОВАНИЯ -->
+  <div id="game-container">
+    <div id="game">
+      <div class="test-red"></div>
+      <div class="test-green"></div>
     </div>
+  </div>
+
+  <script>
+    function resizeGame() {
+      const game = document.getElementById('game');
+      const baseWidth = 420;
+      const baseHeight = 720;
+
+      // 🔥 Используем visualViewport для iOS
+      const vw = window.visualViewport ? window.visualViewport.width : window.innerWidth;
+      const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+
+      // 🔥 Масштаб по минимальному
+      const scale = Math.min(vw / baseWidth, vh / baseHeight);
+
+      // 🔥 Применяем масштаб
+      game.style.transform = `scale(${scale})`;
+
+      // 🔥 Обеспечиваем центрирование
+      game.style.position = 'absolute';
+      game.style.left = '50%';
+      game.style.top = '50%';
+      game.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    }
+
+    // Запускаем
+    window.addEventListener('load', resizeGame);
+    window.addEventListener('resize', resizeGame);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', resizeGame);
+    }
+
+    // 🔥 Сброс скролла
+    setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 100);
+  </script>
 
-    <script>
-        class LogisticsGame {
-            constructor() {
-                this.board = document.getElementById('game-board');
-                this.movesElement = document.getElementById('moves');
-                this.timerElement = document.getElementById('timer');
-                this.resetBtn = document.getElementById('reset-btn');
-                this.rows = 13;
-                this.cols = 10;
-                this.totalTime = 20 * 60;
-                this.remainingTime = this.totalTime;
-                this.timerInterval = null;
-                this.gameStarted = false;
-                this.selectedRobot = null;
-
-                // Параметры
-                this.gameParams = {
-                    columnsCount: 12,
-                    chargingStationsCount: 3,
-                    robotsCount: 3,
-                    shelvesCount: 10,
-                    minDistance: {
-                        columnToColumn: 3,
-                        chargingToCharging: 3,
-                        shelfToShelf: 2,
-                        robotToRobot: 4,
-                        chargingToShelf: 2
-                    },
-                    columnRows: { min: 2, max: 11 },
-                    columnCols: { min: 1, max: 8 },
-                    chargingRows: { min: 4, max: 9 },
-                    chargingCols: { min: 4, max: 7 },
-                    robotRows: { min: 2, max: 12 },
-                    robotCols: { min: 0, max: 9 },
-                    shelfRows: { min: 3, max: 12 },
-                    shelfCols: { min: 0, max: 9 }
-                };
-
-                // Реестры
-                this.state = {
-                    robots: new Map(),
-                    chargingStations: new Set(),
-                    shelves: new Set(),
-                    parkingCells: new Set(),
-                    obstacles: new Set(),
-                    activeAnimations: new Set(),
-                    cellTypes: new Map()
-                };
-
-                this.init();
-            }
-
-            init() {
-                this.showSplashScreen();
-                this.resetBtn.addEventListener('click', () => this.startNewGame());
-            }
-
-            showSplashScreen() {
-                const splash = this.board.querySelector('.splash-screen');
-                if (splash) splash.style.display = 'flex';
-            }
-
-            hideSplashScreen() {
-                const splash = this.board.querySelector('.splash-screen');
-                if (splash) splash.remove();
-            }
-
-            startNewGame() {
-                this.state.robots.clear();
-                this.state.chargingStations.clear();
-                this.state.shelves.clear();
-                this.state.parkingCells.clear();
-                this.state.obstacles.clear();
-                this.state.activeAnimations.clear();
-                this.state.cellTypes.clear();
-
-                this.createBoard();
-                this.gameStarted = false;
-                this.selectedRobot = null;
-                this.remainingTime = this.totalTime;
-                this.updateTimerDisplay();
-                this.movesElement.textContent = 'Заряд робота: 100%';
-
-                // Парковка
-                for (let col = 0; col < this.cols; col++) {
-                    this.setCellType(0, col, 'parking');
-                    this.state.parkingCells.add(`${0},${col}`);
-                }
-
-                this.generateField();
-                this.setupEventListeners();
-            }
-
-            createBoard() {
-                this.board.innerHTML = '';
-                for (let row = 0; row < this.rows; row++) {
-                    for (let col = 0; col < this.cols; col++) {
-                        const cell = document.createElement('div');
-                        cell.className = 'cell empty';
-                        cell.dataset.row = row;
-                        cell.dataset.col = col;
-
-                        this.createCellLayers(cell);
-                        this.board.appendChild(cell);
-                    }
-                }
-            }
-
-            createCellLayers(cell) {
-                const layers = [
-                    { class: 'cell-layer cell-bg', name: 'bg' },
-                    { class: 'cell-layer cell-selection', name: 'selection' },
-                    { class: 'cell-layer cell-path', name: 'path' },
-                    { class: 'cell-layer cell-target', name: 'target' },
-                    { class: 'cell-layer cell-object', name: 'object' },
-                    { class: 'cell-layer cell-robot', name: 'robot' },
-                    { class: 'cell-layer cell-robot-shelf', name: 'robot-shelf' },
-                    { class: 'cell-layer cell-robot-charging', name: 'robot-charging' }
-                ];
-
-                layers.forEach(layer => {
-                    const div = document.createElement('div');
-                    div.className = layer.class;
-                    cell.appendChild(div);
-                });
-
-                const chargeBar = document.createElement('div');
-                chargeBar.className = 'charge-bar';
-                const chargeLevel = document.createElement('div');
-                chargeLevel.className = 'charge-level';
-                chargeBar.appendChild(chargeLevel);
-                cell.appendChild(chargeBar);
-            }
-
-            setCellType(row, col, type) {
-                const cell = this.getCell(row, col);
-                if (!cell) return;
-
-                this.state.cellTypes.set(`${row},${col}`, type);
-
-                const bgLayer = cell.querySelector('.cell-bg');
-                if (!bgLayer) return;
-
-                bgLayer.classList.remove('bg-parking', 'bg-charging', 'bg-shelf', 'bg-column');
-
-                switch(type) {
-                    case 'parking':
-                        bgLayer.classList.add('bg-parking');
-                        break;
-                    case 'charging':
-                        bgLayer.classList.add('bg-charging');
-                        break;
-                    case 'shelf':
-                        bgLayer.classList.add('bg-shelf');
-                        break;
-                    case 'column':
-                        bgLayer.classList.add('bg-column');
-                        break;
-                }
-                bgLayer.style.display = 'block';
-            }
-
-            setRobotCell(row, col, hasShelf = false, isCharging = false, charge = 100) {
-                const cell = this.getCell(row, col);
-                if (!cell) {
-                    console.log(`Клетка ${row},${col} не найдена!`);
-                    return;
-                }
-
-                console.log(`Устанавливаем робота в клетку ${row},${col}, заряд: ${charge}%`);
-
-                // Восстанавливаем оригинальный фон клетки
-                const cellType = this.state.cellTypes.get(`${row},${col}`) || 'empty';
-                this.setCellType(row, col, cellType);
-
-                const robotLayer = cell.querySelector('.cell-robot');
-                const robotShelfLayer = cell.querySelector('.cell-robot-shelf');
-                const robotChargingLayer = cell.querySelector('.cell-robot-charging');
-                const chargeBar = cell.querySelector('.charge-bar');
-                const chargeLevel = chargeBar.querySelector('.charge-level');
-
-                // Скрываем все роботизированные слои
-                if (robotLayer) robotLayer.style.display = 'none';
-                if (robotShelfLayer) robotShelfLayer.style.display = 'none';
-                if (robotChargingLayer) robotChargingLayer.style.display = 'none';
-                if (chargeBar) chargeBar.style.display = 'none';
-
-                // Показываем соответствующий слой робота
-                if (isCharging && robotChargingLayer) {
-                    robotChargingLayer.style.display = 'block';
-                    robotChargingLayer.classList.add('obj-robot-charging');
-                    console.log(`Робот на зарядке в клетке ${row},${col}`);
-                } else if (hasShelf && robotShelfLayer) {
-                    robotShelfLayer.style.display = 'block';
-                    robotShelfLayer.classList.add('obj-robot-shelf');
-                    console.log(`Робот с полкой в клетке ${row},${col}`);
-                } else if (robotLayer) {
-                    robotLayer.style.display = 'block';
-                    robotLayer.classList.add('obj-robot');
-                    console.log(`Обычный робот в клетке ${row},${col}`);
-                }
-
-                // Настраиваем полосу заряда
-                if (chargeBar && chargeLevel) {
-                    chargeBar.style.display = 'block';
-                    chargeLevel.style.width = charge + '%';
-                    chargeLevel.className = 'charge-level';
-                    if (charge < 25) chargeLevel.classList.add('low');
-                    else if (charge < 50) chargeLevel.classList.add('medium');
-                    else if (charge < 75) chargeLevel.classList.add('good');
-                    else chargeLevel.classList.add('high');
-                    console.log(`Заряд установлен: ${charge}%`);
-                }
-            }
-
-            isPositionValid(pos, minDistance, excludeTypes = []) {
-                // Собираем все занятые клетки
-                const allOccupiedCells = new Set([
-                    ...this.state.obstacles,
-                    ...this.state.chargingStations,
-                    ...this.state.shelves,
-                    ...this.state.parkingCells,
-                    ...Array.from(this.state.robots.values()).map(robot => `${robot.row},${robot.col}`)
-                ]);
-
-                for (const key of allOccupiedCells) {
-                    // Пропускаем исключенные типы
-                    let shouldExclude = false;
-                    for (const excludeType of excludeTypes) {
-                        if (this.state[excludeType] && this.state[excludeType].has(key)) {
-                            shouldExclude = true;
-                            break;
-                        }
-                    }
-                    if (shouldExclude) continue;
-
-                    const [r, c] = key.split(',').map(Number);
-                    const distance = Math.abs(pos.row - r) + Math.abs(pos.col - c);
-                    if (distance < minDistance) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            isCellOccupied(key) {
-                // Проверяем, занята ли клетка любым объектом (кроме роботов)
-                return (
-                    this.state.obstacles.has(key) ||
-                    this.state.chargingStations.has(key) ||
-                    this.state.shelves.has(key) ||
-                    this.state.parkingCells.has(key)
-                );
-            }
-
-            isRobotAtPosition(key) {
-                // Проверяем, есть ли робот в этой позиции
-                for (const [id, robot] of this.state.robots) {
-                    if (`${robot.row},${robot.col}` === key) {
-                        return true;
-                    }
-                }
-                return false;
-            }
-
-            generateField() {
-                this.hideSplashScreen();
-                this.placeObstacles();
-                this.placeChargingStations();
-                this.placeShelves();
-                this.placeRobots();
-            }
-
-            placeObstacles() {
-                const grid = this.generateGrid(this.gameParams.columnRows, this.gameParams.columnCols);
-                this.shuffleArray(grid);
-                let placed = 0;
-
-                for (const pos of grid) {
-                    if (placed >= this.gameParams.columnsCount) break;
-                    const cellKey = `${pos.row},${pos.col}`;
-
-                    // Проверяем только парковку как исключение
-                    if (!this.state.parkingCells.has(cellKey) &&
-                        this.isPositionValid(pos, this.gameParams.minDistance.columnToColumn, ['parkingCells'])) {
-                        this.setCellType(pos.row, pos.col, 'column');
-                        this.state.obstacles.add(cellKey);
-                        placed++;
-                        console.log(`Размещена колонна в ${cellKey}`);
-                    }
-                }
-                console.log(`Размещено колонн: ${placed}`);
-            }
-
-            placeChargingStations() {
-                console.log('Размещение зарядных станций рядом с колоннами...');
-                let placed = 0;
-
-                // Создаем список всех колонн и перемешиваем его
-                const obstaclesArray = Array.from(this.state.obstacles);
-                this.shuffleArray(obstaclesArray);
-
-                // Для каждой колонны пытаемся найти свободное место вокруг
-                for (const obstacleKey of obstaclesArray) {
-                    if (placed >= this.gameParams.chargingStationsCount) break;
-
-                    const [r, c] = obstacleKey.split(',').map(Number);
-
-                    // Проверяем все 4 стороны вокруг колонны в случайном порядке
-                    const directions = [
-                        { row: r - 1, col: c }, // сверху
-                        { row: r + 1, col: c }, // снизу
-                        { row: r, col: c - 1 }, // слева
-                        { row: r, col: c + 1 }  // справа
-                    ];
-                    this.shuffleArray(directions);
-
-                    for (const pos of directions) {
-                        if (placed >= this.gameParams.chargingStationsCount) break;
-
-                        // Проверяем, что позиция в пределах поля
-                        if (pos.row < 0 || pos.row >= this.rows || pos.col < 0 || pos.col >= this.cols) {
-                            continue;
-                        }
-
-                        const cellKey = `${pos.row},${pos.col}`;
-
-                        // Упрощенная проверка: только что клетка свободна и в разрешенной зоне
-                        if (!this.isCellOccupied(cellKey) &&
-                            !this.isRobotAtPosition(cellKey) &&
-                            pos.row >= this.gameParams.chargingRows.min &&
-                            pos.row <= this.gameParams.chargingRows.max &&
-                            pos.col >= this.gameParams.chargingCols.min &&
-                            pos.col <= this.gameParams.chargingCols.max) {
-
-                            // Проверяем расстояние только до других зарядных станций
-                            let validDistance = true;
-                            for (const stationKey of this.state.chargingStations) {
-                                const [sr, sc] = stationKey.split(',').map(Number);
-                                const distance = Math.abs(pos.row - sr) + Math.abs(pos.col - sc);
-                                if (distance < this.gameParams.minDistance.chargingToCharging) {
-                                    validDistance = false;
-                                    break;
-                                }
-                            }
-
-                            if (validDistance) {
-                                this.setCellType(pos.row, pos.col, 'charging');
-                                this.state.chargingStations.add(cellKey);
-                                placed++;
-                                console.log(`✓ Зарядка рядом с колонной ${obstacleKey} в ${cellKey}`);
-                                break; // Переходим к следующей колонне
-                            }
-                        }
-                    }
-                }
-
-                console.log(`Размещено зарядных станций: ${placed}`);
-            }
-
-            placeShelves() {
-                const grid = this.generateGrid(this.gameParams.shelfRows, this.gameParams.shelfCols);
-                this.shuffleArray(grid);
-                let placed = 0;
-
-                for (const pos of grid) {
-                    if (placed >= this.gameParams.shelvesCount) break;
-                    const cellKey = `${pos.row},${pos.col}`;
-
-                    if (!this.state.obstacles.has(cellKey) &&
-                        !this.state.chargingStations.has(cellKey) &&
-                        !this.state.parkingCells.has(cellKey) &&
-                        this.isPositionValid(pos, this.gameParams.minDistance.shelfToShelf, ['parkingCells'])) {
-                        this.setCellType(pos.row, pos.col, 'shelf');
-                        this.state.shelves.add(cellKey);
-                        placed++;
-                        console.log(`Размещена полка в ${cellKey}`);
-                    }
-                }
-                console.log(`Размещено полок: ${placed}`);
-            }
-
-            placeRobots() {
-                const grid = this.generateGrid(this.gameParams.robotRows, this.gameParams.robotCols);
-                this.shuffleArray(grid);
-                let robotId = 0;
-                let lowChargePlaced = false;
-
-                console.log('Начинаем размещение роботов...');
-                console.log('Доступных клеток:', grid.length);
-
-                for (const pos of grid) {
-                    if (robotId >= this.gameParams.robotsCount) break;
-                    const cellKey = `${pos.row},${pos.col}`;
-
-                    const isOccupied = this.isCellOccupied(cellKey);
-                    const hasRobot = this.isRobotAtPosition(cellKey);
-
-                    console.log(`Клетка ${cellKey}: занята=${isOccupied}, робот=${hasRobot}`);
-
-                    // Проверяем минимальное расстояние до других роботов
-                    const hasMinDistance = this.checkRobotDistance(pos, this.gameParams.minDistance.robotToRobot);
-
-                    if (!isOccupied && !hasRobot && hasMinDistance) {
-                        let charge = !lowChargePlaced ?
-                            Math.floor(Math.random() * 11) + 15 :
-                            Math.floor(Math.random() * 76) + 25;
-                        if (!lowChargePlaced) lowChargePlaced = true;
-
-                        this.state.robots.set(robotId, {
-                            row: pos.row,
-                            col: pos.col,
-                            charge,
-                            hasShelf: false
-                        });
-
-                        this.setRobotCell(pos.row, pos.col, false, false, charge);
-                        robotId++;
-                        console.log(`✓ Размещен робот в ${cellKey}`);
-                    }
-                }
-
-                console.log(`Итог: размещено ${robotId} роботов из ${this.gameParams.robotsCount}`);
-            }
-
-            checkRobotDistance(pos, minDistance) {
-                // Проверяем расстояние до всех уже размещенных роботов
-                for (const [id, robot] of this.state.robots) {
-                    const distance = Math.abs(pos.row - robot.row) + Math.abs(pos.col - robot.col);
-                    if (distance < minDistance) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            generateGrid(range, cols) {
-                const grid = [];
-                for (let r = range.min; r <= range.max; r++) {
-                    for (let c = cols.min; c <= cols.max; c++) {
-                        grid.push({ row: r, col: c });
-                    }
-                }
-                return grid;
-            }
-
-            getCell(row, col) {
-                return this.board.querySelector(`[data-row="${row}"][data-col="${col}"]`);
-            }
-
-            setCellAsTarget(row, col) {
-                const cell = this.getCell(row, col);
-                if (cell) {
-                    cell.classList.add('is-target');
-                    this.addRunningLights(cell);
-                }
-            }
-
-            addRunningLights(cell) {
-                // Удаляем старые огни если есть
-                cell.querySelectorAll('.moving-part').forEach(part => part.remove());
-                
-                // Добавляем бегущие красные огни по периметру
-                const positions = ['top', 'right', 'bottom', 'left'];
-                positions.forEach(pos => {
-                    const part = document.createElement('div');
-                    part.className = `moving-part ${pos}`;
-                    cell.appendChild(part);
-                });
-                
-                cell.classList.add('blinking-cell');
-            }
-
-            removeRunningLights(cell) {
-                cell.querySelectorAll('.moving-part').forEach(part => part.remove());
-                cell.classList.remove('blinking-cell');
-            }
-
-            setCellAsSelected(row, col) {
-                const cell = this.getCell(row, col);
-                if (cell) {
-                    cell.classList.add('selected');
-                }
-            }
-
-            clearCellStates(row, col) {
-                const cell = this.getCell(row, col);
-                if (cell) {
-                    cell.classList.remove('selected', 'is-target');
-                    this.removeRunningLights(cell);
-                }
-            }
-
-            clearAllTargets() {
-                const cells = this.board.querySelectorAll('.cell');
-                cells.forEach(cell => {
-                    this.clearCellStates(
-                        parseInt(cell.dataset.row),
-                        parseInt(cell.dataset.col)
-                    );
-                });
-            }
-
-            updateTimerDisplay() {
-                const minutes = Math.floor(this.remainingTime / 60);
-                const seconds = this.remainingTime % 60;
-                this.timerElement.textContent = `Время: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-            }
-
-            showTargets(robot) {
-                this.clearAllTargets();
-
-                let targets;
-                let targetType = '';
-
-                if (robot.hasShelf) {
-                    if (robot.charge < 25) {
-                        targets = this.state.chargingStations;
-                        targetType = 'зарядные станции';
-                    } else {
-                        targets = this.state.parkingCells;
-                        targetType = 'парковочные места';
-                    }
-                } else {
-                    if (robot.charge < 25) {
-                        targets = this.state.chargingStations;
-                        targetType = 'зарядные станции';
-                    } else {
-                        targets = this.state.shelves;
-                        targetType = 'полки';
-                    }
-                }
-
-                console.log(`Цели для робота: ${targetType}`);
-
-                for (const key of targets) {
-                    const [r, c] = key.split(',').map(Number);
-                    if (!this.isCellOccupied(key) && !this.isRobotAtPosition(key)) {
-                        this.setCellAsTarget(r, c);
-                    }
-                }
-            }
-
-            setupEventListeners() {
-                this.board.addEventListener('click', (e) => {
-                    const cell = e.target.closest('.cell');
-                    if (!cell) return;
-                    const row = parseInt(cell.dataset.row);
-                    const col = parseInt(cell.dataset.col);
-
-                    let clickedRobotId = null;
-                    for (const [id, robot] of this.state.robots) {
-                        if (robot.row === row && robot.col === col) {
-                            clickedRobotId = id;
-                            break;
-                        }
-                    }
-
-                    if (clickedRobotId !== null) {
-                        console.log(`Выбран робот ID: ${clickedRobotId} в клетке ${row},${col}`);
-
-                        if (this.selectedRobot !== null) {
-                            const prevRobot = this.state.robots.get(this.selectedRobot);
-                            this.clearCellStates(prevRobot.row, prevRobot.col);
-                        }
-
-                        this.selectedRobot = clickedRobotId;
-                        const robot = this.state.robots.get(clickedRobotId);
-                        this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
-
-                        this.setCellAsSelected(robot.row, robot.col);
-
-                        if (!this.gameStarted) {
-                            this.gameStarted = true;
-                            this.startTime = Date.now();
-                            this.timerInterval = setInterval(() => {
-                                this.remainingTime--;
-                                this.updateTimerDisplay();
-                                if (this.remainingTime <= 0) {
-                                    clearInterval(this.timerInterval);
-                                    console.log('Игра окончена: время вышло!');
-                                }
-                            }, 1000);
-                        }
-
-                        this.showTargets(robot);
-                    }
-                });
-            }
-
-            shuffleArray(array) {
-                for (let i = array.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
-                }
-                return array;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            new LogisticsGame();
-        });
-    </script>
 </body>
 </html>
