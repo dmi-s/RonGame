@@ -1,166 +1,207 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <title>Роботы</title>
-    <style>
-        @font-face {
-            font-family: 'Nexa Bold';
-            src: url('Nexa-Bold.ttf') format('truetype');
-            font-weight: bold;
-            font-style: normal;
-        }
-        body {
-            font-family: 'Nexa Bold', Arial, sans-serif;
-        }
-        canvas {
-            margin-top: 10px;
-            cursor: pointer;
-            display: none;
-            margin-bottom: 10px;
-        }
-        body {
-            text-align: center;
-            background-color: #000000;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            min-height: 100vh;
-            padding-top: 20px;
-        }
-        #gameContainer {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 400px;
-        }
-
-        /* Таймер — крупный, жирный, с мягкими скруглениями */
-        #timer {
-            width: 400px;
-            height: 50px;
-            background-color: #FFD700; /* Ярко-жёлтый */
-            font-size: 32px;
-            font-weight: 900;
-            border-radius: 12px;
-            margin: 10px auto 10px auto;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #000000; /* Чёрный текст */
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            font-family: 'Nexa Bold', Arial, sans-serif;
-        }
-
-        /* Общий контейнер для инфо-панелей */
-        #info-panel {
-            width: 400px;
-            background: #FFD700;
-            border-radius: 12px;
-            padding: 12px 0;
-            margin: 10px auto;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        /* Стиль каждой строки внутри инфо-панели */
-        #info-panel div {
-            font-size: 18px;
-            font-weight: 700;
-            color: #000000;
-            text-align: center;
-            padding: 6px 0;
-            margin: 0;
-            font-family: 'Nexa Bold', Arial, sans-serif;
-        }
-
-        /* Стиль кнопки "Начать игру" */
-        button {
-            width: 400px;
-            height: 50px;
-            background-color: #FFD700;
-            border: none;
-            border-radius: 12px;
-            font-size: 24px;
-            font-weight: 900;
-            color: #000000;
-            margin: 20px auto 10px auto;
-            cursor: pointer;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-            transition: all 0.2s ease;
-            font-family: 'Nexa Bold', Arial, sans-serif;
-        }
-
-        /* Эффект при наведении на кнопку */
-        button:hover {
-            background-color: #FFC107; /* Чуть темнее при наведении */
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.2);
-        }
-
-        /* Эффект при нажатии на кнопку */
-        button:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-
-        #startImage {
-            width: 400px;
-            height: 400px;
-            margin: 5px auto;
-            cursor: pointer;
-            display: block;
-        }
-        #gameEndScreen {
-            width: 400px;
-            height: 400px;
-            background-color: black;
-            color: yellow;
-            font-size: 24px;
-            font-weight: bold;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            margin: 5px auto;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Панель Управления Роботом</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    #game-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(135deg, #3a3a3a, #555, #777, #555, #3a3a3a);
+      border: 2px solid #222;
+      box-shadow:
+        0 0 20px #111,
+        inset 0 0 20px rgba(255,255,255,0.05),
+        inset 0 0 50px rgba(0,0,0,0.3);
+      border-radius: 6px;
+      image-rendering: pixelated;
+      width: auto;
+      height: auto;
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+  </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <!-- 1. Таймер -->
-        <div id="timer">3:00</div>
-
-        <!-- 2. Информационная панель (3 строки в одном блоке) -->
-        <div id="info-panel">
-            <div id="selectedSnake">Робот: Нет</div>
-            <div id="cargoStatus">Статус: Нет</div>
-            <div id="snakeCharge">Заряд робота: Нет</div>
-            <div id="score">Счет: 0</div>
-        </div>
-
-        <!-- 3. Поле игры -->
-        <img id="startImage" src="Ronavi.png" alt="Стартовое изображение" onclick="startGame()">
-        <div id="gameEndScreen"></div>
-        <canvas id="gameCanvas" width="400" height="400"></canvas>
-
-        <!-- 4. Кнопка "Начать игру" -->
-        <button onclick="startGame()">Начать игру</button>
-    </div>
-    <script>
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+  <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const scoreElement = document.getElementById('score');
-    const selectedSnakeElement = document.getElementById('selectedSnake');
-    const snakeChargeElement = document.getElementById('snakeCharge');
-    const cargoStatusElement = document.getElementById('cargoStatus');
-    const timerElement = document.getElementById('timer');
-    const gameEndScreen = document.getElementById('gameEndScreen');
+    // === РАЗМЕРЫ ПАНЕЛИ ===
+    const GAME_WIDTH = 420;  // Общий размер canvas
+    const GAME_HEIGHT = 600;
+    canvas.width = GAME_WIDTH;
+    canvas.height = GAME_HEIGHT;
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
+    // === РАЗМЕТКА ===
+    const TOP_MARGIN = 20;
+    const PANEL_HEIGHT = 65;
+    const GAP_TIMER_COUNTER = 10;
+    const GAP_COUNTER_DISPLAY = 20;
+    const DISPLAY_HEIGHT = 400; // Размер игрового поля
+    const BOTTOM_MARGIN = 20;
+    const TIMER_Y = TOP_MARGIN;
+    const COUNTER_Y = TIMER_Y + PANEL_HEIGHT + GAP_TIMER_COUNTER;
+    const DISPLAY_Y = COUNTER_Y + PANEL_HEIGHT + GAP_COUNTER_DISPLAY;
+    const PANEL_WIDTH = 126;
+    const LEFT_MARGIN = 10;
+    const GAP_VOLT_TIMER = 10;
+    const VOLTMETER_X = LEFT_MARGIN;
+    const VOLTMETER_Y = TIMER_Y;
+    const VOLTMETER_WIDTH = PANEL_WIDTH;
+    const VOLTMETER_HEIGHT = PANEL_HEIGHT;
+    const TIMER_X = VOLTMETER_X + VOLTMETER_WIDTH + GAP_VOLT_TIMER;
+    const TIMER_WIDTH = PANEL_WIDTH;
+    const TIMER_HEIGHT = PANEL_HEIGHT;
+    const COUNTER_X = TIMER_X;
+    const COUNTER_WIDTH = PANEL_WIDTH;
+    const COUNTER_HEIGHT = PANEL_HEIGHT;
+    const LCD_X = VOLTMETER_X;
+    const LCD_Y = COUNTER_Y;
+    const LCD_WIDTH = PANEL_WIDTH;
+    const LCD_HEIGHT = PANEL_HEIGHT;
+    const DISPLAY_WIDTH = 400; // Размер игрового поля
+    const DISPLAY_X = 10;
+    // === КНОПКА PWR ===
+    const BUTTON_SIZE = PANEL_HEIGHT;
+    const BUTTON_GAP_FROM_COUNTER = 10;
+    const PWR_X = COUNTER_X + COUNTER_WIDTH + BUTTON_GAP_FROM_COUNTER;
+    const PWR_Y = TIMER_Y;
+    const PWR_CENTER_X = PWR_X + BUTTON_SIZE / 2;
+    const PWR_CENTER_Y = PWR_Y + BUTTON_SIZE / 2;
+    // === 4 ЗЕЛЁНЫЕ ЛАМПОЧКИ ===
+    const LAMP_SIZE = 25;
+    const LAMP_GAP = 10;
+    const LAMP_RIGHT_X = GAME_WIDTH - LAMP_GAP - LAMP_SIZE;
+    const LAMP_LEFT_X = PWR_X + BUTTON_SIZE + LAMP_GAP;
+    const LAMP_TOP_Y = TIMER_Y;
+    const LAMP_BOTTOM_Y = LAMP_TOP_Y + LAMP_SIZE + LAMP_GAP;
+    // Фазы и скорости для каждой лампочки
+    let lampPhases = [0, 0, 0, 0];
+    const lampSpeeds = [0.8, 1.2, 0.9, 1.5];
+    // === КНОПКИ RST и PRG ===
+    const FIELD_LEFT = COUNTER_X + COUNTER_WIDTH + 10;
+    const FIELD_RIGHT = GAME_WIDTH - 10;
+    const FIELD_TOP = COUNTER_Y;
+    const FIELD_BOTTOM = COUNTER_Y + COUNTER_HEIGHT;
+    const FIELD_WIDTH = FIELD_RIGHT - FIELD_LEFT;
+    const FIELD_HEIGHT = FIELD_BOTTOM - FIELD_TOP;
+    const SMALL_BUTTON_SIZE = 50;
+    const GAP_BETWEEN_BUTTONS = 10;
+    const FIELD_CENTER_X = (FIELD_LEFT + FIELD_RIGHT) / 2;
+    const FIELD_CENTER_Y = (FIELD_TOP + FIELD_BOTTOM) / 2;
+    const RST_X = FIELD_CENTER_X - SMALL_BUTTON_SIZE - GAP_BETWEEN_BUTTONS / 2;
+    const RST_Y = FIELD_CENTER_Y - SMALL_BUTTON_SIZE / 2;
+    const RST_CENTER_X = RST_X + SMALL_BUTTON_SIZE / 2;
+    const RST_CENTER_Y = RST_Y + SMALL_BUTTON_SIZE / 2;
+    const PRG_X = FIELD_CENTER_X + GAP_BETWEEN_BUTTONS / 2;
+    const PRG_Y = FIELD_CENTER_Y - SMALL_BUTTON_SIZE / 2;
+    const PRG_CENTER_X = PRG_X + SMALL_BUTTON_SIZE / 2;
+    const PRG_CENTER_Y = PRG_Y + SMALL_BUTTON_SIZE / 2;
+    // === ЗАРЯД РОБОТА ===
+    let robotCharge = 100;
+    let lastChargeTick = 0;
+    let isPowerOn = false;
+    let isRSTPressed = false;
+    let isPRGPressed = false;
+    let powerOffBlink = 0;
+    let borderGlow = 0;
+    let timerSeconds = 180;
+    let lastTickTime = 0;
+    let counterValue = 0;
+    let lastCounterTick = 0;
+    let animatingDigit = null;
+    let systemsActive = false;
+    // === ТЕКСТ ЗАГРУЗКИ ===
+    const bootText = [
+      ">>> INIT",
+      ">>> CONNECT TO RONAVI_MCNS",
+      ">>> LOW SIGNAL",
+      ">>> SUDO START_GAME",
+      ">>> GAME START IN",
+      ">>> 3",
+      ">>> 2",
+      ">>> 1"
+    ];
+    let bootLineIndex = 0;
+    let bootCharIndex = 0;
+    let lastBootTick = 0;
+    let bootActive = false;
+    let bootCompleted = false;
+    // ← GODMODE
+    let prgPressCount = 0;
+    let godmodeActive = false;
+    let passwordMode = false;
+    let inputCode = [];
+    let lastPasswordTick = 0;
+    let passwordLineIndex = 0;
+    let passwordCharIndex = 0;
+    const passwordText = [
+      ">>>GODMODE_OFF",
+      ">>>ENTER PASSWORD"
+    ];
+    // ← GODMODE: клавиатура
+    const KEYPAD_SIZE = 50;
+    const KEYPAD_GAP = 10;
+    const KEYPAD_ROWS = 4;
+    const KEYPAD_COLS = 3;
+    const KEYPAD_TOTAL_WIDTH = KEYPAD_COLS * KEYPAD_SIZE + (KEYPAD_COLS - 1) * KEYPAD_GAP;
+    const KEYPAD_TOTAL_HEIGHT = KEYPAD_ROWS * KEYPAD_SIZE + (KEYPAD_ROWS - 1) * KEYPAD_GAP;
+    const KEYPAD_START_X = DISPLAY_X + (DISPLAY_WIDTH - KEYPAD_TOTAL_WIDTH) / 2;
+    const KEYPAD_START_Y = DISPLAY_Y + 120;
+    let pressedKey = null;
+    // ← GODMODE: ошибка
+    let errorMode = false;
+    let errorText = [
+      ">>>GODMODE_OFF",
+      ">>>ERROR",
+      ">>>POWER_OFF"
+    ];
+    let errorLineIndex = 0;
+    let errorCharIndex = 0;
+    let lastErrorTick = 0;
+    let errorCompleted = false;
+    // ← GODMODE: успешная активация
+    let godmodeSuccess = false;
+    let godmodeDisplayText = [">>>GODMODE_ON"];
+    let godmodeDisplayLineIndex = 0;
+    let godmodeDisplayCharIndex = 0;
+    let lastGodmodeDisplayTick = 0;
+    let godmodeDisplayCompleted = false;
+    // ← Флаг: GODMODE активирован и финализирован (текст исчез, всё заморожено)
+    let isGodmodeFinalized = false;
+    // ← Флаг: Экран завершения игры активен (истекло время или активирован GODMODE)
+    let isGameOverScreenActive = false;
+    // === ИГРА "РОБОТЫ" ===
     const gridSize = 40;
-    const gridWidth = canvas.width / gridSize;
-    const gridHeight = canvas.height / gridSize;
+    const gridWidth = 10; // 400 / 40
+    const gridHeight = 10; // 400 / 40
     let snakes = [];
     let food = [];
     let obstacles = [];
@@ -171,18 +212,23 @@
     let gameStarted = false;
     let targetPoints = [];
     let selectedSnakeIndex = -1;
-    let activeRobotIndex = -1; // <-- ГЛОБАЛЬНЫЙ ИНДЕКС АКТИВНОГО РОБОТА
-    let gameLoop;
-    let timer;
+    let activeRobotIndex = -1;
+    let gameInterval;
+    let gameTimer;
     let timeLeft = 180;
-    let snakeCharges = [100, 100, 100];
+    // Генерируем случайный стартовый заряд от 25 до 90 для каждого робота
+    let snakeCharges = [
+        Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+        Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+        Math.floor(Math.random() * (90 - 25 + 1)) + 25
+    ];
     let moveCounts = [0, 0, 0];
     let onChargingStation = [-1, -1, -1];
     let chargingTimers = [null, null, null];
     let hasCargo = [false, false, false];
     let cargoFood = [null, null, null];
     let onParking = [-1, -1, -1];
-    let isBlinking = [false, false, false]; // <-- ДОБАВЛЕНА ПЕРЕМЕННАЯ ДЛЯ МИГАНИЯ
+    let isBlinking = [false, false, false];
     let snakeRoutes = [[], [], []];
     let routeProgress = [0, 0, 0];
     let reservedTargets = {};
@@ -194,6 +240,7 @@
     let chargingImage = new Image();
     let parkingImage = new Image();
     let obstacleImage = new Image();
+    // Загрузка изображений
     snakeHeadImage.src = 'Robot.png';
     snakeHeadWithShelfImage.src = 'Robot_Shelf.png';
     snakeHeadChargingImage.src = 'Robot_Charg.png';
@@ -201,7 +248,6 @@
     chargingImage.src = 'Charging.png';
     parkingImage.src = 'Parking.png';
     obstacleImage.src = 'Column.png';
-
     function isObstacle(x, y) {
         for (let obstacle of obstacles) {
             if (obstacle.x === x && obstacle.y === y) {
@@ -337,16 +383,21 @@
     function initGame() {
         snakes = [];
         selectedSnakeIndex = -1;
-        activeRobotIndex = -1; // <-- Сбрасываем при старте
+        activeRobotIndex = -1;
         targetPoints = [];
-        snakeCharges = [100, 100, 100];
+        // Генерируем случайный стартовый заряд от 25 до 90 для каждого робота
+        snakeCharges = [
+            Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+            Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+            Math.floor(Math.random() * (90 - 25 + 1)) + 25
+        ];
         moveCounts = [0, 0, 0];
         onChargingStation = [-1, -1, -1];
         chargingTimers = [null, null, null];
         hasCargo = [false, false, false];
         cargoFood = [null, null, null];
         onParking = [-1, -1, -1];
-        isBlinking = [false, false, false]; // <-- Сбрасываем мигание при старте игры
+        isBlinking = [false, false, false];
         snakeRoutes = [[], [], []];
         routeProgress = [0, 0, 0];
         reservedTargets = {};
@@ -377,19 +428,7 @@
         generateParkingSpots();
         generateFood();
         score = 0;
-        scoreElement.textContent = 'Счет: ' + score;
-        gameEndScreen.style.display = 'none';
-        gameStarted = false;
-        selectedSnakeElement.textContent = 'Робот: Нет';
-        snakeChargeElement.textContent = 'Заряд робота: Нет';
-        cargoStatusElement.textContent = 'Статус: Нет';
         timeLeft = 180;
-        updateTimerDisplay();
-    }
-    function updateTimerDisplay() {
-        const minutes = Math.floor(timeLeft / 60);
-        const seconds = timeLeft % 60;
-        timerElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     }
     function generateObstacles() {
         obstacles = [];
@@ -613,7 +652,6 @@
                         }
                         snakeRoutes[i] = [];
                         routeProgress[i] = 0;
-                        // >>> ИСПРАВЛЕНО: МИГАЕТ ТОЛЬКО АКТИВНЫЙ РОБОТ <<<
                         if (i === activeRobotIndex) {
                             isBlinking[i] = true;
                         }
@@ -631,23 +669,23 @@
                 else if (dy > 0) newHead.y++;
                 else if (dy < 0) newHead.y--;
                 if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
-                    gameOver(); return;
+                    return;
                 }
                 for (let j = 0; j < snake.length; j++) {
                     if (snake[j].x === newHead.x && snake[j].y === newHead.y) {
-                        gameOver(); return;
+                        return;
                     }
                 }
                 for (let obstacle of obstacles) {
                     if (obstacle.x === newHead.x && obstacle.y === newHead.y) {
-                        gameOver(); return;
+                        return;
                     }
                 }
                 for (let j = 0; j < snakes.length; j++) {
                     if (i !== j) {
                         for (let segment of snakes[j]) {
                             if (segment.x === newHead.x && segment.y === newHead.y) {
-                                gameOver(); return;
+                                return;
                             }
                         }
                     }
@@ -659,28 +697,34 @@
                     snakeCharges[i]--;
                     moveCounts[i] = 0;
                 }
+                // <<< ИСПРАВЛЕНА ЛОГИКА ЗАРЯДКИ >>>
+                // Проверяем, находится ли робот на зарядной станции
                 if (stationIndex !== -1) {
-                    const targetPoint = targetPoints[i];
-                    if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
-                        if (hasCargo[i]) {
-                        } else {
-                            if (onChargingStation[i] === -1) {
-                                onChargingStation[i] = stationIndex;
-                                startCharging(i);
-                            }
+                    // Условия для НАЧАЛА или ПРОДОЛЖЕНИЯ зарядки:
+                    // 1. Робот не имеет груза
+                    // 2. Он находится на станции (это уже true, так как stationIndex !== -1)
+                    if (!hasCargo[i]) {
+                        // Если зарядка еще не активна, запускаем ее
+                        if (onChargingStation[i] === -1) {
+                            onChargingStation[i] = stationIndex;
+                            startCharging(i);
                         }
+                        // Если зарядка активна, ничего не делаем (она продолжается)
                     } else {
+                        // Если робот имеет груз, но при этом находится на станции и заряжается — останавливаем зарядку
                         if (onChargingStation[i] !== -1) {
                             stopCharging(i);
                             onChargingStation[i] = -1;
                         }
                     }
                 } else {
+                    // Если робот НЕ на станции, но зарядка активна — останавливаем ее
                     if (onChargingStation[i] !== -1) {
                         stopCharging(i);
                         onChargingStation[i] = -1;
                     }
                 }
+                // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
                 if (parkingIndex !== -1) {
                     const targetPoint = targetPoints[i];
                     if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
@@ -688,8 +732,6 @@
                             hasCargo[i] = false;
                             cargoFood[i] = null;
                             score += 10;
-                            scoreElement.textContent = 'Счет: ' + score;
-                            cargoStatusElement.textContent = 'Статус: Нет';
                         }
                     }
                 } else {
@@ -711,12 +753,8 @@
                 if (foodEaten) {
                     hasCargo[i] = true;
                     cargoFood[i] = {x: food[foodIndex].x, y: food[foodIndex].y};
-                    cargoStatusElement.textContent = 'Статус: С грузом';
                     food.splice(foodIndex, 1);
                     generateNewFood();
-                }
-                if (selectedSnakeIndex === i) {
-                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
                 }
             }
         }
@@ -726,9 +764,6 @@
         chargingTimers[snakeIndex] = setInterval(() => {
             if (snakeCharges[snakeIndex] < 100) {
                 snakeCharges[snakeIndex] = Math.min(100, snakeCharges[snakeIndex] + 2);
-                if (selectedSnakeIndex === snakeIndex) {
-                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[snakeIndex];
-                }
             }
         }, 1000);
     }
@@ -793,23 +828,34 @@
         }
         if (attempts < 1000) food.push(newFood);
     }
-    function draw() {
+    function drawGame() {
+        // Сохраняем состояние контекста
+        ctx.save();
+        // Ограничиваем область отрисовки
+        ctx.beginPath();
+        ctx.rect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        ctx.clip();
+        // Сдвигаем систему координат
+        ctx.translate(DISPLAY_X, DISPLAY_Y);
+        // Очищаем только область игры
         ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        // Рисуем сетку
         ctx.strokeStyle = '#cccccc';
         ctx.lineWidth = 1;
         for (let x = 0; x <= gridWidth; x++) {
             ctx.beginPath();
             ctx.moveTo(x * gridSize, 0);
-            ctx.lineTo(x * gridSize, canvas.height);
+            ctx.lineTo(x * gridSize, DISPLAY_HEIGHT);
             ctx.stroke();
         }
         for (let y = 0; y <= gridHeight; y++) {
             ctx.beginPath();
             ctx.moveTo(0, y * gridSize);
-            ctx.lineTo(canvas.width, y * gridSize);
+            ctx.lineTo(DISPLAY_WIDTH, y * gridSize);
             ctx.stroke();
         }
+        // Рисуем препятствия
         obstacles.forEach(obstacle => {
             if (obstacleImage.complete) {
                 ctx.drawImage(obstacleImage, obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
@@ -820,6 +866,7 @@
                 ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
             }
         });
+        // Рисуем зарядные станции
         chargingStations.forEach((station, index) => {
             let onStation = snakes.some(s => s[0].x === station.x && s[0].y === station.y);
             if (!onStation) {
@@ -833,6 +880,7 @@
                 }
             }
         });
+        // Рисуем еду
         food.forEach(f => {
             if (foodImage.complete) {
                 ctx.drawImage(foodImage, f.x * gridSize, f.y * gridSize, gridSize, gridSize);
@@ -843,8 +891,8 @@
                 ctx.strokeRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
             }
         });
+        // Рисуем змеек
         snakes.forEach((snake, snakeIndex) => {
-            let colors = ['#00ff00', '#00ff00', '#00ff00'];
             snake.forEach((segment, index) => {
                 if (index === 0) {
                     let headImageToUse = snakeHeadImage;
@@ -861,7 +909,7 @@
                         if (headImageToUse.complete) {
                             ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
                         } else {
-                            ctx.fillStyle = colors[snakeIndex];
+                            ctx.fillStyle = '#00ff00';
                             ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
                         }
                     }
@@ -873,6 +921,7 @@
                 ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
             });
         });
+        // Рисуем парковочные места
         parkingSpots.forEach(parking => {
             let showParking = true;
             for (let i = 0; i < snakes.length; i++) {
@@ -898,6 +947,7 @@
                 }
             }
         });
+        // Рисуем маршруты
         snakeRoutes.forEach((route, snakeIndex) => {
             if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
                 ctx.strokeStyle = 'yellow';
@@ -912,143 +962,1076 @@
                 ctx.stroke();
             }
         });
+        // Рисуем целевые точки
         targetPoints.forEach((point, index) => {
             if (point) {
                 ctx.strokeStyle = 'yellow';
                 ctx.strokeRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
             }
         });
+        // Восстанавливаем состояние контекста
+        ctx.restore();
     }
     function gameStep() {
         update();
-        draw();
+        drawGame();
     }
     function startGame() {
-        document.getElementById('startImage').style.display = 'none';
-        document.getElementById('gameCanvas').style.display = 'block';
-        gameEndScreen.style.display = 'none';
         if (gameRunning) {
-            clearInterval(gameLoop);
-            clearInterval(timer);
+            clearInterval(gameInterval);
+            clearInterval(gameTimer);
             chargingTimers.forEach(t => t && clearInterval(t));
         }
         initGame();
         gameRunning = true;
-        gameLoop = setInterval(gameStep, 250);
-        timer = setInterval(() => {
-            timeLeft--;
-            updateTimerDisplay();
-            if (timeLeft <= 0) {
-                clearInterval(timer);
-                gameOver();
-            }
-        }, 1000);
+        gameStarted = false;
+        // Игровые циклы НЕ запускаем здесь. Они запустятся после загрузки.
     }
-    function gameOver() {
-        gameRunning = false;
-        chargingTimers.forEach(t => t && clearInterval(t));
-        clearInterval(gameLoop);
-        clearInterval(timer);
-        document.getElementById('gameCanvas').style.display = 'none';
-        gameEndScreen.style.display = 'flex';
-        gameEndScreen.innerHTML = '<div>Игра завершена<br>Вы заработали ' + score + ' очков</div>';
-    }
-    canvas.addEventListener('click', (event) => {
-        if (!gameRunning) return;
-        const rect = canvas.getBoundingClientRect();
-        const mouseX = event.clientX - rect.left;
-        const mouseY = event.clientY - rect.top;
-        const clickX = Math.floor(mouseX / gridSize);
-        const clickY = Math.floor(mouseY / gridSize);
-        if (!gameStarted) {
-            for (let i = 0; i < snakes.length; i++) {
+    canvas.addEventListener('click', handleButtonClick);
+    canvas.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      handleButtonClick(e);
+    });
+    function handleButtonClick(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      let x, y;
+      if (e.type === 'touchend') {
+        x = (e.changedTouches[0].clientX - rect.left) * scaleX;
+        y = (e.changedTouches[0].clientY - rect.top) * scaleY;
+      } else {
+        x = (e.clientX - rect.left) * scaleX;
+        y = (e.clientY - rect.top) * scaleY;
+      }
+      const dxPWR = x - PWR_CENTER_X;
+      const dyPWR = y - PWR_CENTER_Y;
+      const distPWR = Math.sqrt(dxPWR * dxPWR + dyPWR * dyPWR);
+      const dxRST = x - RST_CENTER_X;
+      const dyRST = y - RST_CENTER_Y;
+      const distRST = Math.sqrt(dxRST * dxRST + dyRST * dyRST);
+      const dxPRG = x - PRG_CENTER_X;
+      const dyPRG = y - PRG_CENTER_Y;
+      const distPRG = Math.sqrt(dxPRG * dxPRG + dyPRG * dyPRG);
+      // <<< ИСПРАВЛЕНО: БЛОКИРОВКА GODMODE >>>
+      // Обрабатываем ТОЛЬКО PWR, если GODMODE финализирован, но экран завершения еще НЕ активен.
+      if (isGodmodeFinalized && !isGameOverScreenActive) {
+        if (distPWR <= BUTTON_SIZE / 2) {
+          isPowerOn = !isPowerOn;
+          if (!isPowerOn) {
+            resetAll();
+          } else {
+            lastTickTime = performance.now();
+            lastCounterTick = performance.now();
+            lastChargeTick = performance.now();
+            bootActive = true;
+            bootCompleted = false;
+            bootLineIndex = 0;
+            bootCharIndex = 0;
+            lastBootTick = performance.now();
+            systemsActive = false;
+            robotCharge = 100;
+            prgPressCount = 0;
+            godmodeActive = false;
+            passwordMode = false;
+            inputCode = [];
+            errorMode = false;
+            errorCompleted = false;
+            godmodeSuccess = false;
+            godmodeDisplayCompleted = false;
+            isGodmodeFinalized = false;
+          }
+        }
+        return;
+      }
+      // Обрабатываем ТОЛЬКО PWR, если произошла ошибка.
+      if (errorCompleted) {
+        if (distPWR <= BUTTON_SIZE / 2) {
+          isPowerOn = !isPowerOn;
+          if (!isPowerOn) {
+            resetAll();
+          } else {
+            lastTickTime = performance.now();
+            lastCounterTick = performance.now();
+            lastChargeTick = performance.now();
+            bootActive = true;
+            bootCompleted = false;
+            bootLineIndex = 0;
+            bootCharIndex = 0;
+            lastBootTick = performance.now();
+            systemsActive = false;
+            robotCharge = 100;
+            prgPressCount = 0;
+            godmodeActive = false;
+            passwordMode = false;
+            inputCode = [];
+            errorMode = false;
+            errorCompleted = false;
+            godmodeSuccess = false;
+            godmodeDisplayCompleted = false;
+            isGodmodeFinalized = false;
+          }
+        }
+        return;
+      }
+      // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
+      // Обработка ввода кода
+      if (godmodeActive && !passwordMode && !errorMode && !godmodeSuccess) {
+        handleKeypadClick(x, y);
+        return;
+      }
+      // Обычная логика кнопок
+      if (distPWR <= BUTTON_SIZE / 2) {
+        isPowerOn = !isPowerOn;
+        if (!isPowerOn) {
+          resetAll();
+          // <<< ОБНУЛЯЕМ localStorage ПРИ ВЫКЛЮЧЕНИИ >>>
+          localStorage.removeItem('robotGameHighScores');
+        } else {
+          lastTickTime = performance.now();
+          lastCounterTick = performance.now();
+          lastChargeTick = performance.now();
+          bootActive = true;
+          bootCompleted = false;
+          bootLineIndex = 0;
+          bootCharIndex = 0;
+          lastBootTick = performance.now();
+          systemsActive = false;
+          robotCharge = 100;
+          prgPressCount = 0;
+          godmodeActive = false;
+          passwordMode = false;
+          inputCode = [];
+          errorMode = false;
+          errorCompleted = false;
+          godmodeSuccess = false;
+          godmodeDisplayCompleted = false;
+          isGodmodeFinalized = false;
+          isGameOverScreenActive = false;
+          startGame(); // ← Запускаем игру при включении питания
+        }
+      } else if (distRST <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted) {
+        isRSTPressed = true;
+        setTimeout(function() { isRSTPressed = false; }, 200);
+        if (isGameOverScreenActive) {
+            // Если активен экран завершения, полностью перезапускаем игру
+            isGameOverScreenActive = false;
+            resetAll();
+            startGame();
+        } else {
+            // Обычный сброс
+            initGame();
+            gameStarted = false;
+            // <<< СБРАСЫВАЕМ ТАЙМЕР СТРОГО НА 3:00 >>>
+            timerSeconds = 180;
+            timeLeft = 180;
+            // <<< ОБНУЛЯЕМ localStorage ПРИ СБРОСЕ >>>
+            localStorage.removeItem('robotGameHighScores');
+        }
+      } else if (distPRG <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        isPRGPressed = true;
+        setTimeout(function() { isPRGPressed = false; }, 200);
+        prgPressCount++;
+        if (prgPressCount >= 10) {
+          activateGodmode();
+        }
+      } else {
+        // Обработка кликов по игровому полю
+        if (isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+          const clickX = Math.floor((x - DISPLAY_X) / gridSize);
+          const clickY = Math.floor((y - DISPLAY_Y) / gridSize);
+          if (clickX >= 0 && clickX < gridWidth && clickY >= 0 && clickY < gridHeight) {
+            if (!gameStarted) {
+              for (let i = 0; i < snakes.length; i++) {
                 const head = snakes[i][0];
                 if (head.x === clickX && head.y === clickY) {
-                    selectedSnakeIndex = i;
-                    activeRobotIndex = i; // <-- УСТАНАВЛИВАЕМ АКТИВНОГО
-                    selectedSnakeElement.textContent = 'Робот: ' + (i+1);
-                    snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
-                    cargoStatusElement.textContent = 'Статус: ' + (hasCargo[i] ? 'С грузом' : 'Нет');
-                    const head = snakes[i][0];
-                    const targetKey = `${clickX},${clickY}`;
-                    if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== i) {
-                        return;
-                    }
-                    if (targetPoints[i]) {
-                        const oldKey = `${targetPoints[i].x},${targetPoints[i].y}`;
-                        if (reservedTargets[oldKey] === i) delete reservedTargets[oldKey];
-                    }
-                    snakeRoutes[i] = buildRoute(head.x, head.y, clickX, clickY, i);
-                    routeProgress[i] = 0;
-                    targetPoints[i] = {x: clickX, y: clickY};
-                    reservedTargets[targetKey] = i;
-                    snakeRouteTimestamps[i] = Date.now();
-                    // Выключаем мигание при назначении цели
-                    isBlinking[i] = false;
-                    gameStarted = true;
+                  selectedSnakeIndex = i;
+                  activeRobotIndex = i;
+                  const head = snakes[i][0];
+                  const targetKey = `${clickX},${clickY}`;
+                  if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== i) {
                     return;
+                  }
+                  if (targetPoints[i]) {
+                    const oldKey = `${targetPoints[i].x},${targetPoints[i].y}`;
+                    if (reservedTargets[oldKey] === i) delete reservedTargets[oldKey];
+                  }
+                  snakeRoutes[i] = buildRoute(head.x, head.y, clickX, clickY, i);
+                  routeProgress[i] = 0;
+                  targetPoints[i] = {x: clickX, y: clickY};
+                  reservedTargets[targetKey] = i;
+                  snakeRouteTimestamps[i] = Date.now();
+                  isBlinking[i] = false;
+                  gameStarted = true;
+                  return;
                 }
+              }
+              return;
             }
-            return;
-        }
-        for (let i = 0; i < snakes.length; i++) {
-            const head = snakes[i][0];
-            if (head.x === clickX && head.y === clickY) {
+            for (let i = 0; i < snakes.length; i++) {
+              const head = snakes[i][0];
+              if (head.x === clickX && head.y === clickY) {
                 selectedSnakeIndex = i;
-                activeRobotIndex = i; // <-- УСТАНАВЛИВАЕМ АКТИВНОГО
-                selectedSnakeElement.textContent = 'Робот: ' + (i+1);
-                snakeChargeElement.textContent = 'Заряд робота: ' + snakeCharges[i];
-                cargoStatusElement.textContent = 'Статус: ' + (hasCargo[i] ? 'С грузом' : 'Нет');
-                // Сбрасываем мигание у всех роботов
+                activeRobotIndex = i;
                 isBlinking = [false, false, false];
-                // Включаем мигание только для активного
                 isBlinking[i] = true;
                 return;
+              }
             }
-        }
-        if (selectedSnakeIndex !== -1) {
-            if (isObstacle(clickX, clickY)) return;
-            const stationIndex = isChargingStation(clickX, clickY);
-            if (stationIndex !== -1) {
+            if (selectedSnakeIndex !== -1) {
+              if (isObstacle(clickX, clickY)) return;
+              const stationIndex = isChargingStation(clickX, clickY);
+              if (stationIndex !== -1) {
                 if (hasCargo[selectedSnakeIndex]) return;
                 const head = snakes[selectedSnakeIndex][0];
                 const targetKey = `${clickX},${clickY}`;
                 if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
-                    return;
+                  return;
                 }
                 if (targetPoints[selectedSnakeIndex]) {
-                    const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
-                    if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                  const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                  if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
                 }
                 snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
                 routeProgress[selectedSnakeIndex] = 0;
                 targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
                 reservedTargets[targetKey] = selectedSnakeIndex;
                 snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
-                // Выключаем мигание для выбранного робота при назначении цели
                 isBlinking[selectedSnakeIndex] = false;
-            } else {
+              } else {
                 let isFood = food.some(f => f.x === clickX && f.y === clickY);
                 if (isFood && hasCargo[selectedSnakeIndex]) return;
                 const head = snakes[selectedSnakeIndex][0];
                 const targetKey = `${clickX},${clickY}`;
                 if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
-                    return;
+                  return;
                 }
                 if (targetPoints[selectedSnakeIndex]) {
-                    const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
-                    if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                  const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                  if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
                 }
                 snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
                 routeProgress[selectedSnakeIndex] = 0;
                 targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
                 reservedTargets[targetKey] = selectedSnakeIndex;
                 snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
-                // Выключаем мигание для выбранного робота при назначении цели
                 isBlinking[selectedSnakeIndex] = false;
+              }
             }
+          }
+        } else if (isGameOverScreenActive) {
+          // <<< ОБРАБОТКА НАЖАТИЯ НА КНОПКУ SAVE >>>
+          const saveButtonX = DISPLAY_X + 100;
+          const saveButtonY = DISPLAY_Y + 300;
+          const saveButtonWidth = 200;
+          const saveButtonHeight = 60;
+          if (x >= saveButtonX && x <= saveButtonX + saveButtonWidth &&
+              y >= saveButtonY && y <= saveButtonY + saveButtonHeight) {
+            // Сохраняем очки в localStorage
+            let highScores = JSON.parse(localStorage.getItem('robotGameHighScores') || '[]');
+            highScores.push({
+                score: counterValue,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('robotGameHighScores', JSON.stringify(highScores));
+            alert('Ваш результат сохранен!');
+            // <<< ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ СОХРАНЕНИЯ >>>
+            isGameOverScreenActive = false;
+            resetAll();
+            isPowerOn = true;
+            lastTickTime = performance.now();
+            lastCounterTick = performance.now();
+            lastChargeTick = performance.now();
+            bootActive = true;
+            bootCompleted = false;
+            bootLineIndex = 0;
+            bootCharIndex = 0;
+            lastBootTick = performance.now();
+            systemsActive = false;
+            robotCharge = 100;
+            prgPressCount = 0;
+            godmodeActive = false;
+            passwordMode = false;
+            inputCode = [];
+            errorMode = false;
+            errorCompleted = false;
+            godmodeSuccess = false;
+            godmodeDisplayCompleted = false;
+            isGodmodeFinalized = false;
+            startGame();
+          }
         }
+      }
+    }
+    function handleKeypadClick(x, y) {
+      if (passwordMode || errorMode || godmodeSuccess) return;
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const digit = row * 3 + col + 1;
+          const keyX = KEYPAD_START_X + col * (KEYPAD_SIZE + KEYPAD_GAP);
+          const keyY = KEYPAD_START_Y + row * (KEYPAD_SIZE + KEYPAD_GAP);
+          if (x >= keyX && x <= keyX + KEYPAD_SIZE &&
+              y >= keyY && y <= keyY + KEYPAD_SIZE) {
+            if (inputCode.length < 3) {
+              inputCode.push(digit);
+            }
+            pressedKey = digit;
+            setTimeout(() => pressedKey = null, 100);
+            return;
+          }
+        }
+      }
+      const zeroX = KEYPAD_START_X + 1 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const zeroY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      if (x >= zeroX && x <= zeroX + KEYPAD_SIZE &&
+          y >= zeroY && y <= zeroY + KEYPAD_SIZE) {
+        if (inputCode.length < 3) {
+          inputCode.push(0);
+        }
+        pressedKey = 0;
+        setTimeout(() => pressedKey = null, 100);
+        return;
+      }
+      const delX = KEYPAD_START_X + 0 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const delY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      if (x >= delX && x <= delX + KEYPAD_SIZE &&
+          y >= delY && y <= delY + KEYPAD_SIZE) {
+        if (inputCode.length > 0) {
+          inputCode.pop();
+        }
+        pressedKey = 'DEL';
+        setTimeout(() => pressedKey = null, 100);
+        return;
+      }
+      const starX = KEYPAD_START_X + 2 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const starY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      if (x >= starX && x <= starX + KEYPAD_SIZE &&
+          y >= starY && y <= starY + KEYPAD_SIZE) {
+        checkPassword();
+        pressedKey = '*';
+        setTimeout(() => pressedKey = null, 100);
+        return;
+      }
+    }
+    function activateGodmode() {
+      godmodeActive = true;
+      passwordMode = true;
+      inputCode = [];
+      passwordLineIndex = 0;
+      passwordCharIndex = 0;
+      lastPasswordTick = performance.now();
+      systemsActive = false;
+      errorMode = false;
+      errorCompleted = false;
+      godmodeSuccess = false;
+      godmodeDisplayCompleted = false;
+      isGodmodeFinalized = false;
+    }
+    // <<< ИСПРАВЛЕНА ФУНКЦИЯ checkPassword >>>
+    function checkPassword() {
+      passwordMode = false;
+      if (inputCode[0] === 6 && inputCode[1] === 6 && inputCode[2] === 6) {
+        counterValue = 999;
+        godmodeSuccess = true;
+        godmodeDisplayLineIndex = 0;
+        godmodeDisplayCharIndex = 0;
+        lastGodmodeDisplayTick = performance.now();
+        godmodeDisplayCompleted = false;
+        // <<< ПОКАЗЫВАЕМ ЭКРАН ЗАВЕРШЕНИЯ СРАЗУ >>>
+        isGameOverScreenActive = true;
+        systemsActive = false;
+      } else {
+        errorMode = true;
+        errorLineIndex = 0;
+        errorCharIndex = 0;
+        lastErrorTick = performance.now();
+        errorCompleted = false;
+        // <<< УДАЛЕН setTimeout. Проверка будет в gameLoop. >>>
+        // Ничего не делаем здесь. Проверка errorCompleted будет в gameLoop.
+      }
+      inputCode = [];
+    }
+    // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
+    function resetAll() {
+      timerSeconds = 180;
+      counterValue = 0;
+      animatingDigit = null;
+      lampPhases = [0, 0, 0, 0];
+      isRSTPressed = false;
+      isPRGPressed = false;
+      robotCharge = 100;
+      bootActive = false;
+      bootCompleted = false;
+      bootLineIndex = 0;
+      bootCharIndex = 0;
+      systemsActive = false;
+      prgPressCount = 0;
+      godmodeActive = false;
+      passwordMode = false;
+      inputCode = [];
+      errorMode = false;
+      errorCompleted = false;
+      godmodeSuccess = false;
+      godmodeDisplayCompleted = false;
+      isGodmodeFinalized = false;
+      isGameOverScreenActive = false;
+      // Сбрасываем игру
+      if (gameRunning) {
+        if (gameInterval) clearInterval(gameInterval);
+        if (gameTimer) clearInterval(gameTimer);
+        chargingTimers.forEach(t => t && clearInterval(t));
+        gameRunning = false;
+        gameStarted = false;
+      }
+    }
+    function drawButton(x, y, size, isPressed, baseColor, pressedColor, textColor, text, isActive) {
+      const centerX = x + size / 2;
+      const centerY = y + size / 2;
+      ctx.shadowColor = isActive ? 'rgba(255,255,255,0.3)' : 'rgba(100,100,100,0.1)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, size / 2, 0, Math.PI * 2);
+      let buttonColor;
+      if (isPressed && isActive) {
+        buttonColor = pressedColor;
+      } else {
+        buttonColor = baseColor;
+      }
+      ctx.fillStyle = buttonColor;
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#222';
+      ctx.stroke();
+      ctx.shadowColor = 'transparent';
+      ctx.fillStyle = textColor;
+      ctx.font = 'bold 14px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, centerX, centerY);
+    }
+    function drawPowerButton() {
+      let r, g, b;
+      if (isPowerOn) {
+        r = 96; g = 0; b = 0;
+      } else {
+        const brightness = 0.8 + Math.sin(powerOffBlink * 1.5) * 0.2;
+        r = Math.floor(220 + brightness * 35);
+        g = Math.floor(60 + brightness * 20);
+        b = Math.floor(60 + brightness * 20);
+      }
+      drawButton(
+        PWR_X,
+        PWR_Y,
+        BUTTON_SIZE,
+        false,
+        'rgb(' + r + ', ' + g + ', ' + b + ')',
+        '',
+        isPowerOn ? '#888' : '#ffffff',
+        'PWR',
+        true
+      );
+    }
+    function drawRSTButton() {
+      const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted;
+      drawButton(
+        RST_X,
+        RST_Y,
+        SMALL_BUTTON_SIZE,
+        isRSTPressed && isActive,
+        isActive ? '#600000' : '#300000',
+        'rgb(255, 80, 80)',
+        '#ffffff',
+        'RST',
+        isActive
+      );
+    }
+    function drawPRGButton() {
+      const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
+      drawButton(
+        PRG_X,
+        PRG_Y,
+        SMALL_BUTTON_SIZE,
+        isPRGPressed && isActive,
+        isActive ? '#404000' : '#202000',
+        'rgb(255, 255, 0)',
+        '#ffffff',
+        'PRG',
+        isActive
+      );
+    }
+    function drawLamps() {
+      const darkGreen = 'rgb(0, 80, 40)';
+      if (!isPowerOn || errorCompleted) {
+        drawLamp(LAMP_LEFT_X, LAMP_TOP_Y, darkGreen);
+        drawLamp(LAMP_RIGHT_X, LAMP_TOP_Y, darkGreen);
+        drawLamp(LAMP_LEFT_X, LAMP_BOTTOM_Y, darkGreen);
+        drawLamp(LAMP_RIGHT_X, LAMP_BOTTOM_Y, darkGreen);
+      } else {
+        for (let i = 0; i < 4; i++) {
+          lampPhases[i] += 0.05 * lampSpeeds[i];
+          const brightness = 0.5 + 0.5 * Math.sin(lampPhases[i]);
+          const g = Math.floor(80 + brightness * 175);
+          const color = 'rgb(0, ' + g + ', 40)';
+          let x, y;
+          if (i === 0) { x = LAMP_LEFT_X; y = LAMP_TOP_Y; }
+          if (i === 1) { x = LAMP_RIGHT_X; y = LAMP_TOP_Y; }
+          if (i === 2) { x = LAMP_LEFT_X; y = LAMP_BOTTOM_Y; }
+          if (i === 3) { x = LAMP_RIGHT_X; y = LAMP_BOTTOM_Y; }
+          drawLamp(x, y, color);
+        }
+      }
+    }
+    function drawLamp(x, y, color) {
+      ctx.shadowColor = 'rgba(0, 255, 100, 0.4)';
+      ctx.shadowBlur = 10;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(x + LAMP_SIZE / 2, y + LAMP_SIZE / 2, LAMP_SIZE / 2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowColor = 'transparent';
+      ctx.strokeStyle = '#000';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+    function drawVoltmeter() {
+      ctx.fillStyle = '#0a0a0a';
+      roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      const textColor = isPowerOn ? '#00ff00' : '#666';
+      ctx.fillStyle = textColor;
+      ctx.font = '12px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText('0', VOLTMETER_X + 15, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
+      ctx.fillText('100', VOLTMETER_X + VOLTMETER_WIDTH - 20, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
+      // <<< ИСПРАВЛЕНИЕ: МИГАНИЕ ТЕКСТА "ENERGY" ПРИ ЗАРЯДЕ < 50 >>>
+      let currentCharge = systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted ? (activeRobotIndex !== -1 ? snakeCharges[activeRobotIndex] : robotCharge) : robotCharge;
+      let energyColor = '#00ff00';
+      if (currentCharge < 50 && isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted) {
+          // <<< МИГАЕТ В 3 РАЗА БЫСТРЕЕ ЛАМПОЧЕК >>>
+          const brightness = 0.5 + 0.5 * Math.sin(lampPhases[0] * 3);
+          const g = Math.floor(80 + brightness * 175);
+          energyColor = 'rgb(0, ' + g + ', 40)';
+      }
+      ctx.fillStyle = energyColor;
+      ctx.font = 'bold 16px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('ENERGY', VOLTMETER_X + VOLTMETER_WIDTH / 2, VOLTMETER_Y + VOLTMETER_HEIGHT / 2 - 18);
+      // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
+      const pivotX = VOLTMETER_X + VOLTMETER_WIDTH / 2;
+      const pivotY = VOLTMETER_Y + VOLTMETER_HEIGHT - 5;
+      const angle = -Math.PI * (1 - (currentCharge / 100));
+      const needleLength = 30;
+      const tipX = pivotX + Math.cos(angle) * needleLength;
+      const tipY = pivotY + Math.sin(angle) * needleLength;
+      ctx.beginPath();
+      ctx.moveTo(pivotX, pivotY);
+      ctx.lineTo(tipX, tipY);
+      ctx.strokeStyle = '#ff3030';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
+      ctx.fillStyle = '#ff3030';
+      ctx.fill();
+    }
+    function drawLCDDisplay() {
+      ctx.fillStyle = '#0a0a0a';
+      roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      let topText = "-----";
+      let bottomText = "-----";
+      if (systemsActive && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        if (activeRobotIndex !== -1) {
+          topText = `UNIT${activeRobotIndex + 1}`;
+          bottomText = hasCargo[activeRobotIndex] ? "LOAD" : "EMPTY";
+        }
+      }
+      const charWidth = LCD_WIDTH / 5;
+      const topY = LCD_Y + 22;
+      const bottomY = LCD_Y + 45;
+      ctx.fillStyle = '#666';
+      ctx.font = 'bold 14px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      for (let i = 0; i < 5; i++) {
+        if (i < topText.length && topText !== "-----") {
+          ctx.fillStyle = '#00ff00';
+          ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
+          ctx.fillStyle = '#666';
+        } else {
+          ctx.fillText('-', LCD_X + charWidth * (i + 0.5), topY);
+        }
+      }
+      for (let i = 0; i < 5; i++) {
+        if (i < bottomText.length && bottomText !== "-----") {
+          ctx.fillStyle = '#00ff00';
+          ctx.fillText(bottomText[i], LCD_X + charWidth * (i + 0.5), bottomY);
+          ctx.fillStyle = '#666';
+        } else {
+          ctx.fillText('-', LCD_X + charWidth * (i + 0.5), bottomY);
+        }
+      }
+    }
+    function draw3DCounter() {
+      const now = performance.now();
+      if (isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive && now - lastCounterTick >= 1000) {
+        lastCounterTick = now;
+        const oldValue = counterValue;
+        counterValue = score; // ← Синхронизируем со счетом игры
+        const oldHundreds = Math.floor(oldValue / 100) % 10;
+        const oldTens = Math.floor(oldValue / 10) % 10;
+        const oldUnits = oldValue % 10;
+        const newHundreds = Math.floor(counterValue / 100) % 10;
+        const newTens = Math.floor(counterValue / 10) % 10;
+        const newUnits = counterValue % 10;
+        if (newUnits !== oldUnits) {
+          animatingDigit = { wheel: 2, from: oldUnits, to: newUnits, progress: 0 };
+        }
+        if (newTens !== oldTens) {
+          animatingDigit = { wheel: 1, from: oldTens, to: newTens, progress: 0 };
+        }
+        if (newHundreds !== oldHundreds) {
+          animatingDigit = { wheel: 0, from: oldHundreds, to: newHundreds, progress: 0 };
+        }
+      }
+      if (animatingDigit && isPowerOn) {
+        animatingDigit.progress += 0.04;
+        if (animatingDigit.progress >= 1) {
+          animatingDigit = null;
+        }
+      }
+      ctx.fillStyle = '#0a0a0a';
+      roundRect(ctx, COUNTER_X, COUNTER_Y, COUNTER_WIDTH, COUNTER_HEIGHT, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.save();
+      roundRect(ctx, COUNTER_X, COUNTER_Y, COUNTER_WIDTH, COUNTER_HEIGHT, 6);
+      ctx.clip();
+      const wheelWidth = COUNTER_WIDTH / 3;
+      const digits = [
+        Math.floor(counterValue / 100) % 10,
+        Math.floor(counterValue / 10) % 10,
+        counterValue % 10
+      ].map(function(d) {
+        return isNaN(d) ? 0 : d;
+      });
+      for (let i = 0; i < 3; i++) {
+        const x = COUNTER_X + i * wheelWidth;
+        const y = COUNTER_Y;
+        const centerX = x + wheelWidth / 2;
+        const centerY = y + COUNTER_HEIGHT / 2;
+        if (animatingDigit && animatingDigit.wheel === i) {
+          const fromDigit = animatingDigit.from;
+          const toDigit = animatingDigit.to;
+          const p = animatingDigit.progress;
+          draw3DRectAndDigit(fromDigit, centerX, centerY, wheelWidth, COUNTER_HEIGHT, p * Math.PI, true);
+          draw3DRectAndDigit(toDigit, centerX, centerY, wheelWidth, COUNTER_HEIGHT, -Math.PI + p * Math.PI, false);
+        } else {
+          drawStaticRectAndDigit(digits[i], centerX, centerY, wheelWidth, COUNTER_HEIGHT);
+        }
+      }
+      ctx.restore();
+    }
+    function drawStaticRectAndDigit(digit, centerX, centerY, width, height) {
+      const halfHeight = height / 2;
+      const rectWidth = width * 0.95;
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fillRect(centerX - rectWidth/2, centerY - halfHeight, rectWidth, halfHeight);
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.fillStyle = isPowerOn ? '#00ff00' : '#666';
+      ctx.font = 'bold 24px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(digit), 0, 0);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(centerX - rectWidth/2, centerY, rectWidth, halfHeight);
+    }
+    function draw3DRectAndDigit(digit, centerX, centerY, width, height, rotationAngle, isUpper) {
+      const cosA = Math.cos(rotationAngle);
+      const sinA = Math.sin(rotationAngle);
+      const scale = 0.8 + 0.2 * Math.abs(cosA);
+      const yOffset = sinA * height * 0.25;
+      ctx.save();
+      ctx.translate(centerX, centerY + yOffset);
+      ctx.scale(scale, scale);
+      const halfHeight = height / 2;
+      const rectWidth = width * 0.95;
+      if (isUpper) {
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(-rectWidth/2, -halfHeight, rectWidth, halfHeight);
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(-rectWidth/2, 0, rectWidth, halfHeight);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.font = 'bold 24px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(digit), 1, 1);
+      ctx.fillStyle = isPowerOn ? '#00ff00' : '#666';
+      ctx.fillText(String(digit), 0, 0);
+      if (cosA > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(-rectWidth/2, -halfHeight/2, rectWidth, halfHeight/4);
+      }
+      ctx.restore();
+    }
+    function drawTimer() {
+      ctx.fillStyle = '#0a0a0a';
+      roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      if (isPowerOn) {
+        const now = performance.now();
+        if (systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive && now - lastTickTime >= 1000 && timerSeconds > 0) {
+          timerSeconds = timeLeft; // ← Синхронизируем с таймером игры
+          lastTickTime = now;
+        }
+        const mins = Math.floor(timerSeconds / 60);
+        const secs = timerSeconds % 60;
+        const timeText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        let textColor = '#00ff00';
+        if (timerSeconds <= 30 && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+          const blink = Math.floor(performance.now() / 500) % 2;
+          if (blink === 0) {
+            textColor = '#0a0a0a';
+          } else {
+            textColor = '#00ff00';
+          }
+        }
+        ctx.fillStyle = textColor;
+        ctx.font = 'bold 36px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(timeText, TIMER_X + TIMER_WIDTH / 2, TIMER_Y + TIMER_HEIGHT / 2);
+      } else {
+        ctx.fillStyle = '#555';
+        ctx.font = 'bold 36px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('--:--', TIMER_X + TIMER_WIDTH / 2, TIMER_Y + TIMER_HEIGHT / 2);
+      }
+    }
+    function drawBootText() {
+      if (!bootActive || !isPowerOn || godmodeActive || isGodmodeFinalized || errorCompleted) return;
+      if (bootCompleted) return;
+      const now = performance.now();
+      if (now - lastBootTick >= 80) {
+        lastBootTick = now;
+        if (bootCharIndex >= bootText[bootLineIndex].length) {
+          bootCharIndex = 0;
+          bootLineIndex++;
+          if (bootLineIndex >= bootText.length) {
+            bootCompleted = true;
+            systemsActive = true;
+            // <<< ЗАПУСКАЕМ ИГРОВЫЕ ЦИКЛЫ ПОСЛЕ ЗАГРУЗКИ >>>
+            gameInterval = setInterval(gameStep, 250);
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(gameTimer);
+                    // <<< ПОКАЗЫВАЕМ ЭКРАН ТОЛЬКО КОГДА ТАЙМЕР ДОСТИГ 00:00 >>>
+                    if (timeLeft === 0) {
+                        isGameOverScreenActive = true;
+                        systemsActive = false;
+                    }
+                }
+            }, 1000);
+            // <<< КОНЕЦ ЗАПУСКА >>>
+            return;
+          }
+        } else {
+          bootCharIndex++;
+        }
+      }
+      ctx.fillStyle = '#00ff00';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < bootLineIndex; i++) {
+        ctx.fillText(bootText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
+      }
+      if (bootLineIndex < bootText.length) {
+        const currentLine = bootText[bootLineIndex].substring(0, bootCharIndex);
+        ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + bootLineIndex * 20);
+      }
+    }
+    function drawPasswordText() {
+      if (!godmodeActive || !passwordMode || !isPowerOn || isGodmodeFinalized || errorCompleted) return;
+      const now = performance.now();
+      if (now - lastPasswordTick >= 80) {
+        lastPasswordTick = now;
+        if (passwordCharIndex >= passwordText[passwordLineIndex].length) {
+          passwordCharIndex = 0;
+          passwordLineIndex++;
+          if (passwordLineIndex >= passwordText.length) {
+            passwordMode = false;
+            return;
+          }
+        } else {
+          passwordCharIndex++;
+        }
+      }
+      ctx.fillStyle = '#00ff00';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < passwordLineIndex; i++) {
+        ctx.fillText(passwordText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
+      }
+      if (passwordLineIndex < passwordText.length) {
+        const currentLine = passwordText[passwordLineIndex].substring(0, passwordCharIndex);
+        ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + passwordLineIndex * 20);
+      }
+    }
+    function drawInputField() {
+      if (!godmodeActive || passwordMode || !isPowerOn || errorMode || godmodeSuccess || isGodmodeFinalized || errorCompleted) return;
+      ctx.font = 'bold 48px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const centerX = DISPLAY_X + 200;
+      const centerY = DISPLAY_Y + 75;
+      for (let i = 0; i < 3; i++) {
+        const xPos = centerX - 60 + i * 60;
+        if (i < inputCode.length) {
+          ctx.fillStyle = '#00ff00';
+          ctx.fillText(inputCode[i].toString(), xPos, centerY);
+        } else {
+          ctx.fillStyle = '#666';
+          ctx.fillText("-", xPos, centerY);
+        }
+      }
+    }
+    function drawKeypad() {
+      if (!godmodeActive || passwordMode || !isPowerOn || errorMode || godmodeSuccess || isGodmodeFinalized || errorCompleted) return;
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const digit = row * 3 + col + 1;
+          const keyX = KEYPAD_START_X + col * (KEYPAD_SIZE + KEYPAD_GAP);
+          const keyY = KEYPAD_START_Y + row * (KEYPAD_SIZE + KEYPAD_GAP);
+          drawKey(keyX, keyY, String(digit), pressedKey === digit);
+        }
+      }
+      const zeroX = KEYPAD_START_X + 1 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const zeroY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      drawKey(zeroX, zeroY, "0", pressedKey === 0);
+      const delX = KEYPAD_START_X + 0 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const delY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      drawKey(delX, delY, "DEL", pressedKey === 'DEL');
+      const starX = KEYPAD_START_X + 2 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const starY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      drawKey(starX, starY, "*", pressedKey === '*');
+    }
+    function drawKey(x, y, label, isPressed) {
+      ctx.fillStyle = isPressed ? '#00ff00' : '#003000';
+      roundRect(ctx, x, y, KEYPAD_SIZE, KEYPAD_SIZE, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = '#00ff00';
+      ctx.font = 'bold 24px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(label, x + KEYPAD_SIZE/2, y + KEYPAD_SIZE/2);
+    }
+    function drawGodmodeDisplay() {
+      if (!godmodeSuccess || !isPowerOn || isGodmodeFinalized || errorCompleted) return;
+      const now = performance.now();
+      if (now - lastGodmodeDisplayTick >= 80) {
+        lastGodmodeDisplayTick = now;
+        if (godmodeDisplayCharIndex >= godmodeDisplayText[godmodeDisplayLineIndex].length) {
+          godmodeDisplayCompleted = true;
+          // <<< Активируем финализацию GODMODE >>>
+          isGodmodeFinalized = true;
+          // <<< Активируем экран завершения игры ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ ТЕКСТА >>>
+          isGameOverScreenActive = true;
+          return;
+        } else {
+          godmodeDisplayCharIndex++;
+        }
+      }
+      // <<< Рисуем черный фон для GODMODE >>>
+      ctx.fillStyle = 'black';
+      ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      // <<< Рисуем текст >>>
+      ctx.fillStyle = '#00ff00';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      const currentLine = godmodeDisplayText[godmodeDisplayLineIndex].substring(0, godmodeDisplayCharIndex);
+      ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20);
+    }
+    function drawErrorText() {
+      if (!errorMode || !isPowerOn || errorCompleted || isGodmodeFinalized) return;
+      const now = performance.now();
+      if (now - lastErrorTick >= 80) {
+        lastErrorTick = now;
+        if (errorCharIndex >= errorText[errorLineIndex].length) {
+          errorCharIndex = 0;
+          errorLineIndex++;
+          if (errorLineIndex >= errorText.length) {
+            errorCompleted = true;
+            return;
+          }
+        } else {
+          errorCharIndex++;
+        }
+      }
+      ctx.fillStyle = '#00ff00';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < errorLineIndex; i++) {
+        ctx.fillText(errorText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
+      }
+      if (errorLineIndex < errorText.length) {
+        const currentLine = errorText[errorLineIndex].substring(0, errorCharIndex);
+        ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + errorLineIndex * 20);
+      }
+    }
+    function drawGlowBorder() {
+      if (errorCompleted) {
+        borderGlow = 0;
+      } else {
+        if (!isPowerOn) {
+          if (borderGlow > 0) borderGlow -= 0.02;
+        } else {
+          if (borderGlow < 1) borderGlow += 0.02;
+        }
+        if (borderGlow > 1) borderGlow = 1;
+        if (borderGlow < 0) borderGlow = 0;
+      }
+      const glowColor = `rgba(0, 255, 0, ${borderGlow * 0.3})`;
+      const lineColor = isPowerOn ? '#00ff00' : 'rgb(0, 80, 40)';
+      const offset = borderGlow * 2;
+      ctx.shadowColor = glowColor;
+      ctx.shadowBlur = 3;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 0;
+      ctx.strokeStyle = lineColor;
+      ctx.lineWidth = 1;
+      ctx.strokeRect(DISPLAY_X - offset, DISPLAY_Y - offset, DISPLAY_WIDTH + offset*2, DISPLAY_HEIGHT + offset*2);
+      roundRect(ctx, VOLTMETER_X - offset, VOLTMETER_Y - offset, VOLTMETER_WIDTH + offset*2, VOLTMETER_HEIGHT + offset*2, 6);
+      ctx.stroke();
+      roundRect(ctx, LCD_X - offset, LCD_Y - offset, LCD_WIDTH + offset*2, LCD_HEIGHT + offset*2, 6);
+      ctx.stroke();
+      roundRect(ctx, TIMER_X - offset, TIMER_Y - offset, TIMER_WIDTH + offset*2, TIMER_HEIGHT + offset*2, 4);
+      ctx.stroke();
+      ctx.shadowColor = 'transparent';
+    }
+    // <<< ФУНКЦИЯ ОТРИСОВКИ ЭКРАНА ЗАВЕРШЕНИЯ ИГРЫ НА CANVAS >>>
+    function drawGameOverScreen() {
+        // Рисуем черный фон экрана завершения
+        ctx.fillStyle = 'black';
+        ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        // Рисуем текст результата
+        ctx.fillStyle = '#00ff00';
+        ctx.font = 'bold 36px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`СЧЕТ: ${counterValue}`, DISPLAY_X + 200, DISPLAY_Y + 150);
+        // Рисуем кнопку SAVE
+        const saveButtonX = DISPLAY_X + 100;
+        const saveButtonY = DISPLAY_Y + 300;
+        const saveButtonWidth = 200;
+        const saveButtonHeight = 60;
+        // <<< УДАЛЕНА ПРОБЛЕМНАЯ ЛОГИКА С ДОБАВЛЕНИЕМ ОБРАБОТЧИКОВ >>>
+        // <<< КНОПКА БУДЕТ РЕАГИРОВАТЬ ЧЕРЕЗ ОСНОВНОЙ ОБРАБОТЧИК handleButtonClick >>>
+        ctx.fillStyle = '#00ff00'; // Зеленый цвет
+        roundRect(ctx, saveButtonX, saveButtonY, saveButtonWidth, saveButtonHeight, 8);
+        ctx.fill();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 24px "Courier New", monospace';
+        ctx.fillText('SAVE', saveButtonX + saveButtonWidth / 2, saveButtonY + saveButtonHeight / 2);
+    }
+    // <<< КОНЕЦ ФУНКЦИИ >>>
+    function gameLoop() {
+      ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+      if (!isPowerOn) {
+        powerOffBlink += 0.05;
+      }
+      // Очищаем фон дисплея только если игра не активна
+      if (!systemsActive || errorCompleted || isGodmodeFinalized) {
+          ctx.fillStyle = '#000';
+          ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      }
+      // Рисуем игровое поле
+      if (systemsActive && !errorCompleted && !isGodmodeFinalized && !isGameOverScreenActive) {
+        drawGame();
+      }
+      // <<< РИСУЕМ ЭКРАН ЗАВЕРШЕНИЯ ИГРЫ >>>
+      if (isGameOverScreenActive) {
+        drawGameOverScreen();
+      }
+      // Рисуем UI-элементы панели
+      drawLCDDisplay();
+      drawVoltmeter();
+      draw3DCounter();
+      drawTimer();
+      drawPowerButton();
+      drawLamps();
+      drawRSTButton();
+      drawPRGButton();
+      drawGlowBorder();
+      drawBootText();
+      if (godmodeActive) {
+        drawPasswordText();
+        drawInputField();
+        drawKeypad();
+        drawErrorText();
+        drawGodmodeDisplay();
+      }
+
+      // <<< НОВАЯ ЛОГИКА: Проверяем, завершена ли анимация ошибки >>>
+      if (errorMode && errorCompleted && !isPowerOn) {
+        // Если анимация ошибки завершена и питание уже выключено, ничего не делаем.
+        // Это состояние уже обработано.
+      } else if (errorMode && errorCompleted) {
+        // Анимация ошибки завершена, но питание еще включено — выключаем его.
+        isPowerOn = false;
+        resetAll();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+    window.addEventListener('load', function() {
+      setTimeout(gameLoop, 100);
     });
-    </script>
+  </script>
 </body>
 </html>
