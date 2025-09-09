@@ -49,12 +49,50 @@
       max-width: 100vw;
       max-height: 100vh;
     }
+
+    /* Стиль для экрана ошибки при локальном запуске */
+    #error-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #111;
+      color: #ff3030;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      z-index: 9999;
+      font-family: 'Courier New', monospace;
+    }
+    #error-screen h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    #error-screen p {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
   </style>
+
+  <!-- Подключаем Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
   </div>
+
+  <!-- Экран ошибки для локального запуска -->
+  <div id="error-screen" style="display: none;">
+    <h1>🚫 ДОСТУП ЗАПРЕЩЕН</h1>
+    <p>Эта игра предназначена исключительно для запуска внутри Telegram.</p>
+    <p>Пожалуйста, откройте ее через бота в приложении Telegram.</p>
+  </div>
+
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -98,6 +136,7 @@
     const POWER_LEFT_MARGIN_FROM_TIMER = 10; // Отступ от правой стороны таймера
     const POWER_X = TIMER_X + TIMER_WIDTH + POWER_LEFT_MARGIN_FROM_TIMER; // Левая сторона кнопки
     const POWER_WIDTH = GAME_WIDTH - POWER_X - POWER_RIGHT_MARGIN; // Автоматический расчет ширины
+    const POWER_Y = TIMER_Y;
     const POWER_CENTER_X = POWER_X + POWER_WIDTH / 2;
     const POWER_CENTER_Y = POWER_Y + POWER_BUTTON_HEIGHT / 2;
     // === КНОПКИ RESET и PROG ===
@@ -2338,44 +2377,34 @@
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.closePath();
     }
-    // ============ ИНИЦИАЛИЗАЦИЯ ИГРЫ ============
-    // Ждем полной загрузки страницы
-    window.addEventListener('load', function() {
-        // Проверяем, запущена ли игра в Telegram Web App
+
+    // Функция для инициализации игры после проверки Telegram
+    function initializeGame() {
+        // Проверяем, доступен ли Telegram WebApp
         if (window.Telegram && window.Telegram.WebApp) {
-            // Игра запущена внутри Telegram
+            // Инициализируем WebApp
             window.Telegram.WebApp.ready();
             console.log("✅ Telegram WebApp успешно инициализирован");
+
+            // Скрываем экран ошибки, если он был показан
+            document.getElementById('error-screen').style.display = 'none';
+
             // Запускаем игровой цикл
-            setTimeout(gameLoop, 100);
+            gameLoop();
         } else {
-            // Игра запущена локально (не в Telegram)
-            console.error("❌ Игра должна запускаться только через Telegram Web App!");
-            // Полностью очищаем страницу
-            document.body.innerHTML = '';
-            // Создаем и показываем сообщение об ошибке
-            const errorDiv = document.createElement('div');
-            errorDiv.style.position = 'fixed';
-            errorDiv.style.top = '50%';
-            errorDiv.style.left = '50%';
-            errorDiv.style.transform = 'translate(-50%, -50%)';
-            errorDiv.style.textAlign = 'center';
-            errorDiv.style.fontFamily = 'Arial, sans-serif';
-            errorDiv.style.fontSize = '20px';
-            errorDiv.style.color = '#ff3030';
-            errorDiv.style.backgroundColor = '#000';
-            errorDiv.style.padding = '40px';
-            errorDiv.style.borderRadius = '10px';
-            errorDiv.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
-            errorDiv.innerHTML = `
-                <h1>🚫 Доступ запрещен</h1>
-                <p>Эта игра предназначена только для запуска внутри Telegram.</p>
-                <p>Пожалуйста, найдите бота и запустите игру оттуда.</p>
-            `;
-            document.body.appendChild(errorDiv);
-            // Игра НЕ запускается
+            // Если WebApp не доступен, показываем экран ошибки
+            console.error("❌ Игра запущена вне Telegram WebApp");
+            document.getElementById('error-screen').style.display = 'flex';
+            // Блокируем canvas, чтобы предотвратить любое взаимодействие
+            canvas.style.pointerEvents = 'none';
         }
+    }
+
+    // Запускаем инициализацию игры при загрузке страницы
+    window.addEventListener('load', function() {
+        initializeGame();
     });
+
   </script>
 </body>
 </html>
