@@ -49,7 +49,6 @@
       max-width: 100vw;
       max-height: 100vh;
     }
-
     /* Стиль для экрана ошибки при локальном запуске */
     #error-screen {
       position: absolute;
@@ -77,7 +76,6 @@
       margin-bottom: 10px;
     }
   </style>
-
   <!-- Подключаем Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -85,14 +83,12 @@
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
   </div>
-
   <!-- Экран ошибки для локального запуска -->
   <div id="error-screen" style="display: none;">
     <h1>🚫 ДОСТУП ЗАПРЕЩЕН</h1>
     <p>Эта игра предназначена исключительно для запуска внутри Telegram.</p>
     <p>Пожалуйста, откройте ее через бота в приложении Telegram.</p>
   </div>
-
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -165,8 +161,6 @@
     let isRSTPressed = false;
     let isPRGPressed = false;
     let powerOffBlink = 0;
-    // let timerSeconds = 180; ← УДАЛЕНО
-    // let lastTickTime = 0; ← УДАЛЕНО
     let counterValue = 0;
     let lastCounterTick = 0;
     let animatingDigit = null;
@@ -1130,7 +1124,6 @@
           if (!isPowerOn) {
             resetAll();
           } else {
-            // lastTickTime = performance.now(); ← УДАЛЕНО
             lastCounterTick = performance.now();
             lastChargeTick = performance.now();
             bootActive = true;
@@ -1160,7 +1153,6 @@
           if (!isPowerOn) {
             resetAll();
           } else {
-            // lastTickTime = performance.now(); ← УДАЛЕНО
             lastCounterTick = performance.now();
             lastChargeTick = performance.now();
             bootActive = true;
@@ -1196,7 +1188,6 @@
           // ОБНУЛЯЕМ localStorage ПРИ ВЫКЛЮЧЕНИИ
           localStorage.removeItem('robotGameHighScores');
         } else {
-          // lastTickTime = performance.now(); ← УДАЛЕНО
           lastCounterTick = performance.now();
           lastChargeTick = performance.now();
           bootActive = true;
@@ -1232,7 +1223,6 @@
             initGame();
             gameStarted = false;
             // СБРАСЫВАЕМ ТАЙМЕР СТРОГО НА 3:00
-            // timerSeconds = 180; ← УДАЛЕНО
             timeLeft = 180;
             // ОБНУЛЯЕМ localStorage ПРИ СБРОСЕ
             localStorage.removeItem('robotGameHighScores');
@@ -1344,7 +1334,6 @@
                 timestamp: new Date().toISOString()
             });
             localStorage.setItem('robotGameHighScores', JSON.stringify(highScores));
-            alert('Ваш результат сохранен!');
             // === ОТПРАВКА ОЧКОВ В TELEGRAM БОТ ===
             if (window.Telegram && window.Telegram.WebApp) {
               const resultData = {
@@ -1352,35 +1341,66 @@
                 score: counterValue,
                 timestamp: new Date().toISOString()
               };
-              window.Telegram.WebApp.sendData(JSON.stringify(resultData));
-              alert('✅ Ваши очки сохранены!');
+              // Отправляем данные и ждем подтверждения
+              window.Telegram.WebApp.sendData(JSON.stringify(resultData))
+                .then(() => {
+                  // Данные успешно отправлены, теперь можно перезапускать игру
+                  alert('✅ Ваши очки сохранены!');
+                  // ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ УСПЕШНОЙ ОТПРАВКИ
+                  isGameOverScreenActive = false;
+                  resetAll();
+                  isPowerOn = true;
+                  lastCounterTick = performance.now();
+                  lastChargeTick = performance.now();
+                  bootActive = true;
+                  bootCompleted = false;
+                  bootLineIndex = 0;
+                  bootCharIndex = 0;
+                  lastBootTick = performance.now();
+                  systemsActive = false;
+                  robotCharge = 100;
+                  prgPressCount = 0;
+                  godmodeActive = false;
+                  passwordMode = false;
+                  inputCode = [];
+                  errorMode = false;
+                  errorCompleted = false;
+                  godmodeSuccess = false;
+                  godmodeDisplayCompleted = false;
+                  isGodmodeFinalized = false;
+                  startGame();
+                })
+                .catch((error) => {
+                  // Обработка ошибки отправки
+                  console.error('Ошибка при отправке данных в Telegram:', error);
+                  alert('❌ Не удалось сохранить очки. Попробуйте снова.');
+                });
             } else {
               alert('⚠️ Игра запущена не в Telegram. Очки сохранены локально.');
+              // Если не в Telegram, перезапускаем игру сразу
+              isGameOverScreenActive = false;
+              resetAll();
+              isPowerOn = true;
+              lastCounterTick = performance.now();
+              lastChargeTick = performance.now();
+              bootActive = true;
+              bootCompleted = false;
+              bootLineIndex = 0;
+              bootCharIndex = 0;
+              lastBootTick = performance.now();
+              systemsActive = false;
+              robotCharge = 100;
+              prgPressCount = 0;
+              godmodeActive = false;
+              passwordMode = false;
+              inputCode = [];
+              errorMode = false;
+              errorCompleted = false;
+              godmodeSuccess = false;
+              godmodeDisplayCompleted = false;
+              isGodmodeFinalized = false;
+              startGame();
             }
-            // ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ СОХРАНЕНИЯ
-            isGameOverScreenActive = false;
-            resetAll();
-            isPowerOn = true;
-            // lastTickTime = performance.now(); ← УДАЛЕНО
-            lastCounterTick = performance.now();
-            lastChargeTick = performance.now();
-            bootActive = true;
-            bootCompleted = false;
-            bootLineIndex = 0;
-            bootCharIndex = 0;
-            lastBootTick = performance.now();
-            systemsActive = false;
-            robotCharge = 100;
-            prgPressCount = 0;
-            godmodeActive = false;
-            passwordMode = false;
-            inputCode = [];
-            errorMode = false;
-            errorCompleted = false;
-            godmodeSuccess = false;
-            godmodeDisplayCompleted = false;
-            isGodmodeFinalized = false;
-            startGame();
           }
         }
       }
@@ -1473,7 +1493,6 @@
       inputCode = [];
     }
     function resetAll() {
-      // timerSeconds = 180; ← УДАЛЕНО
       counterValue = 0;
       animatingDigit = null;
       isRSTPressed = false;
@@ -2377,7 +2396,6 @@
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.closePath();
     }
-
     // Функция для инициализации игры после проверки Telegram
     function initializeGame() {
         // Проверяем, доступен ли Telegram WebApp
@@ -2385,10 +2403,8 @@
             // Инициализируем WebApp
             window.Telegram.WebApp.ready();
             console.log("✅ Telegram WebApp успешно инициализирован");
-
             // Скрываем экран ошибки, если он был показан
             document.getElementById('error-screen').style.display = 'none';
-
             // Запускаем игровой цикл
             gameLoop();
         } else {
@@ -2399,12 +2415,10 @@
             canvas.style.pointerEvents = 'none';
         }
     }
-
     // Запускаем инициализацию игры при загрузке страницы
     window.addEventListener('load', function() {
         initializeGame();
     });
-
   </script>
 </body>
 </html>
