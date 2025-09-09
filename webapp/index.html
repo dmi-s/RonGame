@@ -56,12 +56,6 @@
     <canvas id="gameCanvas"></canvas>
   </div>
   <script>
-    if (window.Telegram && window.Telegram.WebApp) {
-        window.Telegram.WebApp.ready();
-        console.log("✅ Telegram WebApp успешно инициализирован");
-    } else {
-        console.warn("⚠️ Запущено не в Telegram. WebApp API недоступно.");
-    }
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     // === РАЗМЕРЫ ПАНЕЛИ ===
@@ -2350,8 +2344,46 @@
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.closePath();
     }
+
+
     window.addEventListener('load', function() {
-      setTimeout(gameLoop, 100);
+        // Функция для запуска игры
+        function startGameAfterTelegramReady() {
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.ready();
+                console.log("✅ Telegram WebApp успешно инициализирован");
+                // Запускаем игровой цикл через короткую задержку
+                setTimeout(gameLoop, 100);
+            } else {
+                console.warn("⚠️ Запущено не в Telegram. WebApp API недоступно.");
+                // Если не в Telegram, все равно запускаем игру, но без интеграции
+                setTimeout(gameLoop, 100);
+            }
+        }
+
+        // Пытаемся запустить игру сразу
+        startGameAfterTelegramReady();
+
+        // Если WebApp еще не готов, ждем его появления (на случай медленной загрузки)
+        let attempts = 0;
+        const maxAttempts = 10;
+        const checkInterval = setInterval(() => {
+            if (window.Telegram && window.Telegram.WebApp) {
+                clearInterval(checkInterval);
+                if (attempts > 0) {
+                    console.log("✅ Telegram WebApp инициализирован после задержки");
+                    startGameAfterTelegramReady();
+                }
+            } else {
+                attempts++;
+                if (attempts >= maxAttempts) {
+                    clearInterval(checkInterval);
+                    console.warn("❌ Telegram WebApp не инициализирован после нескольких попыток");
+                    // Запускаем игру без Telegram
+                    setTimeout(gameLoop, 100);
+                }
+            }
+        }, 500); // Проверяем каждые 500 мс
     });
   </script>
 </body>
