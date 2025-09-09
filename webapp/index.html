@@ -57,7 +57,10 @@
   </div>
   <script>
     if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.ready();
+        console.log("✅ Telegram WebApp успешно инициализирован");
+    } else {
+        console.warn("⚠️ Запущено не в Telegram. WebApp API недоступно.");
     }
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
@@ -67,7 +70,7 @@
     canvas.width = GAME_WIDTH;
     canvas.height = GAME_HEIGHT;
 
-    // === РАЗМЕТКА ===
+
     const TOP_MARGIN = 20;
     const PANEL_HEIGHT = 65;
     const GAP_TIMER_COUNTER = 10;
