@@ -10,6 +10,13 @@
       padding: 0;
       box-sizing: border-box;
     }
+      @font-face {
+        font-family: 'NexaBold';
+        src: url('Nexa-Bold.ttf') format('truetype');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+    }
     body {
       overflow: hidden;
       background: #000;
@@ -29,7 +36,7 @@
     }
     canvas {
       display: block;
-      background: linear-gradient(135deg, #3a3a3a, #555, #777, #555, #3a3a3a);
+      background: linear-gradient(135deg, #ccaa00, #ffdd00, #ffff00, #ffdd00, #ccaa00);
       border: 2px solid #222;
       box-shadow:
         0 0 20px #111,
@@ -53,7 +60,7 @@
     const ctx = canvas.getContext('2d');
     // === РАЗМЕРЫ ПАНЕЛИ ===
     const GAME_WIDTH = 420;  // Общий размер canvas
-    const GAME_HEIGHT = 600;
+    const GAME_HEIGHT = 650;
     canvas.width = GAME_WIDTH;
     canvas.height = GAME_HEIGHT;
     if (window.Telegram && window.Telegram.WebApp) {
@@ -88,24 +95,17 @@
     const LCD_HEIGHT = PANEL_HEIGHT;
     const DISPLAY_WIDTH = 400; // Размер игрового поля
     const DISPLAY_X = 10;
-    // === КНОПКА PWR ===
-    const BUTTON_SIZE = PANEL_HEIGHT;
-    const BUTTON_GAP_FROM_COUNTER = 10;
-    const PWR_X = COUNTER_X + COUNTER_WIDTH + BUTTON_GAP_FROM_COUNTER;
-    const PWR_Y = TIMER_Y;
-    const PWR_CENTER_X = PWR_X + BUTTON_SIZE / 2;
-    const PWR_CENTER_Y = PWR_Y + BUTTON_SIZE / 2;
-    // === 4 ЗЕЛЁНЫЕ ЛАМПОЧКИ ===
-    const LAMP_SIZE = 25;
-    const LAMP_GAP = 10;
-    const LAMP_RIGHT_X = GAME_WIDTH - LAMP_GAP - LAMP_SIZE;
-    const LAMP_LEFT_X = PWR_X + BUTTON_SIZE + LAMP_GAP;
-    const LAMP_TOP_Y = TIMER_Y;
-    const LAMP_BOTTOM_Y = LAMP_TOP_Y + LAMP_SIZE + LAMP_GAP;
-    // Фазы и скорости для каждой лампочки
-    let lampPhases = [0, 0, 0, 0];
-    const lampSpeeds = [0.8, 1.2, 0.9, 1.5];
-    // === КНОПКИ RST и PRG ===
+    // === КНОПКА POWER ===
+    // Расчет новой позиции и размера кнопки POWER
+    const POWER_BUTTON_HEIGHT = PANEL_HEIGHT; // Высота как у таймера
+    const POWER_RIGHT_MARGIN = 10; // Отступ от правого края canvas
+    const POWER_LEFT_MARGIN_FROM_TIMER = 10; // Отступ от правой стороны таймера
+    const POWER_X = TIMER_X + TIMER_WIDTH + POWER_LEFT_MARGIN_FROM_TIMER; // Левая сторона кнопки
+    const POWER_WIDTH = GAME_WIDTH - POWER_X - POWER_RIGHT_MARGIN; // Автоматический расчет ширины
+    const POWER_Y = TIMER_Y;
+    const POWER_CENTER_X = POWER_X + POWER_WIDTH / 2;
+    const POWER_CENTER_Y = POWER_Y + POWER_BUTTON_HEIGHT / 2;
+    // === КНОПКИ RESET и PROG ===
     const FIELD_LEFT = COUNTER_X + COUNTER_WIDTH + 10;
     const FIELD_RIGHT = GAME_WIDTH - 10;
     const FIELD_TOP = COUNTER_Y;
@@ -131,9 +131,8 @@
     let isRSTPressed = false;
     let isPRGPressed = false;
     let powerOffBlink = 0;
-    let borderGlow = 0;
-    let timerSeconds = 180;
-    let lastTickTime = 0;
+    // let timerSeconds = 180; ← УДАЛЕНО
+    // let lastTickTime = 0; ← УДАЛЕНО
     let counterValue = 0;
     let lastCounterTick = 0;
     let animatingDigit = null;
@@ -233,17 +232,25 @@
     let routeProgress = [0, 0, 0];
     let reservedTargets = {};
     let snakeRouteTimestamps = [0, 0, 0];
+    // Переменная для хранения последнего горизонтального направления каждого робота
+    let lastHorizontalDirection = ['right', 'right', 'right']; // Инициализируем 'right' для всех
     let snakeHeadImage = new Image();
+    let snakeHeadLeftImage = new Image(); // Новое изображение для движения влево
     let snakeHeadWithShelfImage = new Image();
+    let snakeHeadWithShelfRightImage = new Image(); // Новое изображение для движения вправо с грузом
     let snakeHeadChargingImage = new Image();
+    let snakeHeadChargingRightImage = new Image(); // Новое изображение для движения вправо на зарядке
     let foodImage = new Image();
     let chargingImage = new Image();
     let parkingImage = new Image();
     let obstacleImage = new Image();
     // Загрузка изображений
     snakeHeadImage.src = 'Robot.png';
+    snakeHeadLeftImage.src = 'robot_left.png'; // Загружаем новое изображение
     snakeHeadWithShelfImage.src = 'Robot_Shelf.png';
+    snakeHeadWithShelfRightImage.src = 'Robot_Shelf_right.png'; // Загружаем новое изображение
     snakeHeadChargingImage.src = 'Robot_Charg.png';
+    snakeHeadChargingRightImage.src = 'Robot_Charg_right.png'; // Загружаем новое изображение
     foodImage.src = 'Shelf.png';
     chargingImage.src = 'Charging.png';
     parkingImage.src = 'Parking.png';
@@ -378,7 +385,22 @@
         return point.x + ',' + point.y;
     }
     function buildRoute(startX, startY, endX, endY, snakeIndex) {
-        return aStar(startX, startY, endX, endY, snakeIndex);
+        const path = aStar(startX, startY, endX, endY, snakeIndex);
+        // <<< НОВЫЙ БЛОК: Определяем начальное направление движения по маршруту >>>
+        if (path.length > 1) {
+            // Берем первую точку назначения (индекс 1, так как индекс 0 — текущая позиция)
+            const firstStep = path[1];
+            const dx = firstStep.x - startX;
+            // Обновляем направление только для горизонтального движения
+            if (dx > 0) {
+                lastHorizontalDirection[snakeIndex] = 'right';
+            } else if (dx < 0) {
+                lastHorizontalDirection[snakeIndex] = 'left';
+            }
+            // Если dx === 0 (вертикальное движение), направление не меняем
+        }
+        // <<< КОНЕЦ НОВОГО БЛОКА >>>
+        return path;
     }
     function initGame() {
         snakes = [];
@@ -402,6 +424,8 @@
         routeProgress = [0, 0, 0];
         reservedTargets = {};
         snakeRouteTimestamps = [0, 0, 0];
+        // Сбрасываем направление при инициализации игры
+        lastHorizontalDirection = ['right', 'right', 'right'];
         let positions = [];
         for (let i = 0; i < 3; i++) {
             let validPosition = false;
@@ -529,13 +553,13 @@
             const isHorizontal = Math.random() > 0.5;
             let parkingGroup = [];
             if (isHorizontal) {
+                parkingGroup.push({x: obstacle.x + 1, y: obstacle.y});
+                parkingGroup.push({x: obstacle.x + 2, y: obstacle.y});
                 parkingGroup.push({x: obstacle.x + 3, y: obstacle.y});
-                parkingGroup.push({x: obstacle.x + 4, y: obstacle.y});
-                parkingGroup.push({x: obstacle.x + 5, y: obstacle.y});
             } else {
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 1});
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 2});
                 parkingGroup.push({x: obstacle.x, y: obstacle.y + 3});
-                parkingGroup.push({x: obstacle.x, y: obstacle.y + 4});
-                parkingGroup.push({x: obstacle.x, y: obstacle.y + 5});
             }
             let validPosition = true;
             for (let spot of parkingGroup) {
@@ -625,7 +649,19 @@
             const snake = snakes[i];
             const targetPoint = targetPoints[i];
             if (!targetPoint || snakeRoutes[i].length === 0) continue;
-            if (snakeCharges[i] <= 0) continue;
+            if (snakeCharges[i] <= 0) {
+                // Сбрасываем маршрут и целевую точку, так как робот разрядился
+                if (targetPoints[i]) {
+                    const key = `${targetPoints[i].x},${targetPoints[i].y}`;
+                    if (reservedTargets[key] === i) {
+                        delete reservedTargets[key];
+                    }
+                    targetPoints[i] = null;
+                }
+                snakeRoutes[i] = [];
+                routeProgress[i] = 0;
+                continue;
+            }
             let mustStop = false;
             for (let j = 0; j < snakes.length; j++) {
                 if (i === j || snakeRoutes[j].length === 0) continue;
@@ -664,10 +700,26 @@
                 const dx = nextPoint.x - head.x;
                 const dy = nextPoint.y - head.y;
                 const newHead = {x: head.x, y: head.y};
-                if (dx > 0) newHead.x++;
-                else if (dx < 0) newHead.x--;
-                else if (dy > 0) newHead.y++;
-                else if (dy < 0) newHead.y--;
+
+                // <<< НОВЫЙ БЛОК: Обновляем направление на КАЖДОМ шаге движения >>>
+                if (dx > 0) {
+                    newHead.x++;
+                    lastHorizontalDirection[i] = 'right'; // Обновляем направление при движении вправо
+                }
+                else if (dx < 0) {
+                    newHead.x--;
+                    lastHorizontalDirection[i] = 'left'; // Обновляем направление при движении влево
+                }
+                else if (dy > 0) {
+                    newHead.y++;
+                    // При вертикальном движении направление НЕ меняем, оставляем предыдущее
+                }
+                else if (dy < 0) {
+                    newHead.y--;
+                    // При вертикальном движении направление НЕ меняем, оставляем предыдущее
+                }
+                // <<< КОНЕЦ НОВОГО БЛОКА >>>
+
                 if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
                     return;
                 }
@@ -697,7 +749,6 @@
                     snakeCharges[i]--;
                     moveCounts[i] = 0;
                 }
-                // <<< ИСПРАВЛЕНА ЛОГИКА ЗАРЯДКИ >>>
                 // Проверяем, находится ли робот на зарядной станции
                 if (stationIndex !== -1) {
                     // Условия для НАЧАЛА или ПРОДОЛЖЕНИЯ зарядки:
@@ -724,7 +775,6 @@
                         onChargingStation[i] = -1;
                     }
                 }
-                // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
                 if (parkingIndex !== -1) {
                     const targetPoint = targetPoints[i];
                     if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
@@ -838,7 +888,7 @@
         // Сдвигаем систему координат
         ctx.translate(DISPLAY_X, DISPLAY_Y);
         // Очищаем только область игры
-        ctx.fillStyle = 'white';
+        ctx.fillStyle = '#b1b1b1';
         ctx.fillRect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
         // Рисуем сетку
         ctx.strokeStyle = '#cccccc';
@@ -866,62 +916,45 @@
                 ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
             }
         });
+        // <<< НАЧАЛО ИЗМЕНЕНИЙ: Зарядка и парковка рисуются ПЕРЕД роботами >>>
         // Рисуем зарядные станции
         chargingStations.forEach((station, index) => {
-            let onStation = snakes.some(s => s[0].x === station.x && s[0].y === station.y);
-            if (!onStation) {
-                if (chargingImage.complete) {
-                    ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
-                } else {
-                    ctx.fillStyle = '#ff69b4';
-                    ctx.fillRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
-                    ctx.strokeStyle = 'black';
-                    ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
-                }
+            // <<< ИЗМЕНЕНО: Зарядные станции ВСЕГДА видны >>>
+            // shouldHide всегда false, логика скрытия УДАЛЕНА
+            if (chargingImage.complete) {
+                ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+            } else {
+                ctx.fillStyle = '#ff69b4';
+                ctx.fillRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
             }
+            // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
         });
         // Рисуем еду
         food.forEach(f => {
-            if (foodImage.complete) {
-                ctx.drawImage(foodImage, f.x * gridSize, f.y * gridSize, gridSize, gridSize);
-            } else {
-                ctx.fillStyle = 'red';
-                ctx.fillRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
-                ctx.strokeStyle = 'darkred';
-                ctx.strokeRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+            let shouldHide = false;
+            for (let i = 0; i < snakes.length; i++) {
+                const head = snakes[i][0];
+                // Скрываем еду, если робот находится на клетке И находится в состоянии "EMPTY"
+                if (head.x === f.x && head.y === f.y && !hasCargo[i]) {
+                    shouldHide = true;
+                    break;
+                }
+            }
+            if (!shouldHide) {
+                if (foodImage.complete) {
+                    ctx.drawImage(foodImage, f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = 'darkred';
+                    ctx.strokeRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                }
             }
         });
-        // Рисуем змеек
-        snakes.forEach((snake, snakeIndex) => {
-            snake.forEach((segment, index) => {
-                if (index === 0) {
-                    let headImageToUse = snakeHeadImage;
-                    if (hasCargo[snakeIndex]) {
-                        headImageToUse = snakeHeadWithShelfImage;
-                    } else if (onChargingStation[snakeIndex] !== -1) {
-                        headImageToUse = snakeHeadChargingImage;
-                    }
-                    // Логика мигания: рисуем только на каждом втором кадре, если isBlinking[snakeIndex] === true
-                    if (isBlinking[snakeIndex] && Math.floor(Date.now() / 250) % 2 === 0) {
-                        ctx.fillStyle = 'white';
-                        ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-                    } else {
-                        if (headImageToUse.complete) {
-                            ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-                        } else {
-                            ctx.fillStyle = '#00ff00';
-                            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-                        }
-                    }
-                } else {
-                    ctx.fillStyle = '#00cc00';
-                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-                }
-                ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
-                ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
-            });
-        });
-        // Рисуем парковочные места
+        // <<< НАЧАЛО ИСПРАВЛЕНИЯ: Сначала рисуем парковки, потом роботов >>>
+        // Рисуем парковочные места ПЕРЕД роботами
         parkingSpots.forEach(parking => {
             let showParking = true;
             for (let i = 0; i < snakes.length; i++) {
@@ -947,6 +980,47 @@
                 }
             }
         });
+        // Рисуем змеек (роботов) ПОСЛЕ парковок
+        snakes.forEach((snake, snakeIndex) => {
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    let headImageToUse = snakeHeadImage; // По умолчанию - движение вправо
+                    // <<< ИЗМЕНЕНО: Логика выбора изображения УПРОЩЕНА >>>
+                    // Если робот имеет груз, используем соответствующее изображение
+                    if (hasCargo[snakeIndex]) {
+                        // Выбираем изображение в зависимости от последнего горизонтального направления
+                        if (lastHorizontalDirection[snakeIndex] === 'left') {
+                            headImageToUse = snakeHeadWithShelfImage; // Robot_Shelf.png
+                        } else {
+                            headImageToUse = snakeHeadWithShelfRightImage; // Robot_Shelf_right.png
+                        }
+                    } else {
+                        // Для робота без груза, выбираем изображение по направлению
+                        if (lastHorizontalDirection[snakeIndex] === 'left') {
+                            headImageToUse = snakeHeadLeftImage;
+                        } else {
+                            headImageToUse = snakeHeadImage;
+                        }
+                    }
+                    // <<< ИЗМЕНЕНО: Мигает изображение, а не фон >>>
+                    if (!isBlinking[snakeIndex] || (isBlinking[snakeIndex] && Math.floor(Date.now() / 250) % 2 === 0)) {
+                        if (headImageToUse.complete) {
+                            ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                        } else {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                        }
+                    }
+                    // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
+                } else {
+                    ctx.fillStyle = '#00cc00';
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                }
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
+                ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+            });
+        });
+        // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
         // Рисуем маршруты
         snakeRoutes.forEach((route, snakeIndex) => {
             if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
@@ -971,6 +1045,10 @@
         });
         // Восстанавливаем состояние контекста
         ctx.restore();
+        // Рисуем черный контур вокруг игрового поля
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     }
     function gameStep() {
         update();
@@ -1004,24 +1082,23 @@
         x = (e.clientX - rect.left) * scaleX;
         y = (e.clientY - rect.top) * scaleY;
       }
-      const dxPWR = x - PWR_CENTER_X;
-      const dyPWR = y - PWR_CENTER_Y;
-      const distPWR = Math.sqrt(dxPWR * dxPWR + dyPWR * dyPWR);
+      const dxPOWER = x - POWER_CENTER_X;
+      const dyPOWER = y - POWER_CENTER_Y;
+      const distPOWER = Math.sqrt(dxPOWER * dxPOWER + dyPOWER * dyPOWER);
       const dxRST = x - RST_CENTER_X;
       const dyRST = y - RST_CENTER_Y;
       const distRST = Math.sqrt(dxRST * dxRST + dyRST * dyRST);
       const dxPRG = x - PRG_CENTER_X;
       const dyPRG = y - PRG_CENTER_Y;
       const distPRG = Math.sqrt(dxPRG * dxPRG + dyPRG * dyPRG);
-      // <<< ИСПРАВЛЕНО: БЛОКИРОВКА GODMODE >>>
-      // Обрабатываем ТОЛЬКО PWR, если GODMODE финализирован, но экран завершения еще НЕ активен.
+      // Обрабатываем ТОЛЬКО POWER, если GODMODE финализирован, но экран завершения еще НЕ активен.
       if (isGodmodeFinalized && !isGameOverScreenActive) {
-        if (distPWR <= BUTTON_SIZE / 2) {
+        if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
           if (!isPowerOn) {
             resetAll();
           } else {
-            lastTickTime = performance.now();
+            // lastTickTime = performance.now(); ← УДАЛЕНО
             lastCounterTick = performance.now();
             lastChargeTick = performance.now();
             bootActive = true;
@@ -1044,14 +1121,14 @@
         }
         return;
       }
-      // Обрабатываем ТОЛЬКО PWR, если произошла ошибка.
+      // Обрабатываем ТОЛЬКО POWER, если произошла ошибка.
       if (errorCompleted) {
-        if (distPWR <= BUTTON_SIZE / 2) {
+        if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
           if (!isPowerOn) {
             resetAll();
           } else {
-            lastTickTime = performance.now();
+            // lastTickTime = performance.now(); ← УДАЛЕНО
             lastCounterTick = performance.now();
             lastChargeTick = performance.now();
             bootActive = true;
@@ -1074,21 +1151,20 @@
         }
         return;
       }
-      // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
       // Обработка ввода кода
       if (godmodeActive && !passwordMode && !errorMode && !godmodeSuccess) {
         handleKeypadClick(x, y);
         return;
       }
       // Обычная логика кнопок
-      if (distPWR <= BUTTON_SIZE / 2) {
+      if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
         isPowerOn = !isPowerOn;
         if (!isPowerOn) {
           resetAll();
-          // <<< ОБНУЛЯЕМ localStorage ПРИ ВЫКЛЮЧЕНИИ >>>
+          // ОБНУЛЯЕМ localStorage ПРИ ВЫКЛЮЧЕНИИ
           localStorage.removeItem('robotGameHighScores');
         } else {
-          lastTickTime = performance.now();
+          // lastTickTime = performance.now(); ← УДАЛЕНО
           lastCounterTick = performance.now();
           lastChargeTick = performance.now();
           bootActive = true;
@@ -1111,6 +1187,7 @@
           startGame(); // ← Запускаем игру при включении питания
         }
       } else if (distRST <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted) {
+        // <<< ВОССТАНОВЛЕНА АНИМАЦИЯ НАЖАТИЯ >>>
         isRSTPressed = true;
         setTimeout(function() { isRSTPressed = false; }, 200);
         if (isGameOverScreenActive) {
@@ -1122,13 +1199,14 @@
             // Обычный сброс
             initGame();
             gameStarted = false;
-            // <<< СБРАСЫВАЕМ ТАЙМЕР СТРОГО НА 3:00 >>>
-            timerSeconds = 180;
+            // СБРАСЫВАЕМ ТАЙМЕР СТРОГО НА 3:00
+            // timerSeconds = 180; ← УДАЛЕНО
             timeLeft = 180;
-            // <<< ОБНУЛЯЕМ localStorage ПРИ СБРОСЕ >>>
+            // ОБНУЛЯЕМ localStorage ПРИ СБРОСЕ
             localStorage.removeItem('robotGameHighScores');
         }
       } else if (distPRG <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        // <<< ВОССТАНОВЛЕНА АНИМАЦИЯ НАЖАТИЯ >>>
         isPRGPressed = true;
         setTimeout(function() { isPRGPressed = false; }, 200);
         prgPressCount++;
@@ -1220,7 +1298,7 @@
             }
           }
         } else if (isGameOverScreenActive) {
-          // <<< ОБРАБОТКА НАЖАТИЯ НА КНОПКУ SAVE >>>
+          // ОБРАБОТКА НАЖАТИЯ НА КНОПКУ SAVE
           const saveButtonX = DISPLAY_X + 100;
           const saveButtonY = DISPLAY_Y + 300;
           const saveButtonWidth = 200;
@@ -1235,11 +1313,11 @@
             });
             localStorage.setItem('robotGameHighScores', JSON.stringify(highScores));
             alert('Ваш результат сохранен!');
-            // <<< ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ СОХРАНЕНИЯ >>>
+            // ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ СОХРАНЕНИЯ
             isGameOverScreenActive = false;
             resetAll();
             isPowerOn = true;
-            lastTickTime = performance.now();
+            // lastTickTime = performance.now(); ← УДАЛЕНО
             lastCounterTick = performance.now();
             lastChargeTick = performance.now();
             bootActive = true;
@@ -1327,7 +1405,6 @@
       godmodeDisplayCompleted = false;
       isGodmodeFinalized = false;
     }
-    // <<< ИСПРАВЛЕНА ФУНКЦИЯ checkPassword >>>
     function checkPassword() {
       passwordMode = false;
       if (inputCode[0] === 6 && inputCode[1] === 6 && inputCode[2] === 6) {
@@ -1337,26 +1414,24 @@
         godmodeDisplayCharIndex = 0;
         lastGodmodeDisplayTick = performance.now();
         godmodeDisplayCompleted = false;
-        // <<< ПОКАЗЫВАЕМ ЭКРАН ЗАВЕРШЕНИЯ СРАЗУ >>>
+        // ПОКАЗЫВАЕМ ЭКРАН ЗАВЕРШЕНИЯ СРАЗУ
         isGameOverScreenActive = true;
         systemsActive = false;
       } else {
+        // <<< ИЗМЕНЕНО: Только активируем режим ошибки, НЕ выключаем питание >>>
         errorMode = true;
         errorLineIndex = 0;
         errorCharIndex = 0;
         lastErrorTick = performance.now();
         errorCompleted = false;
-        // <<< УДАЛЕН setTimeout. Проверка будет в gameLoop. >>>
-        // Ничего не делаем здесь. Проверка errorCompleted будет в gameLoop.
+        // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
       }
       inputCode = [];
     }
-    // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
     function resetAll() {
-      timerSeconds = 180;
+      // timerSeconds = 180; ← УДАЛЕНО
       counterValue = 0;
       animatingDigit = null;
-      lampPhases = [0, 0, 0, 0];
       isRSTPressed = false;
       isPRGPressed = false;
       robotCharge = 100;
@@ -1384,205 +1459,406 @@
         gameStarted = false;
       }
     }
-    function drawButton(x, y, size, isPressed, baseColor, pressedColor, textColor, text, isActive) {
-      const centerX = x + size / 2;
-      const centerY = y + size / 2;
-      ctx.shadowColor = isActive ? 'rgba(255,255,255,0.3)' : 'rgba(100,100,100,0.1)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.beginPath();
-      ctx.arc(centerX, centerY, size / 2, 0, Math.PI * 2);
-      let buttonColor;
-      if (isPressed && isActive) {
-        buttonColor = pressedColor;
-      } else {
-        buttonColor = baseColor;
-      }
-      ctx.fillStyle = buttonColor;
-      ctx.fill();
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#222';
-      ctx.stroke();
-      ctx.shadowColor = 'transparent';
-      ctx.fillStyle = textColor;
-      ctx.font = 'bold 14px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(text, centerX, centerY);
+    // <<< НОВАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ КНОПОК С КРУТЫМ 3D И ТЕНЯМИ >>>
+    function drawModernButton3D(x, y, width, height, isPressed, baseColor, pressedColor, text, isActive) {
+        // Определяем цвет кнопки
+        let buttonColor = isPressed && isActive ? pressedColor : baseColor;
+        let textColor = '#000'; // Черный текст
+        // Очищаем тени
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        // Рисуем основной прямоугольник кнопки
+        ctx.beginPath();
+        roundRect(ctx, x, y, width, height, 8); // Скругление 8px
+        ctx.fillStyle = buttonColor;
+        ctx.fill();
+        // Рисуем верхнюю тень (светлый блик) для эффекта выступа
+        if (!isPressed) {
+            ctx.beginPath();
+            ctx.moveTo(x + 2, y + 2);
+            ctx.lineTo(x + width - 2, y + 2);
+            ctx.quadraticCurveTo(x + width, y, x + width - 2, y + 2);
+            ctx.lineTo(x + 2, y + 2);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.fill();
+        }
+        // Рисуем нижнюю тень (темная полоса) для эффекта выступа
+        if (!isPressed) {
+            ctx.beginPath();
+            ctx.moveTo(x + 2, y + height - 2);
+            ctx.lineTo(x + width - 2, y + height - 2);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - 2, y + height - 2);
+            ctx.lineTo(x + 2, y + height - 2);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fill();
+        }
+        // Рисуем контур
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // Рисуем текст
+        ctx.fillStyle = textColor;
+        if (width === POWER_WIDTH) {
+            // Для POWER увеличиваем шрифт
+            ctx.font = 'bold 18px "Courier New", monospace';
+        } else {
+            ctx.font = 'bold 14px "Courier New", monospace';
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + width / 2, y + height / 2);
     }
+    // <<< ПОЛНОСТЬЮ ПЕРЕДЕЛАННАЯ ФУНКЦИЯ ДЛЯ POWER BUTTON >>>
     function drawPowerButton() {
-      let r, g, b;
-      if (isPowerOn) {
-        r = 96; g = 0; b = 0;
-      } else {
-        const brightness = 0.8 + Math.sin(powerOffBlink * 1.5) * 0.2;
-        r = Math.floor(220 + brightness * 35);
-        g = Math.floor(60 + brightness * 20);
-        b = Math.floor(60 + brightness * 20);
-      }
-      drawButton(
-        PWR_X,
-        PWR_Y,
-        BUTTON_SIZE,
-        false,
-        'rgb(' + r + ', ' + g + ', ' + b + ')',
-        '',
-        isPowerOn ? '#888' : '#ffffff',
-        'PWR',
-        true
-      );
+        // Сохраняем текущее состояние стиля
+        const originalFillStyle = ctx.fillStyle;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const originalLineWidth = ctx.lineWidth;
+        const originalShadowColor = ctx.shadowColor;
+        const originalShadowBlur = ctx.shadowBlur;
+        const originalShadowOffsetX = ctx.shadowOffsetX;
+        const originalShadowOffsetY = ctx.shadowOffsetY;
+        const originalLineCap = ctx.lineCap;
+        // Определяем, в каком состоянии находится кнопка
+        const isPressedState = isPowerOn; // Если включена, то вдавлена
+        // Рисуем прямоугольник кнопки
+        ctx.beginPath();
+        roundRect(ctx, POWER_X, POWER_Y, POWER_WIDTH, POWER_BUTTON_HEIGHT, 8);
+        ctx.closePath();
+        // Применяем градиент
+        const gradient = ctx.createLinearGradient(POWER_X, POWER_Y, POWER_X + POWER_WIDTH, POWER_Y + POWER_BUTTON_HEIGHT);
+        gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
+        gradient.addColorStop(0.5, isPressedState ? '#cc0000' : '#ff0000');
+        gradient.addColorStop(1, isPressedState ? '#bb0000' : '#cc0000');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        // Применяем тени в зависимости от состояния
+        if (!isPressedState) {
+            // Состояние "не нажата" - сильная тень снизу
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.8)'; // Темно-красная тень
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 8;
+            ctx.stroke(); // Рисуем тень
+            // Верхний светлый блик
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(POWER_X + 2, POWER_Y + 2, POWER_WIDTH - 4, 4);
+            // Нижняя темная полутень
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(POWER_X + 2, POWER_Y + POWER_BUTTON_HEIGHT - 6, POWER_WIDTH - 4, 4);
+        } else {
+            // Состояние "нажата" - слабая тень снизу
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            ctx.stroke(); // Рисуем тень
+        }
+        // Рисуем контур кнопки
+        ctx.strokeStyle = '#990000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        // Рисуем текст
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('POWER', POWER_X + POWER_WIDTH / 2, POWER_Y + POWER_BUTTON_HEIGHT / 2);
+        // Анимация пульсации для выключенной кнопки
+        if (!isPowerOn) {
+            const brightness = 0.8 + Math.sin(powerOffBlink * 1.5) * 0.2;
+            const r = Math.floor(150 + brightness * 50);
+            const g = Math.floor(30 + brightness * 20);
+            const b = Math.floor(30 + brightness * 20);
+            // Можно применить этот цвет к градиенту, если нужно, но для простоты оставим как есть.
+        }
+        // Восстанавливаем исходные стили
+        ctx.fillStyle = originalFillStyle;
+        ctx.strokeStyle = originalStrokeStyle;
+        ctx.lineWidth = originalLineWidth;
+        ctx.shadowColor = originalShadowColor;
+        ctx.shadowBlur = originalShadowBlur;
+        ctx.shadowOffsetX = originalShadowOffsetX;
+        ctx.shadowOffsetY = originalShadowOffsetY;
+        ctx.lineCap = originalLineCap;
     }
+    // <<< ПОЛНОСТЬЮ ПЕРЕДЕЛАННАЯ ФУНКЦИЯ ДЛЯ RESET BUTTON (копия POWER) >>>
     function drawRSTButton() {
-      const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted;
-      drawButton(
-        RST_X,
-        RST_Y,
-        SMALL_BUTTON_SIZE,
-        isRSTPressed && isActive,
-        isActive ? '#600000' : '#300000',
-        'rgb(255, 80, 80)',
-        '#ffffff',
-        'RST',
-        isActive
-      );
+        // Сохраняем текущее состояние стиля
+        const originalFillStyle = ctx.fillStyle;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const originalLineWidth = ctx.lineWidth;
+        const originalShadowColor = ctx.shadowColor;
+        const originalShadowBlur = ctx.shadowBlur;
+        const originalShadowOffsetX = ctx.shadowOffsetX;
+        const originalShadowOffsetY = ctx.shadowOffsetY;
+        const originalLineCap = ctx.lineCap;
+        // Определяем, в каком состоянии находится кнопка
+        const isPressedState = isRSTPressed; // Если нажата, то вдавлена
+        // <<< ИЗМЕНЕНО: Добавлена проверка systemsActive и !isGameOverScreenActive >>>
+        const isActive = isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
+        // Рисуем прямоугольник кнопки
+        ctx.beginPath();
+        roundRect(ctx, RST_X, RST_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
+        ctx.closePath();
+        // Применяем градиент
+        const gradient = ctx.createLinearGradient(RST_X, RST_Y, RST_X + SMALL_BUTTON_SIZE, RST_Y + SMALL_BUTTON_SIZE);
+        if (isActive) {
+            gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
+            gradient.addColorStop(0.5, isPressedState ? '#cc0000' : '#ff0000');
+            gradient.addColorStop(1, isPressedState ? '#bb0000' : '#cc0000');
+        } else {
+            gradient.addColorStop(0, '#600000');
+            gradient.addColorStop(0.5, '#500000');
+            gradient.addColorStop(1, '#400000');
+        }
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        // Применяем тени в зависимости от состояния
+        if (!isPressedState && isActive) {
+            // Состояние "не нажата" - сильная тень снизу
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.8)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 8;
+            ctx.stroke(); // Рисуем тень
+            // Верхний светлый блик
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(RST_X + 2, RST_Y + 2, SMALL_BUTTON_SIZE - 4, 4);
+            // Нижняя темная полутень
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(RST_X + 2, RST_Y + SMALL_BUTTON_SIZE - 6, SMALL_BUTTON_SIZE - 4, 4);
+        } else if (isActive) {
+            // Состояние "нажата" - слабая тень снизу
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            ctx.stroke(); // Рисуем тень
+        }
+        // Рисуем контур кнопки
+        ctx.strokeStyle = '#990000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        // Рисуем текст
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('RESET', RST_X + SMALL_BUTTON_SIZE / 2, RST_Y + SMALL_BUTTON_SIZE / 2);
+        // Восстанавливаем исходные стили
+        ctx.fillStyle = originalFillStyle;
+        ctx.strokeStyle = originalStrokeStyle;
+        ctx.lineWidth = originalLineWidth;
+        ctx.shadowColor = originalShadowColor;
+        ctx.shadowBlur = originalShadowBlur;
+        ctx.shadowOffsetX = originalShadowOffsetX;
+        ctx.shadowOffsetY = originalShadowOffsetY;
+        ctx.lineCap = originalLineCap;
     }
+    // <<< ПОЛНОСТЬЮ ПЕРЕДЕЛАННАЯ ФУНКЦИЯ ДЛЯ PROG BUTTON (копия POWER, оранжевая) >>>
     function drawPRGButton() {
-      const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
-      drawButton(
-        PRG_X,
-        PRG_Y,
-        SMALL_BUTTON_SIZE,
-        isPRGPressed && isActive,
-        isActive ? '#404000' : '#202000',
-        'rgb(255, 255, 0)',
-        '#ffffff',
-        'PRG',
-        isActive
-      );
-    }
-    function drawLamps() {
-      const darkGreen = 'rgb(0, 80, 40)';
-      if (!isPowerOn || errorCompleted) {
-        drawLamp(LAMP_LEFT_X, LAMP_TOP_Y, darkGreen);
-        drawLamp(LAMP_RIGHT_X, LAMP_TOP_Y, darkGreen);
-        drawLamp(LAMP_LEFT_X, LAMP_BOTTOM_Y, darkGreen);
-        drawLamp(LAMP_RIGHT_X, LAMP_BOTTOM_Y, darkGreen);
-      } else {
-        for (let i = 0; i < 4; i++) {
-          lampPhases[i] += 0.05 * lampSpeeds[i];
-          const brightness = 0.5 + 0.5 * Math.sin(lampPhases[i]);
-          const g = Math.floor(80 + brightness * 175);
-          const color = 'rgb(0, ' + g + ', 40)';
-          let x, y;
-          if (i === 0) { x = LAMP_LEFT_X; y = LAMP_TOP_Y; }
-          if (i === 1) { x = LAMP_RIGHT_X; y = LAMP_TOP_Y; }
-          if (i === 2) { x = LAMP_LEFT_X; y = LAMP_BOTTOM_Y; }
-          if (i === 3) { x = LAMP_RIGHT_X; y = LAMP_BOTTOM_Y; }
-          drawLamp(x, y, color);
+        // Сохраняем текущее состояние стиля
+        const originalFillStyle = ctx.fillStyle;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const originalLineWidth = ctx.lineWidth;
+        const originalShadowColor = ctx.shadowColor;
+        const originalShadowBlur = ctx.shadowBlur;
+        const originalShadowOffsetX = ctx.shadowOffsetX;
+        const originalShadowOffsetY = ctx.shadowOffsetY;
+        const originalLineCap = ctx.lineCap;
+        // Определяем, в каком состоянии находится кнопка
+        const isPressedState = isPRGPressed; // Если нажата, то вдавлена
+        // <<< ИЗМЕНЕНО: Добавлена проверка !isGameOverScreenActive >>>
+        const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
+        // Рисуем прямоугольник кнопки
+        ctx.beginPath();
+        roundRect(ctx, PRG_X, PRG_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
+        ctx.closePath();
+        // Применяем градиент
+        const gradient = ctx.createLinearGradient(PRG_X, PRG_Y, PRG_X + SMALL_BUTTON_SIZE, PRG_Y + SMALL_BUTTON_SIZE);
+        if (isActive) {
+            gradient.addColorStop(0, isPressedState ? '#e65c00' : '#ff7c00'); // Темно-оранжевый / Ярко-оранжевый
+            gradient.addColorStop(0.5, isPressedState ? '#cc5500' : '#ff6600');
+            gradient.addColorStop(1, isPressedState ? '#b34d00' : '#ff5500');
+        } else {
+            gradient.addColorStop(0, '#600000');
+            gradient.addColorStop(0.5, '#500000');
+            gradient.addColorStop(1, '#400000');
         }
-      }
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        // Применяем тени в зависимости от состояния
+        if (!isPressedState && isActive) {
+            // Состояние "не нажата" - сильная тень снизу
+            ctx.shadowColor = 'rgba(153, 51, 0, 0.8)'; // Темно-оранжевая тень
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 8;
+            ctx.stroke(); // Рисуем тень
+            // Верхний светлый блик
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(PRG_X + 2, PRG_Y + 2, SMALL_BUTTON_SIZE - 4, 4);
+            // Нижняя темная полутень
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(PRG_X + 2, PRG_Y + SMALL_BUTTON_SIZE - 6, SMALL_BUTTON_SIZE - 4, 4);
+        } else if (isActive) {
+            // Состояние "нажата" - слабая тень снизу
+            ctx.shadowColor = 'rgba(153, 51, 0, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            ctx.stroke(); // Рисуем тень
+        }
+        // Рисуем контур кнопки
+        ctx.strokeStyle = '#993300'; // Темно-оранжевый контур
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        // Рисуем текст
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('PROG', PRG_X + SMALL_BUTTON_SIZE / 2, PRG_Y + SMALL_BUTTON_SIZE / 2);
+        // Восстанавливаем исходные стили
+        ctx.fillStyle = originalFillStyle;
+        ctx.strokeStyle = originalStrokeStyle;
+        ctx.lineWidth = originalLineWidth;
+        ctx.shadowColor = originalShadowColor;
+        ctx.shadowBlur = originalShadowBlur;
+        ctx.shadowOffsetX = originalShadowOffsetX;
+        ctx.shadowOffsetY = originalShadowOffsetY;
+        ctx.lineCap = originalLineCap;
     }
-    function drawLamp(x, y, color) {
-      ctx.shadowColor = 'rgba(0, 255, 100, 0.4)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.arc(x + LAMP_SIZE / 2, y + LAMP_SIZE / 2, LAMP_SIZE / 2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowColor = 'transparent';
-      ctx.strokeStyle = '#000';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-    }
+    // <<< УДАЛЕНЫ ФУНКЦИИ ЛАМПОЧЕК >>>
+    // Все функции и переменные, связанные с lampPhases, lampSpeeds, drawLamps, drawLamp — УДАЛЕЕНЫ.
+    // <<< ИСПРАВЛЕННАЯ ФУНКЦИЯ drawVoltmeter >>>
     function drawVoltmeter() {
-      ctx.fillStyle = '#0a0a0a';
-      roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
-      ctx.fill();
-      ctx.strokeStyle = '#444';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      const textColor = isPowerOn ? '#00ff00' : '#666';
-      ctx.fillStyle = textColor;
-      ctx.font = '12px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText('0', VOLTMETER_X + 15, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
-      ctx.fillText('100', VOLTMETER_X + VOLTMETER_WIDTH - 20, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
-      // <<< ИСПРАВЛЕНИЕ: МИГАНИЕ ТЕКСТА "ENERGY" ПРИ ЗАРЯДЕ < 50 >>>
-      let currentCharge = systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted ? (activeRobotIndex !== -1 ? snakeCharges[activeRobotIndex] : robotCharge) : robotCharge;
-      let energyColor = '#00ff00';
-      if (currentCharge < 50 && isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted) {
-          // <<< МИГАЕТ В 3 РАЗА БЫСТРЕЕ ЛАМПОЧЕК >>>
-          const brightness = 0.5 + 0.5 * Math.sin(lampPhases[0] * 3);
-          const g = Math.floor(80 + brightness * 175);
-          energyColor = 'rgb(0, ' + g + ', 40)';
-      }
-      ctx.fillStyle = energyColor;
-      ctx.font = 'bold 16px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('ENERGY', VOLTMETER_X + VOLTMETER_WIDTH / 2, VOLTMETER_Y + VOLTMETER_HEIGHT / 2 - 18);
-      // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
-      const pivotX = VOLTMETER_X + VOLTMETER_WIDTH / 2;
-      const pivotY = VOLTMETER_Y + VOLTMETER_HEIGHT - 5;
-      const angle = -Math.PI * (1 - (currentCharge / 100));
-      const needleLength = 30;
-      const tipX = pivotX + Math.cos(angle) * needleLength;
-      const tipY = pivotY + Math.sin(angle) * needleLength;
-      ctx.beginPath();
-      ctx.moveTo(pivotX, pivotY);
-      ctx.lineTo(tipX, tipY);
-      ctx.strokeStyle = '#ff3030';
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
-      ctx.fillStyle = '#ff3030';
-      ctx.fill();
+        ctx.fillStyle = '#0a0a0a';
+        roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        // ВСЕ ТЕКСТЫ ИЗНАЧАЛЬНО СЕРЫЕ, БЕЛЫЕ ТОЛЬКО ПРИ ВЫБОРЕ РОБОТА
+        let textColor = (systemsActive && activeRobotIndex !== -1) ? '#ffffff' : '#666';
+        ctx.fillStyle = textColor;
+        ctx.font = '12px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('0', VOLTMETER_X + 15, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
+        ctx.fillText('100', VOLTMETER_X + VOLTMETER_WIDTH - 20, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
+        // Определяем текущий заряд
+        let currentCharge = systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted ? (activeRobotIndex !== -1 ? snakeCharges[activeRobotIndex] : robotCharge) : robotCharge;
+        // Устанавливаем цвет для 'ENERGY'
+        let energyColor = textColor; // По умолчанию
+        // Применяем мигание ТОЛЬКО при условии низкого заряда
+        if (currentCharge < 50 && isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && activeRobotIndex !== -1) {
+            const blinkEnergy = Math.floor(performance.now() / 1000) % 2; // Частота: 1 раз в секунду
+            if (blinkEnergy === 0) {
+                energyColor = '#666'; // Скрытый
+            } else {
+                energyColor = '#ffffff'; // Белый
+            }
+        }
+        ctx.fillStyle = energyColor;
+        ctx.font = 'bold 16px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ENERGY', VOLTMETER_X + VOLTMETER_WIDTH / 2, VOLTMETER_Y + VOLTMETER_HEIGHT / 2 - 18);
+        // Рисуем стрелку
+        const pivotX = VOLTMETER_X + VOLTMETER_WIDTH / 2;
+        const pivotY = VOLTMETER_Y + VOLTMETER_HEIGHT - 5;
+        const angle = -Math.PI * (1 - (currentCharge / 100));
+        const needleLength = 30;
+        const tipX = pivotX + Math.cos(angle) * needleLength;
+        const tipY = pivotY + Math.sin(angle) * needleLength;
+        ctx.beginPath();
+        ctx.moveTo(pivotX, pivotY);
+        ctx.lineTo(tipX, tipY);
+        ctx.strokeStyle = '#ff3030';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ff3030';
+        ctx.fill();
     }
+    // <<< ИСПРАВЛЕННАЯ ФУНКЦИЯ drawLCDDisplay >>>
     function drawLCDDisplay() {
-      ctx.fillStyle = '#0a0a0a';
-      roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
-      ctx.fill();
-      ctx.strokeStyle = '#333';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      let topText = "-----";
-      let bottomText = "-----";
-      if (systemsActive && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
-        if (activeRobotIndex !== -1) {
-          topText = `UNIT${activeRobotIndex + 1}`;
-          bottomText = hasCargo[activeRobotIndex] ? "LOAD" : "EMPTY";
+        ctx.fillStyle = '#0a0a0a';
+        roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        let topText = "-----";
+        let bottomText = "-----";
+        if (systemsActive && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+            if (activeRobotIndex !== -1) {
+                topText = `UNIT${activeRobotIndex + 1}`;
+                bottomText = hasCargo[activeRobotIndex] ? "LOAD" : "EMPTY";
+            }
         }
-      }
-      const charWidth = LCD_WIDTH / 5;
-      const topY = LCD_Y + 22;
-      const bottomY = LCD_Y + 45;
-      ctx.fillStyle = '#666';
-      ctx.font = 'bold 14px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      for (let i = 0; i < 5; i++) {
-        if (i < topText.length && topText !== "-----") {
-          ctx.fillStyle = '#00ff00';
-          ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
-          ctx.fillStyle = '#666';
-        } else {
-          ctx.fillText('-', LCD_X + charWidth * (i + 0.5), topY);
+        const charWidth = LCD_WIDTH / 5;
+        const topY = LCD_Y + 22;
+        const bottomY = LCD_Y + 45;
+        ctx.fillStyle = '#666';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        // Новая логика мигания для LCD
+        const shouldBlinkLCD = (systemsActive && activeRobotIndex !== -1);
+        const blinkLCD = shouldBlinkLCD ? (Math.floor(performance.now() / 1000) % 2) : 0; // Частота: 1 раз в секунду
+        // Рисуем верхнюю строку (UNITX)
+        for (let i = 0; i < 5; i++) {
+            if (i < topText.length && topText !== "-----") {
+                if (i < 4) { // Символы 'U', 'N', 'I', 'T'
+                    // Всегда белые, не мигают
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
+                } else { // Цифра (например, '1', '2', '3')
+                    // Мигает с частотой 1 Гц
+                    if (blinkLCD === 0) {
+                        ctx.fillStyle = '#ffffff'; // Белый
+                    } else {
+                        ctx.fillStyle = '#666'; // Скрытый
+                    }
+                    ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
+                }
+                ctx.fillStyle = '#666';
+            } else {
+                ctx.fillText('-', LCD_X + charWidth * (i + 0.5), topY);
+            }
         }
-      }
-      for (let i = 0; i < 5; i++) {
-        if (i < bottomText.length && bottomText !== "-----") {
-          ctx.fillStyle = '#00ff00';
-          ctx.fillText(bottomText[i], LCD_X + charWidth * (i + 0.5), bottomY);
-          ctx.fillStyle = '#666';
-        } else {
-          ctx.fillText('-', LCD_X + charWidth * (i + 0.5), bottomY);
+        // Рисуем нижнюю строку (LOAD/EMPTY)
+        for (let i = 0; i < 5; i++) {
+            if (i < bottomText.length && bottomText !== "-----") {
+                if (bottomText === "LOAD" && i === 4) {
+                    // Для "LOAD" пятая позиция всегда серая и не мигает
+                    ctx.fillStyle = '#666';
+                    ctx.fillText('-', LCD_X + charWidth * (i + 0.5), bottomY);
+                } else {
+                    // Остальные символы мигают с частотой 1 Гц
+                    if (blinkLCD === 0) {
+                        ctx.fillStyle = '#ffffff'; // Белый
+                    } else {
+                        ctx.fillStyle = '#666'; // Скрытый
+                    }
+                    ctx.fillText(bottomText[i], LCD_X + charWidth * (i + 0.5), bottomY);
+                }
+                ctx.fillStyle = '#666';
+            } else {
+                ctx.fillText('-', LCD_X + charWidth * (i + 0.5), bottomY);
+            }
         }
-      }
     }
     function draw3DCounter() {
       const now = performance.now();
@@ -1653,7 +1929,7 @@
       ctx.fillRect(centerX - rectWidth/2, centerY - halfHeight, rectWidth, halfHeight);
       ctx.save();
       ctx.translate(centerX, centerY);
-      ctx.fillStyle = isPowerOn ? '#00ff00' : '#666';
+      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666'; // ← Заменено на белый
       ctx.font = 'bold 24px "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1684,7 +1960,7 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(digit), 1, 1);
-      ctx.fillStyle = isPowerOn ? '#00ff00' : '#666';
+      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666'; // ← Заменено на белый
       ctx.fillText(String(digit), 0, 0);
       if (cosA > 0) {
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
@@ -1692,6 +1968,7 @@
       }
       ctx.restore();
     }
+    // <<< ИСПРАВЛЕННАЯ ФУНКЦИЯ drawTimer >>>
     function drawTimer() {
       ctx.fillStyle = '#0a0a0a';
       roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
@@ -1700,28 +1977,22 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       if (isPowerOn) {
-        const now = performance.now();
-        if (systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive && now - lastTickTime >= 1000 && timerSeconds > 0) {
-          timerSeconds = timeLeft; // ← Синхронизируем с таймером игры
-          lastTickTime = now;
-        }
-        const mins = Math.floor(timerSeconds / 60);
-        const secs = timerSeconds % 60;
+        // <<< ИЗМЕНЕНО: Используем timeLeft напрямую, убрана переменная timerSeconds >>>
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
         const timeText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-        let textColor = '#00ff00';
-        if (timerSeconds <= 30 && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        let textColor = '#ffffff';
+        // Мигание при оставшихся 30 секундах
+        if (timeLeft <= 30 && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
           const blink = Math.floor(performance.now() / 500) % 2;
-          if (blink === 0) {
-            textColor = '#0a0a0a';
-          } else {
-            textColor = '#00ff00';
-          }
+          textColor = blink === 0 ? '#0a0a0a' : '#ffffff';
         }
         ctx.fillStyle = textColor;
         ctx.font = 'bold 36px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(timeText, TIMER_X + TIMER_WIDTH / 2, TIMER_Y + TIMER_HEIGHT / 2);
+        // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
       } else {
         ctx.fillStyle = '#555';
         ctx.font = 'bold 36px "Courier New", monospace';
@@ -1742,27 +2013,28 @@
           if (bootLineIndex >= bootText.length) {
             bootCompleted = true;
             systemsActive = true;
-            // <<< ЗАПУСКАЕМ ИГРОВЫЕ ЦИКЛЫ ПОСЛЕ ЗАГРУЗКИ >>>
+            // ЗАПУСКАЕМ ИГРОВЫЕ ЦИКЛЫ ПОСЛЕ ЗАГРУЗКИ
             gameInterval = setInterval(gameStep, 250);
             gameTimer = setInterval(() => {
                 timeLeft--;
+                // <<< ИЗМЕНЕНО: Экран завершения появляется ТОЛЬКО при 00:00 >>>
                 if (timeLeft <= 0) {
                     clearInterval(gameTimer);
-                    // <<< ПОКАЗЫВАЕМ ЭКРАН ТОЛЬКО КОГДА ТАЙМЕР ДОСТИГ 00:00 >>>
                     if (timeLeft === 0) {
                         isGameOverScreenActive = true;
                         systemsActive = false;
                     }
                 }
+                // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
             }, 1000);
-            // <<< КОНЕЦ ЗАПУСКА >>>
+            // КОНЕЦ ЗАПУСКА
             return;
           }
         } else {
           bootCharIndex++;
         }
       }
-      ctx.fillStyle = '#00ff00';
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1790,7 +2062,7 @@
           passwordCharIndex++;
         }
       }
-      ctx.fillStyle = '#00ff00';
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1812,7 +2084,7 @@
       for (let i = 0; i < 3; i++) {
         const xPos = centerX - 60 + i * 60;
         if (i < inputCode.length) {
-          ctx.fillStyle = '#00ff00';
+          ctx.fillStyle = '#ffffff'; // ← Заменено на белый
           ctx.fillText(inputCode[i].toString(), xPos, centerY);
         } else {
           ctx.fillStyle = '#666';
@@ -1841,17 +2113,18 @@
       drawKey(starX, starY, "*", pressedKey === '*');
     }
     function drawKey(x, y, label, isPressed) {
-      ctx.fillStyle = isPressed ? '#00ff00' : '#003000';
-      roundRect(ctx, x, y, KEYPAD_SIZE, KEYPAD_SIZE, 8);
-      ctx.fill();
-      ctx.strokeStyle = '#00ff00';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = '#00ff00';
-      ctx.font = 'bold 24px "Courier New", monospace';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(label, x + KEYPAD_SIZE/2, y + KEYPAD_SIZE/2);
+        // Используем серый цвет вместо зеленого
+        ctx.fillStyle = isPressed ? '#aaaaaa' : '#333333';
+        roundRect(ctx, x, y, KEYPAD_SIZE, KEYPAD_SIZE, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#666666'; // Серый контур
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff'; // Белый текст
+        ctx.font = 'bold 24px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x + KEYPAD_SIZE/2, y + KEYPAD_SIZE/2);
     }
     function drawGodmodeDisplay() {
       if (!godmodeSuccess || !isPowerOn || isGodmodeFinalized || errorCompleted) return;
@@ -1860,20 +2133,20 @@
         lastGodmodeDisplayTick = now;
         if (godmodeDisplayCharIndex >= godmodeDisplayText[godmodeDisplayLineIndex].length) {
           godmodeDisplayCompleted = true;
-          // <<< Активируем финализацию GODMODE >>>
+          // Активируем финализацию GODMODE
           isGodmodeFinalized = true;
-          // <<< Активируем экран завершения игры ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ ТЕКСТА >>>
+          // Активируем экран завершения игры ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ ТЕКСТА
           isGameOverScreenActive = true;
           return;
         } else {
           godmodeDisplayCharIndex++;
         }
       }
-      // <<< Рисуем черный фон для GODMODE >>>
+      // Рисуем черный фон для GODMODE
       ctx.fillStyle = 'black';
       ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-      // <<< Рисуем текст >>>
-      ctx.fillStyle = '#00ff00';
+      // Рисуем текст
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1890,13 +2163,17 @@
           errorLineIndex++;
           if (errorLineIndex >= errorText.length) {
             errorCompleted = true;
+            // <<< ИЗМЕНЕНО: Выключаем питание и сбрасываем всё ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ >>>
+            isPowerOn = false;
+            resetAll();
+            // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
             return;
           }
         } else {
           errorCharIndex++;
         }
       }
-      ctx.fillStyle = '#00ff00';
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1908,43 +2185,73 @@
         ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + errorLineIndex * 20);
       }
     }
+    // <<< ИЗМЕНЕННАЯ ФУНКЦИЯ drawGlowBorder: Свечение ТОЛЬКО НАРУЖУ, НАЧИНАЕТСЯ ЗА ЧЕРНОЙ РАМКОЙ >>>
     function drawGlowBorder() {
-      if (errorCompleted) {
-        borderGlow = 0;
-      } else {
-        if (!isPowerOn) {
-          if (borderGlow > 0) borderGlow -= 0.02;
+        // Рисуем только если панель включена
+        if (!isPowerOn || errorCompleted) return;
+        // Создаем пульсирующий коэффициент для свечения
+        const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 800);
+        // Сохраняем текущее состояние контекста
+        ctx.save();
+        // === ЭФФЕКТ НАРУЖНОГО СВЕЧЕНИЯ ===
+        ctx.shadowColor = `rgba(255, 255, 255, ${0.4 * pulse})`;
+        ctx.shadowBlur = 30;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        // Рисуем невидимые контуры для создания внешнего свечения
+        ctx.strokeStyle = 'transparent';
+        ctx.lineWidth = 2;
+        // <<< ИЗМЕНЕНО: Свечение начинается ЗА черной рамкой >>>
+        ctx.strokeRect(
+            DISPLAY_X - 1,
+            DISPLAY_Y - 1,
+            DISPLAY_WIDTH + 2,
+            DISPLAY_HEIGHT + 2
+        );
+        // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
+        roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
+        ctx.stroke();
+        // === ЭФФЕКТ ВНУТРЕННЕЙ ТЕНИ (СВЕЧЕНИЕ ВНУТРЬ) ===
+        // <<< УДАЛЕНО: Весь блок внутреннего свечения >>>
+        // if (systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        //     ctx.shadowColor = `rgba(255, 255, 255, ${0.3 * pulse})`;
+        //     ctx.shadowBlur = 20;
+        //     ctx.shadowOffsetX = 0;
+        //     ctx.shadowOffsetY = 0;
+        //     ctx.fillRect(DISPLAY_X + 2, DISPLAY_Y + 2, DISPLAY_WIDTH - 4, DISPLAY_HEIGHT - 4);
+        // }
+        // <<< КОНЕЦ УДАЛЕНИЯ >>>
+        // Восстанавливаем состояние контекста (отключаем тень)
+        ctx.restore();
+        // === ЧЕТКИЙ КОНТУР ===
+        ctx.lineWidth = 2;
+        // Рисуем контур игрового поля
+        if (systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
         } else {
-          if (borderGlow < 1) borderGlow += 0.02;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
         }
-        if (borderGlow > 1) borderGlow = 1;
-        if (borderGlow < 0) borderGlow = 0;
-      }
-      const glowColor = `rgba(0, 255, 0, ${borderGlow * 0.3})`;
-      const lineColor = isPowerOn ? '#00ff00' : 'rgb(0, 80, 40)';
-      const offset = borderGlow * 2;
-      ctx.shadowColor = glowColor;
-      ctx.shadowBlur = 3;
-      ctx.shadowOffsetX = 0;
-      ctx.shadowOffsetY = 0;
-      ctx.strokeStyle = lineColor;
-      ctx.lineWidth = 1;
-      ctx.strokeRect(DISPLAY_X - offset, DISPLAY_Y - offset, DISPLAY_WIDTH + offset*2, DISPLAY_HEIGHT + offset*2);
-      roundRect(ctx, VOLTMETER_X - offset, VOLTMETER_Y - offset, VOLTMETER_WIDTH + offset*2, VOLTMETER_HEIGHT + offset*2, 6);
-      ctx.stroke();
-      roundRect(ctx, LCD_X - offset, LCD_Y - offset, LCD_WIDTH + offset*2, LCD_HEIGHT + offset*2, 6);
-      ctx.stroke();
-      roundRect(ctx, TIMER_X - offset, TIMER_Y - offset, TIMER_WIDTH + offset*2, TIMER_HEIGHT + offset*2, 4);
-      ctx.stroke();
-      ctx.shadowColor = 'transparent';
+        // Рисуем контуры остальных панелей
+        roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
+        ctx.stroke();
     }
-    // <<< ФУНКЦИЯ ОТРИСОВКИ ЭКРАНА ЗАВЕРШЕНИЯ ИГРЫ НА CANVAS >>>
+    // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
     function drawGameOverScreen() {
         // Рисуем черный фон экрана завершения
         ctx.fillStyle = 'black';
         ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
         // Рисуем текст результата
-        ctx.fillStyle = '#00ff00';
+        ctx.fillStyle = '#ffffff'; // ← Заменено на белый
         ctx.font = 'bold 36px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1954,9 +2261,7 @@
         const saveButtonY = DISPLAY_Y + 300;
         const saveButtonWidth = 200;
         const saveButtonHeight = 60;
-        // <<< УДАЛЕНА ПРОБЛЕМНАЯ ЛОГИКА С ДОБАВЛЕНИЕМ ОБРАБОТЧИКОВ >>>
-        // <<< КНОПКА БУДЕТ РЕАГИРОВАТЬ ЧЕРЕЗ ОСНОВНОЙ ОБРАБОТЧИК handleButtonClick >>>
-        ctx.fillStyle = '#00ff00'; // Зеленый цвет
+        ctx.fillStyle = '#ffffff'; // ← Заменено на белый
         roundRect(ctx, saveButtonX, saveButtonY, saveButtonWidth, saveButtonHeight, 8);
         ctx.fill();
         ctx.strokeStyle = 'black';
@@ -1966,7 +2271,13 @@
         ctx.font = 'bold 24px "Courier New", monospace';
         ctx.fillText('SAVE', saveButtonX + saveButtonWidth / 2, saveButtonY + saveButtonHeight / 2);
     }
-    // <<< КОНЕЦ ФУНКЦИИ >>>
+    function drawRonaviText() {
+      ctx.fillStyle = '#000'; // Черный цвет
+      ctx.font = 'bold 30px "NexaBold", Arial, sans-serif';
+      ctx.textAlign = 'center'; // Выравнивание по центру
+      ctx.textBaseline = 'bottom'; // Базовая линия — низ текста
+      ctx.fillText('RONAVI', GAME_WIDTH / 2, GAME_HEIGHT - 20); // По центру по X, 20px от низа по Y
+    }
     function gameLoop() {
       ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
       if (!isPowerOn) {
@@ -1981,7 +2292,7 @@
       if (systemsActive && !errorCompleted && !isGodmodeFinalized && !isGameOverScreenActive) {
         drawGame();
       }
-      // <<< РИСУЕМ ЭКРАН ЗАВЕРШЕНИЯ ИГРЫ >>>
+      // РИСУЕМ ЭКРАН ЗАВЕРШЕНИЯ ИГРЫ
       if (isGameOverScreenActive) {
         drawGameOverScreen();
       }
@@ -1991,7 +2302,7 @@
       draw3DCounter();
       drawTimer();
       drawPowerButton();
-      drawLamps();
+      // <<< УДАЛЕНО: drawLamps() >>>
       drawRSTButton();
       drawPRGButton();
       drawGlowBorder();
@@ -2003,17 +2314,10 @@
         drawErrorText();
         drawGodmodeDisplay();
       }
-
-      // <<< НОВАЯ ЛОГИКА: Проверяем, завершена ли анимация ошибки >>>
-      if (errorMode && errorCompleted && !isPowerOn) {
-        // Если анимация ошибки завершена и питание уже выключено, ничего не делаем.
-        // Это состояние уже обработано.
-      } else if (errorMode && errorCompleted) {
-        // Анимация ошибки завершена, но питание еще включено — выключаем его.
-        isPowerOn = false;
-        resetAll();
-      }
-
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      drawRonaviText();
       requestAnimationFrame(gameLoop);
     }
     function roundRect(ctx, x, y, width, height, radius) {
