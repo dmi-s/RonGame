@@ -56,6 +56,9 @@
     <canvas id="gameCanvas"></canvas>
   </div>
   <script>
+    if (window.Telegram && window.Telegram.WebApp) {
+      window.Telegram.WebApp.ready();
+    }
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
     // === РАЗМЕРЫ ПАНЕЛИ ===
@@ -63,9 +66,7 @@
     const GAME_HEIGHT = 650;
     canvas.width = GAME_WIDTH;
     canvas.height = GAME_HEIGHT;
-    if (window.Telegram && window.Telegram.WebApp) {
-      window.Telegram.WebApp.ready();
-    }
+
     // === РАЗМЕТКА ===
     const TOP_MARGIN = 20;
     const PANEL_HEIGHT = 65;
