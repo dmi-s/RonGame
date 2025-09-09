@@ -63,8 +63,6 @@
     const GAME_HEIGHT = 650;
     canvas.width = GAME_WIDTH;
     canvas.height = GAME_HEIGHT;
-
-
     const TOP_MARGIN = 20;
     const PANEL_HEIGHT = 65;
     const GAP_TIMER_COUNTER = 10;
@@ -100,7 +98,6 @@
     const POWER_LEFT_MARGIN_FROM_TIMER = 10; // Отступ от правой стороны таймера
     const POWER_X = TIMER_X + TIMER_WIDTH + POWER_LEFT_MARGIN_FROM_TIMER; // Левая сторона кнопки
     const POWER_WIDTH = GAME_WIDTH - POWER_X - POWER_RIGHT_MARGIN; // Автоматический расчет ширины
-    const POWER_Y = TIMER_Y;
     const POWER_CENTER_X = POWER_X + POWER_WIDTH / 2;
     const POWER_CENTER_Y = POWER_Y + POWER_BUTTON_HEIGHT / 2;
     // === КНОПКИ RESET и PROG ===
@@ -698,7 +695,6 @@
                 const dx = nextPoint.x - head.x;
                 const dy = nextPoint.y - head.y;
                 const newHead = {x: head.x, y: head.y};
-
                 // <<< НОВЫЙ БЛОК: Обновляем направление на КАЖДОМ шаге движения >>>
                 if (dx > 0) {
                     newHead.x++;
@@ -717,7 +713,6 @@
                     // При вертикальном движении направление НЕ меняем, оставляем предыдущее
                 }
                 // <<< КОНЕЦ НОВОГО БЛОКА >>>
-
                 if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
                     return;
                 }
@@ -1323,7 +1318,6 @@
             } else {
               alert('⚠️ Игра запущена не в Telegram. Очки сохранены локально.');
             }
-
             // ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ СОХРАНЕНИЯ
             isGameOverScreenActive = false;
             resetAll();
@@ -2344,46 +2338,43 @@
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.closePath();
     }
-
-
+    // ============ ИНИЦИАЛИЗАЦИЯ ИГРЫ ============
+    // Ждем полной загрузки страницы
     window.addEventListener('load', function() {
-        // Функция для запуска игры
-        function startGameAfterTelegramReady() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.ready();
-                console.log("✅ Telegram WebApp успешно инициализирован");
-                // Запускаем игровой цикл через короткую задержку
-                setTimeout(gameLoop, 100);
-            } else {
-                console.warn("⚠️ Запущено не в Telegram. WebApp API недоступно.");
-                // Если не в Telegram, все равно запускаем игру, но без интеграции
-                setTimeout(gameLoop, 100);
-            }
+        // Проверяем, запущена ли игра в Telegram Web App
+        if (window.Telegram && window.Telegram.WebApp) {
+            // Игра запущена внутри Telegram
+            window.Telegram.WebApp.ready();
+            console.log("✅ Telegram WebApp успешно инициализирован");
+            // Запускаем игровой цикл
+            setTimeout(gameLoop, 100);
+        } else {
+            // Игра запущена локально (не в Telegram)
+            console.error("❌ Игра должна запускаться только через Telegram Web App!");
+            // Полностью очищаем страницу
+            document.body.innerHTML = '';
+            // Создаем и показываем сообщение об ошибке
+            const errorDiv = document.createElement('div');
+            errorDiv.style.position = 'fixed';
+            errorDiv.style.top = '50%';
+            errorDiv.style.left = '50%';
+            errorDiv.style.transform = 'translate(-50%, -50%)';
+            errorDiv.style.textAlign = 'center';
+            errorDiv.style.fontFamily = 'Arial, sans-serif';
+            errorDiv.style.fontSize = '20px';
+            errorDiv.style.color = '#ff3030';
+            errorDiv.style.backgroundColor = '#000';
+            errorDiv.style.padding = '40px';
+            errorDiv.style.borderRadius = '10px';
+            errorDiv.style.boxShadow = '0 0 20px rgba(255, 0, 0, 0.5)';
+            errorDiv.innerHTML = `
+                <h1>🚫 Доступ запрещен</h1>
+                <p>Эта игра предназначена только для запуска внутри Telegram.</p>
+                <p>Пожалуйста, найдите бота и запустите игру оттуда.</p>
+            `;
+            document.body.appendChild(errorDiv);
+            // Игра НЕ запускается
         }
-
-        // Пытаемся запустить игру сразу
-        startGameAfterTelegramReady();
-
-        // Если WebApp еще не готов, ждем его появления (на случай медленной загрузки)
-        let attempts = 0;
-        const maxAttempts = 10;
-        const checkInterval = setInterval(() => {
-            if (window.Telegram && window.Telegram.WebApp) {
-                clearInterval(checkInterval);
-                if (attempts > 0) {
-                    console.log("✅ Telegram WebApp инициализирован после задержки");
-                    startGameAfterTelegramReady();
-                }
-            } else {
-                attempts++;
-                if (attempts >= maxAttempts) {
-                    clearInterval(checkInterval);
-                    console.warn("❌ Telegram WebApp не инициализирован после нескольких попыток");
-                    // Запускаем игру без Telegram
-                    setTimeout(gameLoop, 100);
-                }
-            }
-        }, 500); // Проверяем каждые 500 мс
     });
   </script>
 </body>
