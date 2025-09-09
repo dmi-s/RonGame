@@ -1313,6 +1313,19 @@
             });
             localStorage.setItem('robotGameHighScores', JSON.stringify(highScores));
             alert('Ваш результат сохранен!');
+            // === ОТПРАВКА ОЧКОВ В TELEGRAM БОТ ===
+            if (window.Telegram && window.Telegram.WebApp) {
+              const resultData = {
+                action: "save_score",
+                score: counterValue,
+                timestamp: new Date().toISOString()
+              };
+              window.Telegram.WebApp.sendData(JSON.stringify(resultData));
+              alert('✅ Ваши очки сохранены!');
+            } else {
+              alert('⚠️ Игра запущена не в Telegram. Очки сохранены локально.');
+            }
+
             // ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ СОХРАНЕНИЯ
             isGameOverScreenActive = false;
             resetAll();
