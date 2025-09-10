@@ -96,7 +96,6 @@
     const POWER_LEFT_MARGIN_FROM_TIMER = 10;
     const POWER_X = TIMER_X + TIMER_WIDTH + POWER_LEFT_MARGIN_FROM_TIMER;
     const POWER_WIDTH = GAME_WIDTH - POWER_X - POWER_RIGHT_MARGIN;
-    const POWER_Y = TIMER_Y;
     const POWER_CENTER_X = POWER_X + POWER_WIDTH / 2;
     const POWER_CENTER_Y = POWER_Y + POWER_BUTTON_HEIGHT / 2;
     const FIELD_LEFT = COUNTER_X + COUNTER_WIDTH + 10;
@@ -234,6 +233,10 @@
     chargingImage.src = 'Charging.png';
     parkingImage.src = 'Parking.png';
     obstacleImage.src = 'Column.png';
+
+    // Флаг для отслеживания, показана ли главная кнопка
+    let isMainButtonShown = false;
+
     function isObstacle(x, y) {
         for (let obstacle of obstacles) {
             if (obstacle.x === x && obstacle.y === y) {
@@ -999,6 +1002,7 @@
       e.preventDefault();
       handleButtonClick(e);
     });
+
     function handleButtonClick(e) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -1011,6 +1015,7 @@
         x = (e.clientX - rect.left) * scaleX;
         y = (e.clientY - rect.top) * scaleY;
       }
+
       const dxPOWER = x - POWER_CENTER_X;
       const dyPOWER = y - POWER_CENTER_Y;
       const distPOWER = Math.sqrt(dxPOWER * dxPOWER + dyPOWER * dyPOWER);
@@ -1020,6 +1025,7 @@
       const dxPRG = x - PRG_CENTER_X;
       const dyPRG = y - PRG_CENTER_Y;
       const distPRG = Math.sqrt(dxPRG * dxPRG + dyPRG * dyPRG);
+
       if (isGodmodeFinalized && !isGameOverScreenActive) {
         if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
@@ -1048,6 +1054,7 @@
         }
         return;
       }
+
       if (errorCompleted) {
         if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
@@ -1076,10 +1083,12 @@
         }
         return;
       }
+
       if (godmodeActive && !passwordMode && !errorMode && !godmodeSuccess) {
         handleKeypadClick(x, y);
         return;
       }
+
       if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
         isPowerOn = !isPowerOn;
         if (!isPowerOn) {
@@ -1210,7 +1219,25 @@
           }
         }
       }
+
+      // 👇 Показываем Telegram Main Button при клике на экран Game Over
+      if (isGameOverScreenActive) {
+          const saveBtnX = DISPLAY_X + 100;
+          const saveBtnY = DISPLAY_Y + 320;
+          const saveBtnWidth = 200;
+          const saveBtnHeight = 50;
+          if (x >= saveBtnX && x <= saveBtnX + saveBtnWidth && y >= saveBtnY && y <= saveBtnY + saveBtnHeight) {
+              if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.MainButton) {
+                  window.Telegram.WebApp.MainButton.onClick(); // Эмулируем нажатие
+              }
+          }
+          // Показываем главную кнопку, если она ещё не показана
+          if (!isMainButtonShown) {
+              setupTelegramMainButton();
+          }
+      }
     }
+
     function handleKeypadClick(x, y) {
       if (passwordMode || errorMode || godmodeSuccess) return;
       for (let row = 0; row < 3; row++) {
@@ -1317,6 +1344,7 @@
       godmodeDisplayCompleted = false;
       isGodmodeFinalized = false;
       isGameOverScreenActive = false;
+      isMainButtonShown = false; // Сбрасываем флаг
       if (gameRunning) {
         if (gameInterval) clearInterval(gameInterval);
         if (gameTimer) clearInterval(gameTimer);
@@ -2006,6 +2034,8 @@
         roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
         ctx.stroke();
     }
+
+    // 👇 Новый метод: отрисовка экрана Game Over с кнопкой
     function drawGameOverScreen() {
         ctx.fillStyle = 'black';
         ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
@@ -2014,11 +2044,27 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`СЧЕТ: ${counterValue}`, DISPLAY_X + 200, DISPLAY_Y + 150);
+
+        // Текст подсказки
         ctx.fillStyle = '#ffffff';
         ctx.font = '16px "Courier New", monospace';
         ctx.fillText("Нажмите кнопку снизу", DISPLAY_X + 200, DISPLAY_Y + 250);
         ctx.fillText("для отправки результата", DISPLAY_X + 200, DISPLAY_Y + 280);
+
+        // Виртуальная кнопка "Сохранить счёт"
+        ctx.fillStyle = '#FF6F61';
+        roundRect(ctx, DISPLAY_X + 100, DISPLAY_Y + 320, 200, 50, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('Сохранить счёт', DISPLAY_X + 200, DISPLAY_Y + 345);
     }
+
     function drawRonaviText() {
       ctx.fillStyle = '#000';
       ctx.font = 'bold 30px "NexaBold", Arial, sans-serif';
@@ -2076,6 +2122,8 @@
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.closePath();
     }
+
+    // 👇 Исправленная функция: отправка данных в формате score=12345
     function setupTelegramMainButton() {
         if (!window.Telegram || !window.Telegram.WebApp) {
             console.warn("Telegram WebApp не доступен. Главная кнопка не настроена.");
@@ -2089,15 +2137,13 @@
         });
         mainButton.onClick(function() {
             mainButton.hide();
-            const resultData = {
-                action: "save_score",
-                score: counterValue,
-                timestamp: new Date().toISOString()
-            };
-            window.Telegram.WebApp.sendData(JSON.stringify(resultData));
+            // 🔄 Отправляем данные в простом формате, совместимом с ботом
+            window.Telegram.WebApp.sendData(`score=${counterValue}`);
         });
         mainButton.show();
+        isMainButtonShown = true; // Устанавливаем флаг
     }
+
     window.addEventListener('load', function() {
         if (!(window.Telegram && window.Telegram.WebApp)) {
             alert("❌ Эта игра работает только внутри Telegram. Пожалуйста, откройте ее через бота.");
