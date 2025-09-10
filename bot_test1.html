@@ -1,66 +1,57 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<title>Рандом и Сохранить — Проверка</title>
-<style>
-  body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
-  button { font-size: 18px; padding: 10px 20px; margin: 10px; cursor: pointer; }
-  #randomNumber, #savedNumber {
-    font-size: 22px; margin-top: 20px;
-  }
-</style>
+  <meta charset="UTF-8" />
+  <title>Игра с ботом</title>
 </head>
 <body>
+  <h1>Игра: сгенерируй число для бота</h1>
+  <button onclick="generateNumber()">Сгенерировать число</button>
+  <p id="number">Число пока не сгенерировано</p>
+  <button id="save-btn" disabled onclick="saveNumber()">Сохранить и отправить боту</button>
 
-<h1>Генерация и сохранение числа</h1>
+  <script>
+    let generatedNumber = null;
+    const urlParams = new URLSearchParams(window.location.search);
+    const chatId = urlParams.get('chat_id');
 
-<button id="btnRandom">Рандом</button>
-<button id="btnSave" disabled>Сохранить</button>
-
-<div id="randomNumber">Случайное число: -</div>
-<div id="savedNumber">Сохранённое число: нет</div>
-
-<script>
-  const STORAGE_KEY = 'savedRandomNumber';
-  let currentRandom = null;
-
-  const randomNumberDiv = document.getElementById('randomNumber');
-  const savedNumberDiv = document.getElementById('savedNumber');
-  const btnSave = document.getElementById('btnSave');
-
-  // Загрузить сохранённое число при старте
-  function loadSaved() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved !== null) {
-      savedNumberDiv.textContent = `Сохранённое число: ${saved}`;
-    } else {
-      savedNumberDiv.textContent = 'Сохранённое число: нет';
+    if (!chatId) {
+      alert('Ошибка: chat_id не найден в URL');
     }
-  }
 
-  // Генерируем случайное число
-  function generateRandom() {
-    currentRandom = Math.floor(Math.random() * 100) + 1;
-    randomNumberDiv.textContent = `Случайное число: ${currentRandom}`;
-    btnSave.disabled = false; // Активируем кнопку Сохранить
-  }
-
-  // Сохраняем число
-  function saveNumber() {
-    if (currentRandom !== null) {
-      localStorage.setItem(STORAGE_KEY, currentRandom);
-      savedNumberDiv.textContent = `Сохранённое число: ${currentRandom}`;
-      btnSave.disabled = true; // отключаем кнопку, пока не будет новый рандом
+    function generateNumber() {
+      generatedNumber = Math.floor(Math.random() * 100) + 1;
+      document.getElementById('number').textContent = 'Сгенерировано число: ' + generatedNumber;
+      document.getElementById('save-btn').disabled = false;
     }
-  }
 
-  document.getElementById('btnRandom').addEventListener('click', generateRandom);
-  btnSave.addEventListener('click', saveNumber);
+    function saveNumber() {
+      if (!generatedNumber || !chatId) {
+        alert('Ошибка: число не сгенерировано или chat_id не найден');
+        return;
+      }
 
-  // Показываем сохранённое число при загрузке страницы
-  window.onload = loadSaved;
-</script>
+      // Здесь нам нужно отправить число боту.
+      // Но бот — телеграм-бот, а не веб-сервер.
+      // Для отправки данных боту нужен отдельный сервер.
+      // Ниже пример запроса к твоему серверу (адрес надо будет заменить):
 
+      fetch('https://your-server.com/save_number', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, number: generatedNumber })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          alert('Число отправлено боту!');
+          document.getElementById('save-btn').disabled = true;
+        } else {
+          alert('Ошибка при отправке: ' + data.message);
+        }
+      })
+      .catch(() => alert('Ошибка сети при отправке данных'));
+    }
+  </script>
 </body>
 </html>
