@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Рандом и Сохранить — Проверка</title>
+<style>
+  body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+  button { font-size: 18px; padding: 10px 20px; margin: 10px; cursor: pointer; }
+  #randomNumber, #savedNumber {
+    font-size: 22px; margin-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Генерация и сохранение числа</h1>
+
+<button id="btnRandom">Рандом</button>
+<button id="btnSave" disabled>Сохранить</button>
+
+<div id="randomNumber">Случайное число: -</div>
+<div id="savedNumber">Сохранённое число: нет</div>
+
+<script>
+  const STORAGE_KEY = 'savedRandomNumber';
+  let currentRandom = null;
+
+  const randomNumberDiv = document.getElementById('randomNumber');
+  const savedNumberDiv = document.getElementById('savedNumber');
+  const btnSave = document.getElementById('btnSave');
+
+  // Загрузить сохранённое число при старте
+  function loadSaved() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved !== null) {
+      savedNumberDiv.textContent = `Сохранённое число: ${saved}`;
+    } else {
+      savedNumberDiv.textContent = 'Сохранённое число: нет';
+    }
+  }
+
+  // Генерируем случайное число
+  function generateRandom() {
+    currentRandom = Math.floor(Math.random() * 100) + 1;
+    randomNumberDiv.textContent = `Случайное число: ${currentRandom}`;
+    btnSave.disabled = false; // Активируем кнопку Сохранить
+  }
+
+  // Сохраняем число
+  function saveNumber() {
+    if (currentRandom !== null) {
+      localStorage.setItem(STORAGE_KEY, currentRandom);
+      savedNumberDiv.textContent = `Сохранённое число: ${currentRandom}`;
+      btnSave.disabled = true; // отключаем кнопку, пока не будет новый рандом
+    }
+  }
+
+  document.getElementById('btnRandom').addEventListener('click', generateRandom);
+  btnSave.addEventListener('click', saveNumber);
+
+  // Показываем сохранённое число при загрузке страницы
+  window.onload = loadSaved;
+</script>
+
+</body>
+</html>
