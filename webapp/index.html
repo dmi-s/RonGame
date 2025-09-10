@@ -49,17 +49,55 @@
       max-width: 100vw;
       max-height: 100vh;
     }
+
+    /* Стиль для экрана ошибки при локальном запуске */
+    #error-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #111;
+      color: #ff3030;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+      z-index: 9999;
+      font-family: 'Courier New', monospace;
+    }
+    #error-screen h1 {
+      font-size: 2em;
+      margin-bottom: 20px;
+    }
+    #error-screen p {
+      font-size: 1.2em;
+      margin-bottom: 10px;
+    }
   </style>
+
+  <!-- Подключаем Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
   <div id="game-container">
     <canvas id="gameCanvas"></canvas>
   </div>
+
+  <!-- Экран ошибки для локального запуска -->
+  <div id="error-screen" style="display: none;">
+    <h1>🚫 ДОСТУП ЗАПРЕЩЕН</h1>
+    <p>Эта игра предназначена исключительно для запуска внутри Telegram.</p>
+    <p>Пожалуйста, откройте ее через бота в приложении Telegram.</p>
+  </div>
+
   <script>
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
-    const GAME_WIDTH = 420;
+    // === РАЗМЕРЫ ПАНЕЛИ ===
+    const GAME_WIDTH = 420;  // Общий размер canvas
     const GAME_HEIGHT = 650;
     canvas.width = GAME_WIDTH;
     canvas.height = GAME_HEIGHT;
@@ -67,7 +105,7 @@
     const PANEL_HEIGHT = 65;
     const GAP_TIMER_COUNTER = 10;
     const GAP_COUNTER_DISPLAY = 20;
-    const DISPLAY_HEIGHT = 400;
+    const DISPLAY_HEIGHT = 400; // Размер игрового поля
     const BOTTOM_MARGIN = 20;
     const TIMER_Y = TOP_MARGIN;
     const COUNTER_Y = TIMER_Y + PANEL_HEIGHT + GAP_TIMER_COUNTER;
@@ -89,15 +127,19 @@
     const LCD_Y = COUNTER_Y;
     const LCD_WIDTH = PANEL_WIDTH;
     const LCD_HEIGHT = PANEL_HEIGHT;
-    const DISPLAY_WIDTH = 400;
+    const DISPLAY_WIDTH = 400; // Размер игрового поля
     const DISPLAY_X = 10;
-    const POWER_BUTTON_HEIGHT = PANEL_HEIGHT;
-    const POWER_RIGHT_MARGIN = 10;
-    const POWER_LEFT_MARGIN_FROM_TIMER = 10;
-    const POWER_X = TIMER_X + TIMER_WIDTH + POWER_LEFT_MARGIN_FROM_TIMER;
-    const POWER_WIDTH = GAME_WIDTH - POWER_X - POWER_RIGHT_MARGIN;
+    // === КНОПКА POWER ===
+    // Расчет новой позиции и размера кнопки POWER
+    const POWER_BUTTON_HEIGHT = PANEL_HEIGHT; // Высота как у таймера
+    const POWER_RIGHT_MARGIN = 10; // Отступ от правого края canvas
+    const POWER_LEFT_MARGIN_FROM_TIMER = 10; // Отступ от правой стороны таймера
+    const POWER_X = TIMER_X + TIMER_WIDTH + POWER_LEFT_MARGIN_FROM_TIMER; // Левая сторона кнопки
+    const POWER_WIDTH = GAME_WIDTH - POWER_X - POWER_RIGHT_MARGIN; // Автоматический расчет ширины
+    const POWER_Y = TIMER_Y;
     const POWER_CENTER_X = POWER_X + POWER_WIDTH / 2;
     const POWER_CENTER_Y = POWER_Y + POWER_BUTTON_HEIGHT / 2;
+    // === КНОПКИ RESET и PROG ===
     const FIELD_LEFT = COUNTER_X + COUNTER_WIDTH + 10;
     const FIELD_RIGHT = GAME_WIDTH - 10;
     const FIELD_TOP = COUNTER_Y;
@@ -116,16 +158,20 @@
     const PRG_Y = FIELD_CENTER_Y - SMALL_BUTTON_SIZE / 2;
     const PRG_CENTER_X = PRG_X + SMALL_BUTTON_SIZE / 2;
     const PRG_CENTER_Y = PRG_Y + SMALL_BUTTON_SIZE / 2;
+    // === ЗАРЯД РОБОТА ===
     let robotCharge = 100;
     let lastChargeTick = 0;
     let isPowerOn = false;
     let isRSTPressed = false;
     let isPRGPressed = false;
     let powerOffBlink = 0;
+    // let timerSeconds = 180; ← УДАЛЕНО
+    // let lastTickTime = 0; ← УДАЛЕНО
     let counterValue = 0;
     let lastCounterTick = 0;
     let animatingDigit = null;
     let systemsActive = false;
+    // === ТЕКСТ ЗАГРУЗКИ ===
     const bootText = [
       ">>> INIT",
       ">>> CONNECT TO RONAVI_MCNS",
@@ -141,6 +187,7 @@
     let lastBootTick = 0;
     let bootActive = false;
     let bootCompleted = false;
+    // ← GODMODE
     let prgPressCount = 0;
     let godmodeActive = false;
     let passwordMode = false;
@@ -152,6 +199,7 @@
       ">>>GODMODE_OFF",
       ">>>ENTER PASSWORD"
     ];
+    // ← GODMODE: клавиатура
     const KEYPAD_SIZE = 50;
     const KEYPAD_GAP = 10;
     const KEYPAD_ROWS = 4;
@@ -161,6 +209,7 @@
     const KEYPAD_START_X = DISPLAY_X + (DISPLAY_WIDTH - KEYPAD_TOTAL_WIDTH) / 2;
     const KEYPAD_START_Y = DISPLAY_Y + 120;
     let pressedKey = null;
+    // ← GODMODE: ошибка
     let errorMode = false;
     let errorText = [
       ">>>GODMODE_OFF",
@@ -171,17 +220,21 @@
     let errorCharIndex = 0;
     let lastErrorTick = 0;
     let errorCompleted = false;
+    // ← GODMODE: успешная активация
     let godmodeSuccess = false;
     let godmodeDisplayText = [">>>GODMODE_ON"];
     let godmodeDisplayLineIndex = 0;
     let godmodeDisplayCharIndex = 0;
     let lastGodmodeDisplayTick = 0;
     let godmodeDisplayCompleted = false;
+    // ← Флаг: GODMODE активирован и финализирован (текст исчез, всё заморожено)
     let isGodmodeFinalized = false;
+    // ← Флаг: Экран завершения игры активен (истекло время или активирован GODMODE)
     let isGameOverScreenActive = false;
+    // === ИГРА "РОБОТЫ" ===
     const gridSize = 40;
-    const gridWidth = 10;
-    const gridHeight = 10;
+    const gridWidth = 10; // 400 / 40
+    const gridHeight = 10; // 400 / 40
     let snakes = [];
     let food = [];
     let obstacles = [];
@@ -196,6 +249,7 @@
     let gameInterval;
     let gameTimer;
     let timeLeft = 180;
+    // Генерируем случайный стартовый заряд от 25 до 90 для каждого робота
     let snakeCharges = [
         Math.floor(Math.random() * (90 - 25 + 1)) + 25,
         Math.floor(Math.random() * (90 - 25 + 1)) + 25,
@@ -212,31 +266,29 @@
     let routeProgress = [0, 0, 0];
     let reservedTargets = {};
     let snakeRouteTimestamps = [0, 0, 0];
-    let lastHorizontalDirection = ['right', 'right', 'right'];
+    // Переменная для хранения последнего горизонтального направления каждого робота
+    let lastHorizontalDirection = ['right', 'right', 'right']; // Инициализируем 'right' для всех
     let snakeHeadImage = new Image();
-    let snakeHeadLeftImage = new Image();
+    let snakeHeadLeftImage = new Image(); // Новое изображение для движения влево
     let snakeHeadWithShelfImage = new Image();
-    let snakeHeadWithShelfRightImage = new Image();
+    let snakeHeadWithShelfRightImage = new Image(); // Новое изображение для движения вправо с грузом
     let snakeHeadChargingImage = new Image();
-    let snakeHeadChargingRightImage = new Image();
+    let snakeHeadChargingRightImage = new Image(); // Новое изображение для движения вправо на зарядке
     let foodImage = new Image();
     let chargingImage = new Image();
     let parkingImage = new Image();
     let obstacleImage = new Image();
+    // Загрузка изображений
     snakeHeadImage.src = 'Robot.png';
-    snakeHeadLeftImage.src = 'robot_left.png';
+    snakeHeadLeftImage.src = 'robot_left.png'; // Загружаем новое изображение
     snakeHeadWithShelfImage.src = 'Robot_Shelf.png';
-    snakeHeadWithShelfRightImage.src = 'Robot_Shelf_right.png';
+    snakeHeadWithShelfRightImage.src = 'Robot_Shelf_right.png'; // Загружаем новое изображение
     snakeHeadChargingImage.src = 'Robot_Charg.png';
-    snakeHeadChargingRightImage.src = 'Robot_Charg_right.png';
+    snakeHeadChargingRightImage.src = 'Robot_Charg_right.png'; // Загружаем новое изображение
     foodImage.src = 'Shelf.png';
     chargingImage.src = 'Charging.png';
     parkingImage.src = 'Parking.png';
     obstacleImage.src = 'Column.png';
-
-    // Флаг для отслеживания, показана ли главная кнопка
-    let isMainButtonShown = false;
-
     function isObstacle(x, y) {
         for (let obstacle of obstacles) {
             if (obstacle.x === x && obstacle.y === y) {
@@ -368,15 +420,20 @@
     }
     function buildRoute(startX, startY, endX, endY, snakeIndex) {
         const path = aStar(startX, startY, endX, endY, snakeIndex);
+        // <<< НОВЫЙ БЛОК: Определяем начальное направление движения по маршруту >>>
         if (path.length > 1) {
+            // Берем первую точку назначения (индекс 1, так как индекс 0 — текущая позиция)
             const firstStep = path[1];
             const dx = firstStep.x - startX;
+            // Обновляем направление только для горизонтального движения
             if (dx > 0) {
                 lastHorizontalDirection[snakeIndex] = 'right';
             } else if (dx < 0) {
                 lastHorizontalDirection[snakeIndex] = 'left';
             }
+            // Если dx === 0 (вертикальное движение), направление не меняем
         }
+        // <<< КОНЕЦ НОВОГО БЛОКА >>>
         return path;
     }
     function initGame() {
@@ -384,6 +441,7 @@
         selectedSnakeIndex = -1;
         activeRobotIndex = -1;
         targetPoints = [];
+        // Генерируем случайный стартовый заряд от 25 до 90 для каждого робота
         snakeCharges = [
             Math.floor(Math.random() * (90 - 25 + 1)) + 25,
             Math.floor(Math.random() * (90 - 25 + 1)) + 25,
@@ -400,6 +458,7 @@
         routeProgress = [0, 0, 0];
         reservedTargets = {};
         snakeRouteTimestamps = [0, 0, 0];
+        // Сбрасываем направление при инициализации игры
         lastHorizontalDirection = ['right', 'right', 'right'];
         let positions = [];
         for (let i = 0; i < 3; i++) {
@@ -625,6 +684,7 @@
             const targetPoint = targetPoints[i];
             if (!targetPoint || snakeRoutes[i].length === 0) continue;
             if (snakeCharges[i] <= 0) {
+                // Сбрасываем маршрут и целевую точку, так как робот разрядился
                 if (targetPoints[i]) {
                     const key = `${targetPoints[i].x},${targetPoints[i].y}`;
                     if (reservedTargets[key] === i) {
@@ -674,20 +734,24 @@
                 const dx = nextPoint.x - head.x;
                 const dy = nextPoint.y - head.y;
                 const newHead = {x: head.x, y: head.y};
+                // <<< НОВЫЙ БЛОК: Обновляем направление на КАЖДОМ шаге движения >>>
                 if (dx > 0) {
                     newHead.x++;
-                    lastHorizontalDirection[i] = 'right';
+                    lastHorizontalDirection[i] = 'right'; // Обновляем направление при движении вправо
                 }
                 else if (dx < 0) {
                     newHead.x--;
-                    lastHorizontalDirection[i] = 'left';
+                    lastHorizontalDirection[i] = 'left'; // Обновляем направление при движении влево
                 }
                 else if (dy > 0) {
                     newHead.y++;
+                    // При вертикальном движении направление НЕ меняем, оставляем предыдущее
                 }
                 else if (dy < 0) {
                     newHead.y--;
+                    // При вертикальном движении направление НЕ меняем, оставляем предыдущее
                 }
+                // <<< КОНЕЦ НОВОГО БЛОКА >>>
                 if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
                     return;
                 }
@@ -717,19 +781,27 @@
                     snakeCharges[i]--;
                     moveCounts[i] = 0;
                 }
+                // Проверяем, находится ли робот на зарядной станции
                 if (stationIndex !== -1) {
+                    // Условия для НАЧАЛА или ПРОДОЛЖЕНИЯ зарядки:
+                    // 1. Робот не имеет груза
+                    // 2. Он находится на станции (это уже true, так как stationIndex !== -1)
                     if (!hasCargo[i]) {
+                        // Если зарядка еще не активна, запускаем ее
                         if (onChargingStation[i] === -1) {
                             onChargingStation[i] = stationIndex;
                             startCharging(i);
                         }
+                        // Если зарядка активна, ничего не делаем (она продолжается)
                     } else {
+                        // Если робот имеет груз, но при этом находится на станции и заряжается — останавливаем зарядку
                         if (onChargingStation[i] !== -1) {
                             stopCharging(i);
                             onChargingStation[i] = -1;
                         }
                     }
                 } else {
+                    // Если робот НЕ на станции, но зарядка активна — останавливаем ее
                     if (onChargingStation[i] !== -1) {
                         stopCharging(i);
                         onChargingStation[i] = -1;
@@ -839,13 +911,18 @@
         if (attempts < 1000) food.push(newFood);
     }
     function drawGame() {
+        // Сохраняем состояние контекста
         ctx.save();
+        // Ограничиваем область отрисовки
         ctx.beginPath();
         ctx.rect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
         ctx.clip();
+        // Сдвигаем систему координат
         ctx.translate(DISPLAY_X, DISPLAY_Y);
+        // Очищаем только область игры
         ctx.fillStyle = '#b1b1b1';
         ctx.fillRect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        // Рисуем сетку
         ctx.strokeStyle = '#cccccc';
         ctx.lineWidth = 1;
         for (let x = 0; x <= gridWidth; x++) {
@@ -860,6 +937,7 @@
             ctx.lineTo(DISPLAY_WIDTH, y * gridSize);
             ctx.stroke();
         }
+        // Рисуем препятствия
         obstacles.forEach(obstacle => {
             if (obstacleImage.complete) {
                 ctx.drawImage(obstacleImage, obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
@@ -870,7 +948,11 @@
                 ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
             }
         });
+        // <<< НАЧАЛО ИЗМЕНЕНИЙ: Зарядка и парковка рисуются ПЕРЕД роботами >>>
+        // Рисуем зарядные станции
         chargingStations.forEach((station, index) => {
+            // <<< ИЗМЕНЕНО: Зарядные станции ВСЕГДА видны >>>
+            // shouldHide всегда false, логика скрытия УДАЛЕНА
             if (chargingImage.complete) {
                 ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
             } else {
@@ -879,11 +961,14 @@
                 ctx.strokeStyle = 'black';
                 ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
             }
+            // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
         });
+        // Рисуем еду
         food.forEach(f => {
             let shouldHide = false;
             for (let i = 0; i < snakes.length; i++) {
                 const head = snakes[i][0];
+                // Скрываем еду, если робот находится на клетке И находится в состоянии "EMPTY"
                 if (head.x === f.x && head.y === f.y && !hasCargo[i]) {
                     shouldHide = true;
                     break;
@@ -900,6 +985,8 @@
                 }
             }
         });
+        // <<< НАЧАЛО ИСПРАВЛЕНИЯ: Сначала рисуем парковки, потом роботов >>>
+        // Рисуем парковочные места ПЕРЕД роботами
         parkingSpots.forEach(parking => {
             let showParking = true;
             for (let i = 0; i < snakes.length; i++) {
@@ -925,23 +1012,29 @@
                 }
             }
         });
+        // Рисуем змеек (роботов) ПОСЛЕ парковок
         snakes.forEach((snake, snakeIndex) => {
             snake.forEach((segment, index) => {
                 if (index === 0) {
-                    let headImageToUse = snakeHeadImage;
+                    let headImageToUse = snakeHeadImage; // По умолчанию - движение вправо
+                    // <<< ИЗМЕНЕНО: Логика выбора изображения УПРОЩЕНА >>>
+                    // Если робот имеет груз, используем соответствующее изображение
                     if (hasCargo[snakeIndex]) {
+                        // Выбираем изображение в зависимости от последнего горизонтального направления
                         if (lastHorizontalDirection[snakeIndex] === 'left') {
-                            headImageToUse = snakeHeadWithShelfImage;
+                            headImageToUse = snakeHeadWithShelfImage; // Robot_Shelf.png
                         } else {
-                            headImageToUse = snakeHeadWithShelfRightImage;
+                            headImageToUse = snakeHeadWithShelfRightImage; // Robot_Shelf_right.png
                         }
                     } else {
+                        // Для робота без груза, выбираем изображение по направлению
                         if (lastHorizontalDirection[snakeIndex] === 'left') {
                             headImageToUse = snakeHeadLeftImage;
                         } else {
                             headImageToUse = snakeHeadImage;
                         }
                     }
+                    // <<< ИЗМЕНЕНО: Мигает изображение, а не фон >>>
                     if (!isBlinking[snakeIndex] || (isBlinking[snakeIndex] && Math.floor(Date.now() / 250) % 2 === 0)) {
                         if (headImageToUse.complete) {
                             ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
@@ -950,6 +1043,7 @@
                             ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
                         }
                     }
+                    // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
                 } else {
                     ctx.fillStyle = '#00cc00';
                     ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
@@ -958,6 +1052,8 @@
                 ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
             });
         });
+        // <<< КОНЕЦ ИСПРАВЛЕНИЯ >>>
+        // Рисуем маршруты
         snakeRoutes.forEach((route, snakeIndex) => {
             if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
                 ctx.strokeStyle = 'yellow';
@@ -972,13 +1068,16 @@
                 ctx.stroke();
             }
         });
+        // Рисуем целевые точки
         targetPoints.forEach((point, index) => {
             if (point) {
                 ctx.strokeStyle = 'yellow';
                 ctx.strokeRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
             }
         });
+        // Восстанавливаем состояние контекста
         ctx.restore();
+        // Рисуем черный контур вокруг игрового поля
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 1;
         ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
@@ -996,13 +1095,13 @@
         initGame();
         gameRunning = true;
         gameStarted = false;
+        // Игровые циклы НЕ запускаем здесь. Они запустятся после загрузки.
     }
     canvas.addEventListener('click', handleButtonClick);
     canvas.addEventListener('touchend', function(e) {
       e.preventDefault();
       handleButtonClick(e);
     });
-
     function handleButtonClick(e) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -1015,7 +1114,6 @@
         x = (e.clientX - rect.left) * scaleX;
         y = (e.clientY - rect.top) * scaleY;
       }
-
       const dxPOWER = x - POWER_CENTER_X;
       const dyPOWER = y - POWER_CENTER_Y;
       const distPOWER = Math.sqrt(dxPOWER * dxPOWER + dyPOWER * dyPOWER);
@@ -1025,13 +1123,14 @@
       const dxPRG = x - PRG_CENTER_X;
       const dyPRG = y - PRG_CENTER_Y;
       const distPRG = Math.sqrt(dxPRG * dxPRG + dyPRG * dyPRG);
-
+      // Обрабатываем ТОЛЬКО POWER, если GODMODE финализирован, но экран завершения еще НЕ активен.
       if (isGodmodeFinalized && !isGameOverScreenActive) {
         if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
           if (!isPowerOn) {
             resetAll();
           } else {
+            // lastTickTime = performance.now(); ← УДАЛЕНО
             lastCounterTick = performance.now();
             lastChargeTick = performance.now();
             bootActive = true;
@@ -1054,13 +1153,14 @@
         }
         return;
       }
-
+      // Обрабатываем ТОЛЬКО POWER, если произошла ошибка.
       if (errorCompleted) {
         if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
           if (!isPowerOn) {
             resetAll();
           } else {
+            // lastTickTime = performance.now(); ← УДАЛЕНО
             lastCounterTick = performance.now();
             lastChargeTick = performance.now();
             bootActive = true;
@@ -1083,17 +1183,20 @@
         }
         return;
       }
-
+      // Обработка ввода кода
       if (godmodeActive && !passwordMode && !errorMode && !godmodeSuccess) {
         handleKeypadClick(x, y);
         return;
       }
-
+      // Обычная логика кнопок
       if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
         isPowerOn = !isPowerOn;
         if (!isPowerOn) {
           resetAll();
+          // ОБНУЛЯЕМ localStorage ПРИ ВЫКЛЮЧЕНИИ
+          localStorage.removeItem('robotGameHighScores');
         } else {
+          // lastTickTime = performance.now(); ← УДАЛЕНО
           lastCounterTick = performance.now();
           lastChargeTick = performance.now();
           bootActive = true;
@@ -1113,21 +1216,29 @@
           godmodeDisplayCompleted = false;
           isGodmodeFinalized = false;
           isGameOverScreenActive = false;
-          startGame();
+          startGame(); // ← Запускаем игру при включении питания
         }
       } else if (distRST <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted) {
+        // <<< ВОССТАНОВЛЕНА АНИМАЦИЯ НАЖАТИЯ >>>
         isRSTPressed = true;
         setTimeout(function() { isRSTPressed = false; }, 200);
         if (isGameOverScreenActive) {
+            // Если активен экран завершения, полностью перезапускаем игру
             isGameOverScreenActive = false;
             resetAll();
             startGame();
         } else {
+            // Обычный сброс
             initGame();
             gameStarted = false;
+            // СБРАСЫВАЕМ ТАЙМЕР СТРОГО НА 3:00
+            // timerSeconds = 180; ← УДАЛЕНО
             timeLeft = 180;
+            // ОБНУЛЯЕМ localStorage ПРИ СБРОСЕ
+            localStorage.removeItem('robotGameHighScores');
         }
       } else if (distPRG <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        // <<< ВОССТАНОВЛЕНА АНИМАЦИЯ НАЖАТИЯ >>>
         isPRGPressed = true;
         setTimeout(function() { isPRGPressed = false; }, 200);
         prgPressCount++;
@@ -1135,6 +1246,7 @@
           activateGodmode();
         }
       } else {
+        // Обработка кликов по игровому полю
         if (isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
           const clickX = Math.floor((x - DISPLAY_X) / gridSize);
           const clickY = Math.floor((y - DISPLAY_Y) / gridSize);
@@ -1217,27 +1329,62 @@
               }
             }
           }
+        } else if (isGameOverScreenActive) {
+          // ОБРАБОТКА НАЖАТИЯ НА КНОПКУ SAVE
+          const saveButtonX = DISPLAY_X + 100;
+          const saveButtonY = DISPLAY_Y + 300;
+          const saveButtonWidth = 200;
+          const saveButtonHeight = 60;
+          if (x >= saveButtonX && x <= saveButtonX + saveButtonWidth &&
+              y >= saveButtonY && y <= saveButtonY + saveButtonHeight) {
+            // Сохраняем очки в localStorage
+            let highScores = JSON.parse(localStorage.getItem('robotGameHighScores') || '[]');
+            highScores.push({
+                score: counterValue,
+                timestamp: new Date().toISOString()
+            });
+            localStorage.setItem('robotGameHighScores', JSON.stringify(highScores));
+            alert('Ваш результат сохранен!');
+            // === ОТПРАВКА ОЧКОВ В TELEGRAM БОТ ===
+            if (window.Telegram && window.Telegram.WebApp) {
+              const resultData = {
+                action: "save_score",
+                score: counterValue,
+                timestamp: new Date().toISOString()
+              };
+              window.Telegram.WebApp.sendData(JSON.stringify(resultData));
+              alert('✅ Ваши очки сохранены!');
+            } else {
+              alert('⚠️ Игра запущена не в Telegram. Очки сохранены локально.');
+            }
+            // ПЕРЕЗАПУСКАЕМ ИГРУ ПОСЛЕ СОХРАНЕНИЯ
+            isGameOverScreenActive = false;
+            resetAll();
+            isPowerOn = true;
+            // lastTickTime = performance.now(); ← УДАЛЕНО
+            lastCounterTick = performance.now();
+            lastChargeTick = performance.now();
+            bootActive = true;
+            bootCompleted = false;
+            bootLineIndex = 0;
+            bootCharIndex = 0;
+            lastBootTick = performance.now();
+            systemsActive = false;
+            robotCharge = 100;
+            prgPressCount = 0;
+            godmodeActive = false;
+            passwordMode = false;
+            inputCode = [];
+            errorMode = false;
+            errorCompleted = false;
+            godmodeSuccess = false;
+            godmodeDisplayCompleted = false;
+            isGodmodeFinalized = false;
+            startGame();
+          }
         }
       }
-
-      // 👇 Показываем Telegram Main Button при клике на экран Game Over
-      if (isGameOverScreenActive) {
-          const saveBtnX = DISPLAY_X + 100;
-          const saveBtnY = DISPLAY_Y + 320;
-          const saveBtnWidth = 200;
-          const saveBtnHeight = 50;
-          if (x >= saveBtnX && x <= saveBtnX + saveBtnWidth && y >= saveBtnY && y <= saveBtnY + saveBtnHeight) {
-              if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.MainButton) {
-                  window.Telegram.WebApp.MainButton.onClick(); // Эмулируем нажатие
-              }
-          }
-          // Показываем главную кнопку, если она ещё не показана
-          if (!isMainButtonShown) {
-              setupTelegramMainButton();
-          }
-      }
     }
-
     function handleKeypadClick(x, y) {
       if (passwordMode || errorMode || godmodeSuccess) return;
       for (let row = 0; row < 3; row++) {
@@ -1311,19 +1458,22 @@
         godmodeDisplayCharIndex = 0;
         lastGodmodeDisplayTick = performance.now();
         godmodeDisplayCompleted = false;
+        // ПОКАЗЫВАЕМ ЭКРАН ЗАВЕРШЕНИЯ СРАЗУ
         isGameOverScreenActive = true;
         systemsActive = false;
-        setupTelegramMainButton();
       } else {
+        // <<< ИЗМЕНЕНО: Только активируем режим ошибки, НЕ выключаем питание >>>
         errorMode = true;
         errorLineIndex = 0;
         errorCharIndex = 0;
         lastErrorTick = performance.now();
         errorCompleted = false;
+        // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
       }
       inputCode = [];
     }
     function resetAll() {
+      // timerSeconds = 180; ← УДАЛЕНО
       counterValue = 0;
       animatingDigit = null;
       isRSTPressed = false;
@@ -1344,7 +1494,7 @@
       godmodeDisplayCompleted = false;
       isGodmodeFinalized = false;
       isGameOverScreenActive = false;
-      isMainButtonShown = false; // Сбрасываем флаг
+      // Сбрасываем игру
       if (gameRunning) {
         if (gameInterval) clearInterval(gameInterval);
         if (gameTimer) clearInterval(gameTimer);
@@ -1353,17 +1503,22 @@
         gameStarted = false;
       }
     }
+    // <<< НОВАЯ ФУНКЦИЯ ДЛЯ ОТРИСОВКИ КНОПОК С КРУТЫМ 3D И ТЕНЯМИ >>>
     function drawModernButton3D(x, y, width, height, isPressed, baseColor, pressedColor, text, isActive) {
+        // Определяем цвет кнопки
         let buttonColor = isPressed && isActive ? pressedColor : baseColor;
-        let textColor = '#000';
+        let textColor = '#000'; // Черный текст
+        // Очищаем тени
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
+        // Рисуем основной прямоугольник кнопки
         ctx.beginPath();
-        roundRect(ctx, x, y, width, height, 8);
+        roundRect(ctx, x, y, width, height, 8); // Скругление 8px
         ctx.fillStyle = buttonColor;
         ctx.fill();
+        // Рисуем верхнюю тень (светлый блик) для эффекта выступа
         if (!isPressed) {
             ctx.beginPath();
             ctx.moveTo(x + 2, y + 2);
@@ -1374,6 +1529,7 @@
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.fill();
         }
+        // Рисуем нижнюю тень (темная полоса) для эффекта выступа
         if (!isPressed) {
             ctx.beginPath();
             ctx.moveTo(x + 2, y + height - 2);
@@ -1384,11 +1540,14 @@
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.fill();
         }
+        // Рисуем контур
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.stroke();
+        // Рисуем текст
         ctx.fillStyle = textColor;
         if (width === POWER_WIDTH) {
+            // Для POWER увеличиваем шрифт
             ctx.font = 'bold 18px "Courier New", monospace';
         } else {
             ctx.font = 'bold 14px "Courier New", monospace';
@@ -1397,7 +1556,9 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(text, x + width / 2, y + height / 2);
     }
+    // <<< ПОЛНОСТЬЮ ПЕРЕДЕЛАННАЯ ФУНКЦИЯ ДЛЯ POWER BUTTON >>>
     function drawPowerButton() {
+        // Сохраняем текущее состояние стиля
         const originalFillStyle = ctx.fillStyle;
         const originalStrokeStyle = ctx.strokeStyle;
         const originalLineWidth = ctx.lineWidth;
@@ -1406,48 +1567,61 @@
         const originalShadowOffsetX = ctx.shadowOffsetX;
         const originalShadowOffsetY = ctx.shadowOffsetY;
         const originalLineCap = ctx.lineCap;
-        const isPressedState = isPowerOn;
+        // Определяем, в каком состоянии находится кнопка
+        const isPressedState = isPowerOn; // Если включена, то вдавлена
+        // Рисуем прямоугольник кнопки
         ctx.beginPath();
         roundRect(ctx, POWER_X, POWER_Y, POWER_WIDTH, POWER_BUTTON_HEIGHT, 8);
         ctx.closePath();
+        // Применяем градиент
         const gradient = ctx.createLinearGradient(POWER_X, POWER_Y, POWER_X + POWER_WIDTH, POWER_Y + POWER_BUTTON_HEIGHT);
         gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
         gradient.addColorStop(0.5, isPressedState ? '#cc0000' : '#ff0000');
         gradient.addColorStop(1, isPressedState ? '#bb0000' : '#cc0000');
         ctx.fillStyle = gradient;
         ctx.fill();
+        // Применяем тени в зависимости от состояния
         if (!isPressedState) {
-            ctx.shadowColor = 'rgba(153, 0, 0, 0.8)';
+            // Состояние "не нажата" - сильная тень снизу
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.8)'; // Темно-красная тень
             ctx.shadowBlur = 20;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 8;
-            ctx.stroke();
+            ctx.stroke(); // Рисуем тень
+            // Верхний светлый блик
             ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.fillRect(POWER_X + 2, POWER_Y + 2, POWER_WIDTH - 4, 4);
+            // Нижняя темная полутень
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.fillRect(POWER_X + 2, POWER_Y + POWER_BUTTON_HEIGHT - 6, POWER_WIDTH - 4, 4);
         } else {
+            // Состояние "нажата" - слабая тень снизу
             ctx.shadowColor = 'rgba(153, 0, 0, 0.4)';
             ctx.shadowBlur = 10;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 4;
-            ctx.stroke();
+            ctx.stroke(); // Рисуем тень
         }
+        // Рисуем контур кнопки
         ctx.strokeStyle = '#990000';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.stroke();
+        // Рисуем текст
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 18px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('POWER', POWER_X + POWER_WIDTH / 2, POWER_Y + POWER_BUTTON_HEIGHT / 2);
+        // Анимация пульсации для выключенной кнопки
         if (!isPowerOn) {
             const brightness = 0.8 + Math.sin(powerOffBlink * 1.5) * 0.2;
             const r = Math.floor(150 + brightness * 50);
             const g = Math.floor(30 + brightness * 20);
             const b = Math.floor(30 + brightness * 20);
+            // Можно применить этот цвет к градиенту, если нужно, но для простоты оставим как есть.
         }
+        // Восстанавливаем исходные стили
         ctx.fillStyle = originalFillStyle;
         ctx.strokeStyle = originalStrokeStyle;
         ctx.lineWidth = originalLineWidth;
@@ -1457,7 +1631,9 @@
         ctx.shadowOffsetY = originalShadowOffsetY;
         ctx.lineCap = originalLineCap;
     }
+    // <<< ПОЛНОСТЬЮ ПЕРЕДЕЛАННАЯ ФУНКЦИЯ ДЛЯ RESET BUTTON (копия POWER) >>>
     function drawRSTButton() {
+        // Сохраняем текущее состояние стиля
         const originalFillStyle = ctx.fillStyle;
         const originalStrokeStyle = ctx.strokeStyle;
         const originalLineWidth = ctx.lineWidth;
@@ -1466,11 +1642,15 @@
         const originalShadowOffsetX = ctx.shadowOffsetX;
         const originalShadowOffsetY = ctx.shadowOffsetY;
         const originalLineCap = ctx.lineCap;
-        const isPressedState = isRSTPressed;
+        // Определяем, в каком состоянии находится кнопка
+        const isPressedState = isRSTPressed; // Если нажата, то вдавлена
+        // <<< ИЗМЕНЕНО: Добавлена проверка systemsActive и !isGameOverScreenActive >>>
         const isActive = isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
+        // Рисуем прямоугольник кнопки
         ctx.beginPath();
         roundRect(ctx, RST_X, RST_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
         ctx.closePath();
+        // Применяем градиент
         const gradient = ctx.createLinearGradient(RST_X, RST_Y, RST_X + SMALL_BUTTON_SIZE, RST_Y + SMALL_BUTTON_SIZE);
         if (isActive) {
             gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
@@ -1483,32 +1663,40 @@
         }
         ctx.fillStyle = gradient;
         ctx.fill();
+        // Применяем тени в зависимости от состояния
         if (!isPressedState && isActive) {
+            // Состояние "не нажата" - сильная тень снизу
             ctx.shadowColor = 'rgba(153, 0, 0, 0.8)';
             ctx.shadowBlur = 20;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 8;
-            ctx.stroke();
+            ctx.stroke(); // Рисуем тень
+            // Верхний светлый блик
             ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.fillRect(RST_X + 2, RST_Y + 2, SMALL_BUTTON_SIZE - 4, 4);
+            // Нижняя темная полутень
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.fillRect(RST_X + 2, RST_Y + SMALL_BUTTON_SIZE - 6, SMALL_BUTTON_SIZE - 4, 4);
         } else if (isActive) {
+            // Состояние "нажата" - слабая тень снизу
             ctx.shadowColor = 'rgba(153, 0, 0, 0.4)';
             ctx.shadowBlur = 10;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 4;
-            ctx.stroke();
+            ctx.stroke(); // Рисуем тень
         }
+        // Рисуем контур кнопки
         ctx.strokeStyle = '#990000';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.stroke();
+        // Рисуем текст
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('RESET', RST_X + SMALL_BUTTON_SIZE / 2, RST_Y + SMALL_BUTTON_SIZE / 2);
+        // Восстанавливаем исходные стили
         ctx.fillStyle = originalFillStyle;
         ctx.strokeStyle = originalStrokeStyle;
         ctx.lineWidth = originalLineWidth;
@@ -1518,7 +1706,9 @@
         ctx.shadowOffsetY = originalShadowOffsetY;
         ctx.lineCap = originalLineCap;
     }
+    // <<< ПОЛНОСТЬЮ ПЕРЕДЕЛАННАЯ ФУНКЦИЯ ДЛЯ PROG BUTTON (копия POWER, оранжевая) >>>
     function drawPRGButton() {
+        // Сохраняем текущее состояние стиля
         const originalFillStyle = ctx.fillStyle;
         const originalStrokeStyle = ctx.strokeStyle;
         const originalLineWidth = ctx.lineWidth;
@@ -1527,14 +1717,18 @@
         const originalShadowOffsetX = ctx.shadowOffsetX;
         const originalShadowOffsetY = ctx.shadowOffsetY;
         const originalLineCap = ctx.lineCap;
-        const isPressedState = isPRGPressed;
+        // Определяем, в каком состоянии находится кнопка
+        const isPressedState = isPRGPressed; // Если нажата, то вдавлена
+        // <<< ИЗМЕНЕНО: Добавлена проверка !isGameOverScreenActive >>>
         const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
+        // Рисуем прямоугольник кнопки
         ctx.beginPath();
         roundRect(ctx, PRG_X, PRG_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
         ctx.closePath();
+        // Применяем градиент
         const gradient = ctx.createLinearGradient(PRG_X, PRG_Y, PRG_X + SMALL_BUTTON_SIZE, PRG_Y + SMALL_BUTTON_SIZE);
         if (isActive) {
-            gradient.addColorStop(0, isPressedState ? '#e65c00' : '#ff7c00');
+            gradient.addColorStop(0, isPressedState ? '#e65c00' : '#ff7c00'); // Темно-оранжевый / Ярко-оранжевый
             gradient.addColorStop(0.5, isPressedState ? '#cc5500' : '#ff6600');
             gradient.addColorStop(1, isPressedState ? '#b34d00' : '#ff5500');
         } else {
@@ -1544,32 +1738,40 @@
         }
         ctx.fillStyle = gradient;
         ctx.fill();
+        // Применяем тени в зависимости от состояния
         if (!isPressedState && isActive) {
-            ctx.shadowColor = 'rgba(153, 51, 0, 0.8)';
+            // Состояние "не нажата" - сильная тень снизу
+            ctx.shadowColor = 'rgba(153, 51, 0, 0.8)'; // Темно-оранжевая тень
             ctx.shadowBlur = 20;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 8;
-            ctx.stroke();
+            ctx.stroke(); // Рисуем тень
+            // Верхний светлый блик
             ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.fillRect(PRG_X + 2, PRG_Y + 2, SMALL_BUTTON_SIZE - 4, 4);
+            // Нижняя темная полутень
             ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
             ctx.fillRect(PRG_X + 2, PRG_Y + SMALL_BUTTON_SIZE - 6, SMALL_BUTTON_SIZE - 4, 4);
         } else if (isActive) {
+            // Состояние "нажата" - слабая тень снизу
             ctx.shadowColor = 'rgba(153, 51, 0, 0.4)';
             ctx.shadowBlur = 10;
             ctx.shadowOffsetX = 0;
             ctx.shadowOffsetY = 4;
-            ctx.stroke();
+            ctx.stroke(); // Рисуем тень
         }
-        ctx.strokeStyle = '#993300';
+        // Рисуем контур кнопки
+        ctx.strokeStyle = '#993300'; // Темно-оранжевый контур
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.stroke();
+        // Рисуем текст
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('PROG', PRG_X + SMALL_BUTTON_SIZE / 2, PRG_Y + SMALL_BUTTON_SIZE / 2);
+        // Восстанавливаем исходные стили
         ctx.fillStyle = originalFillStyle;
         ctx.strokeStyle = originalStrokeStyle;
         ctx.lineWidth = originalLineWidth;
@@ -1579,6 +1781,9 @@
         ctx.shadowOffsetY = originalShadowOffsetY;
         ctx.lineCap = originalLineCap;
     }
+    // <<< УДАЛЕНЫ ФУНКЦИИ ЛАМПОЧЕК >>>
+    // Все функции и переменные, связанные с lampPhases, lampSpeeds, drawLamps, drawLamp — УДАЛЕЕНЫ.
+    // <<< ИСПРАВЛЕННАЯ ФУНКЦИЯ drawVoltmeter >>>
     function drawVoltmeter() {
         ctx.fillStyle = '#0a0a0a';
         roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
@@ -1586,20 +1791,24 @@
         ctx.strokeStyle = '#444';
         ctx.lineWidth = 2;
         ctx.stroke();
+        // ВСЕ ТЕКСТЫ ИЗНАЧАЛЬНО СЕРЫЕ, БЕЛЫЕ ТОЛЬКО ПРИ ВЫБОРЕ РОБОТА
         let textColor = (systemsActive && activeRobotIndex !== -1) ? '#ffffff' : '#666';
         ctx.fillStyle = textColor;
         ctx.font = '12px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.fillText('0', VOLTMETER_X + 15, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
         ctx.fillText('100', VOLTMETER_X + VOLTMETER_WIDTH - 20, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
+        // Определяем текущий заряд
         let currentCharge = systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted ? (activeRobotIndex !== -1 ? snakeCharges[activeRobotIndex] : robotCharge) : robotCharge;
-        let energyColor = textColor;
+        // Устанавливаем цвет для 'ENERGY'
+        let energyColor = textColor; // По умолчанию
+        // Применяем мигание ТОЛЬКО при условии низкого заряда
         if (currentCharge < 50 && isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && activeRobotIndex !== -1) {
-            const blinkEnergy = Math.floor(performance.now() / 1000) % 2;
+            const blinkEnergy = Math.floor(performance.now() / 1000) % 2; // Частота: 1 раз в секунду
             if (blinkEnergy === 0) {
-                energyColor = '#666';
+                energyColor = '#666'; // Скрытый
             } else {
-                energyColor = '#ffffff';
+                energyColor = '#ffffff'; // Белый
             }
         }
         ctx.fillStyle = energyColor;
@@ -1607,6 +1816,7 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('ENERGY', VOLTMETER_X + VOLTMETER_WIDTH / 2, VOLTMETER_Y + VOLTMETER_HEIGHT / 2 - 18);
+        // Рисуем стрелку
         const pivotX = VOLTMETER_X + VOLTMETER_WIDTH / 2;
         const pivotY = VOLTMETER_Y + VOLTMETER_HEIGHT - 5;
         const angle = -Math.PI * (1 - (currentCharge / 100));
@@ -1625,6 +1835,7 @@
         ctx.fillStyle = '#ff3030';
         ctx.fill();
     }
+    // <<< ИСПРАВЛЕННАЯ ФУНКЦИЯ drawLCDDisplay >>>
     function drawLCDDisplay() {
         ctx.fillStyle = '#0a0a0a';
         roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
@@ -1647,18 +1858,22 @@
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        // Новая логика мигания для LCD
         const shouldBlinkLCD = (systemsActive && activeRobotIndex !== -1);
-        const blinkLCD = shouldBlinkLCD ? (Math.floor(performance.now() / 1000) % 2) : 0;
+        const blinkLCD = shouldBlinkLCD ? (Math.floor(performance.now() / 1000) % 2) : 0; // Частота: 1 раз в секунду
+        // Рисуем верхнюю строку (UNITX)
         for (let i = 0; i < 5; i++) {
             if (i < topText.length && topText !== "-----") {
-                if (i < 4) {
+                if (i < 4) { // Символы 'U', 'N', 'I', 'T'
+                    // Всегда белые, не мигают
                     ctx.fillStyle = '#ffffff';
                     ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
-                } else {
+                } else { // Цифра (например, '1', '2', '3')
+                    // Мигает с частотой 1 Гц
                     if (blinkLCD === 0) {
-                        ctx.fillStyle = '#ffffff';
+                        ctx.fillStyle = '#ffffff'; // Белый
                     } else {
-                        ctx.fillStyle = '#666';
+                        ctx.fillStyle = '#666'; // Скрытый
                     }
                     ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
                 }
@@ -1667,16 +1882,19 @@
                 ctx.fillText('-', LCD_X + charWidth * (i + 0.5), topY);
             }
         }
+        // Рисуем нижнюю строку (LOAD/EMPTY)
         for (let i = 0; i < 5; i++) {
             if (i < bottomText.length && bottomText !== "-----") {
                 if (bottomText === "LOAD" && i === 4) {
+                    // Для "LOAD" пятая позиция всегда серая и не мигает
                     ctx.fillStyle = '#666';
                     ctx.fillText('-', LCD_X + charWidth * (i + 0.5), bottomY);
                 } else {
+                    // Остальные символы мигают с частотой 1 Гц
                     if (blinkLCD === 0) {
-                        ctx.fillStyle = '#ffffff';
+                        ctx.fillStyle = '#ffffff'; // Белый
                     } else {
-                        ctx.fillStyle = '#666';
+                        ctx.fillStyle = '#666'; // Скрытый
                     }
                     ctx.fillText(bottomText[i], LCD_X + charWidth * (i + 0.5), bottomY);
                 }
@@ -1691,7 +1909,7 @@
       if (isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive && now - lastCounterTick >= 1000) {
         lastCounterTick = now;
         const oldValue = counterValue;
-        counterValue = score;
+        counterValue = score; // ← Синхронизируем со счетом игры
         const oldHundreds = Math.floor(oldValue / 100) % 10;
         const oldTens = Math.floor(oldValue / 10) % 10;
         const oldUnits = oldValue % 10;
@@ -1755,7 +1973,7 @@
       ctx.fillRect(centerX - rectWidth/2, centerY - halfHeight, rectWidth, halfHeight);
       ctx.save();
       ctx.translate(centerX, centerY);
-      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666';
+      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666'; // ← Заменено на белый
       ctx.font = 'bold 24px "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -1786,7 +2004,7 @@
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(digit), 1, 1);
-      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666';
+      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666'; // ← Заменено на белый
       ctx.fillText(String(digit), 0, 0);
       if (cosA > 0) {
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
@@ -1794,6 +2012,7 @@
       }
       ctx.restore();
     }
+    // <<< ИСПРАВЛЕННАЯ ФУНКЦИЯ drawTimer >>>
     function drawTimer() {
       ctx.fillStyle = '#0a0a0a';
       roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
@@ -1802,10 +2021,12 @@
       ctx.lineWidth = 1;
       ctx.stroke();
       if (isPowerOn) {
+        // <<< ИЗМЕНЕНО: Используем timeLeft напрямую, убрана переменная timerSeconds >>>
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
         const timeText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         let textColor = '#ffffff';
+        // Мигание при оставшихся 30 секундах
         if (timeLeft <= 30 && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
           const blink = Math.floor(performance.now() / 500) % 2;
           textColor = blink === 0 ? '#0a0a0a' : '#ffffff';
@@ -1815,6 +2036,7 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(timeText, TIMER_X + TIMER_WIDTH / 2, TIMER_Y + TIMER_HEIGHT / 2);
+        // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
       } else {
         ctx.fillStyle = '#555';
         ctx.font = 'bold 36px "Courier New", monospace';
@@ -1835,25 +2057,28 @@
           if (bootLineIndex >= bootText.length) {
             bootCompleted = true;
             systemsActive = true;
+            // ЗАПУСКАЕМ ИГРОВЫЕ ЦИКЛЫ ПОСЛЕ ЗАГРУЗКИ
             gameInterval = setInterval(gameStep, 250);
             gameTimer = setInterval(() => {
                 timeLeft--;
+                // <<< ИЗМЕНЕНО: Экран завершения появляется ТОЛЬКО при 00:00 >>>
                 if (timeLeft <= 0) {
                     clearInterval(gameTimer);
                     if (timeLeft === 0) {
                         isGameOverScreenActive = true;
                         systemsActive = false;
-                        setupTelegramMainButton();
                     }
                 }
+                // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
             }, 1000);
+            // КОНЕЦ ЗАПУСКА
             return;
           }
         } else {
           bootCharIndex++;
         }
       }
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1881,7 +2106,7 @@
           passwordCharIndex++;
         }
       }
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1903,7 +2128,7 @@
       for (let i = 0; i < 3; i++) {
         const xPos = centerX - 60 + i * 60;
         if (i < inputCode.length) {
-          ctx.fillStyle = '#ffffff';
+          ctx.fillStyle = '#ffffff'; // ← Заменено на белый
           ctx.fillText(inputCode[i].toString(), xPos, centerY);
         } else {
           ctx.fillStyle = '#666';
@@ -1932,13 +2157,14 @@
       drawKey(starX, starY, "*", pressedKey === '*');
     }
     function drawKey(x, y, label, isPressed) {
+        // Используем серый цвет вместо зеленого
         ctx.fillStyle = isPressed ? '#aaaaaa' : '#333333';
         roundRect(ctx, x, y, KEYPAD_SIZE, KEYPAD_SIZE, 8);
         ctx.fill();
-        ctx.strokeStyle = '#666666';
+        ctx.strokeStyle = '#666666'; // Серый контур
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = '#ffffff'; // Белый текст
         ctx.font = 'bold 24px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1951,15 +2177,20 @@
         lastGodmodeDisplayTick = now;
         if (godmodeDisplayCharIndex >= godmodeDisplayText[godmodeDisplayLineIndex].length) {
           godmodeDisplayCompleted = true;
+          // Активируем финализацию GODMODE
           isGodmodeFinalized = true;
+          // Активируем экран завершения игры ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ ТЕКСТА
+          isGameOverScreenActive = true;
           return;
         } else {
           godmodeDisplayCharIndex++;
         }
       }
+      // Рисуем черный фон для GODMODE
       ctx.fillStyle = 'black';
       ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-      ctx.fillStyle = '#ffffff';
+      // Рисуем текст
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1976,15 +2207,17 @@
           errorLineIndex++;
           if (errorLineIndex >= errorText.length) {
             errorCompleted = true;
+            // <<< ИЗМЕНЕНО: Выключаем питание и сбрасываем всё ТОЛЬКО ПОСЛЕ ЗАВЕРШЕНИЯ АНИМАЦИИ >>>
             isPowerOn = false;
             resetAll();
+            // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
             return;
           }
         } else {
           errorCharIndex++;
         }
       }
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = '#ffffff'; // ← Заменено на белый
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
@@ -1996,30 +2229,51 @@
         ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + errorLineIndex * 20);
       }
     }
+    // <<< ИЗМЕНЕННАЯ ФУНКЦИЯ drawGlowBorder: Свечение ТОЛЬКО НАРУЖУ, НАЧИНАЕТСЯ ЗА ЧЕРНОЙ РАМКОЙ >>>
     function drawGlowBorder() {
+        // Рисуем только если панель включена
         if (!isPowerOn || errorCompleted) return;
+        // Создаем пульсирующий коэффициент для свечения
         const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 800);
+        // Сохраняем текущее состояние контекста
         ctx.save();
+        // === ЭФФЕКТ НАРУЖНОГО СВЕЧЕНИЯ ===
         ctx.shadowColor = `rgba(255, 255, 255, ${0.4 * pulse})`;
         ctx.shadowBlur = 30;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
+        // Рисуем невидимые контуры для создания внешнего свечения
         ctx.strokeStyle = 'transparent';
         ctx.lineWidth = 2;
+        // <<< ИЗМЕНЕНО: Свечение начинается ЗА черной рамкой >>>
         ctx.strokeRect(
             DISPLAY_X - 1,
             DISPLAY_Y - 1,
             DISPLAY_WIDTH + 2,
             DISPLAY_HEIGHT + 2
         );
+        // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
         roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
         ctx.stroke();
         roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
         ctx.stroke();
         roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
         ctx.stroke();
+        // === ЭФФЕКТ ВНУТРЕННЕЙ ТЕНИ (СВЕЧЕНИЕ ВНУТРЬ) ===
+        // <<< УДАЛЕНО: Весь блок внутреннего свечения >>>
+        // if (systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        //     ctx.shadowColor = `rgba(255, 255, 255, ${0.3 * pulse})`;
+        //     ctx.shadowBlur = 20;
+        //     ctx.shadowOffsetX = 0;
+        //     ctx.shadowOffsetY = 0;
+        //     ctx.fillRect(DISPLAY_X + 2, DISPLAY_Y + 2, DISPLAY_WIDTH - 4, DISPLAY_HEIGHT - 4);
+        // }
+        // <<< КОНЕЦ УДАЛЕНИЯ >>>
+        // Восстанавливаем состояние контекста (отключаем тень)
         ctx.restore();
+        // === ЧЕТКИЙ КОНТУР ===
         ctx.lineWidth = 2;
+        // Рисуем контур игрового поля
         if (systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
@@ -2027,6 +2281,7 @@
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
         }
+        // Рисуем контуры остальных панелей
         roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
         ctx.stroke();
         roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
@@ -2034,64 +2289,64 @@
         roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
         ctx.stroke();
     }
-
-    // 👇 Новый метод: отрисовка экрана Game Over с кнопкой
+    // <<< КОНЕЦ ИЗМЕНЕНИЙ >>>
     function drawGameOverScreen() {
+        // Рисуем черный фон экрана завершения
         ctx.fillStyle = 'black';
         ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-        ctx.fillStyle = '#ffffff';
+        // Рисуем текст результата
+        ctx.fillStyle = '#ffffff'; // ← Заменено на белый
         ctx.font = 'bold 36px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(`СЧЕТ: ${counterValue}`, DISPLAY_X + 200, DISPLAY_Y + 150);
-
-        // Текст подсказки
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '16px "Courier New", monospace';
-        ctx.fillText("Нажмите кнопку снизу", DISPLAY_X + 200, DISPLAY_Y + 250);
-        ctx.fillText("для отправки результата", DISPLAY_X + 200, DISPLAY_Y + 280);
-
-        // Виртуальная кнопка "Сохранить счёт"
-        ctx.fillStyle = '#FF6F61';
-        roundRect(ctx, DISPLAY_X + 100, DISPLAY_Y + 320, 200, 50, 8);
+        // Рисуем кнопку SAVE
+        const saveButtonX = DISPLAY_X + 100;
+        const saveButtonY = DISPLAY_Y + 300;
+        const saveButtonWidth = 200;
+        const saveButtonHeight = 60;
+        ctx.fillStyle = '#ffffff'; // ← Заменено на белый
+        roundRect(ctx, saveButtonX, saveButtonY, saveButtonWidth, saveButtonHeight, 8);
         ctx.fill();
-        ctx.strokeStyle = '#ffffff';
+        ctx.strokeStyle = 'black';
         ctx.lineWidth = 2;
         ctx.stroke();
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 18px "Courier New", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('Сохранить счёт', DISPLAY_X + 200, DISPLAY_Y + 345);
+        ctx.fillStyle = 'black';
+        ctx.font = 'bold 24px "Courier New", monospace';
+        ctx.fillText('SAVE', saveButtonX + saveButtonWidth / 2, saveButtonY + saveButtonHeight / 2);
     }
-
     function drawRonaviText() {
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = '#000'; // Черный цвет
       ctx.font = 'bold 30px "NexaBold", Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText('RONAVI', GAME_WIDTH / 2, GAME_HEIGHT - 20);
+      ctx.textAlign = 'center'; // Выравнивание по центру
+      ctx.textBaseline = 'bottom'; // Базовая линия — низ текста
+      ctx.fillText('RONAVI', GAME_WIDTH / 2, GAME_HEIGHT - 20); // По центру по X, 20px от низа по Y
     }
     function gameLoop() {
       ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
       if (!isPowerOn) {
         powerOffBlink += 0.05;
       }
+      // Очищаем фон дисплея только если игра не активна
       if (!systemsActive || errorCompleted || isGodmodeFinalized) {
           ctx.fillStyle = '#000';
           ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
       }
+      // Рисуем игровое поле
       if (systemsActive && !errorCompleted && !isGodmodeFinalized && !isGameOverScreenActive) {
         drawGame();
       }
+      // РИСУЕМ ЭКРАН ЗАВЕРШЕНИЯ ИГРЫ
       if (isGameOverScreenActive) {
         drawGameOverScreen();
       }
+      // Рисуем UI-элементы панели
       drawLCDDisplay();
       drawVoltmeter();
       draw3DCounter();
       drawTimer();
       drawPowerButton();
+      // <<< УДАЛЕНО: drawLamps() >>>
       drawRSTButton();
       drawPRGButton();
       drawGlowBorder();
@@ -2123,35 +2378,33 @@
       ctx.closePath();
     }
 
-    // 👇 Исправленная функция: отправка данных в формате score=12345
-    function setupTelegramMainButton() {
-        if (!window.Telegram || !window.Telegram.WebApp) {
-            console.warn("Telegram WebApp не доступен. Главная кнопка не настроена.");
-            return;
+    // Функция для инициализации игры после проверки Telegram
+    function initializeGame() {
+        // Проверяем, доступен ли Telegram WebApp
+        if (window.Telegram && window.Telegram.WebApp) {
+            // Инициализируем WebApp
+            window.Telegram.WebApp.ready();
+            console.log("✅ Telegram WebApp успешно инициализирован");
+
+            // Скрываем экран ошибки, если он был показан
+            document.getElementById('error-screen').style.display = 'none';
+
+            // Запускаем игровой цикл
+            gameLoop();
+        } else {
+            // Если WebApp не доступен, показываем экран ошибки
+            console.error("❌ Игра запущена вне Telegram WebApp");
+            document.getElementById('error-screen').style.display = 'flex';
+            // Блокируем canvas, чтобы предотвратить любое взаимодействие
+            canvas.style.pointerEvents = 'none';
         }
-        const mainButton = window.Telegram.WebApp.MainButton;
-        mainButton.setParams({
-            text: "Сохранить и отправить",
-            color: "#FF6F61",
-            text_color: "#ffffff"
-        });
-        mainButton.onClick(function() {
-            mainButton.hide();
-            // 🔄 Отправляем данные в простом формате, совместимом с ботом
-            window.Telegram.WebApp.sendData(`score=${counterValue}`);
-        });
-        mainButton.show();
-        isMainButtonShown = true; // Устанавливаем флаг
     }
 
+    // Запускаем инициализацию игры при загрузке страницы
     window.addEventListener('load', function() {
-        if (!(window.Telegram && window.Telegram.WebApp)) {
-            alert("❌ Эта игра работает только внутри Telegram. Пожалуйста, откройте ее через бота.");
-            return;
-        }
-        window.Telegram.WebApp.ready();
-        setTimeout(gameLoop, 100);
+        initializeGame();
     });
+
   </script>
 </body>
 </html>
