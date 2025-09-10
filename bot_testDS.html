@@ -48,77 +48,97 @@
             font-weight: bold;
             min-height: 24px;
         }
-        .auto-status {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #666;
+        .history {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .history-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: #e9ecef;
+            border-radius: 4px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎲 Автоотправка чисел</h1>
+        <h1>🎲 Генератор чисел</h1>
         
         <div class="number" id="numberDisplay">0</div>
         
-        <div class="auto-status" id="autoStatus">⏳ Генерация и отправка...</div>
-        
         <div>
-            <button class="btn" onclick="generateAndSend()">🎲 Новое число</button>
-            <button class="btn send" onclick="sendCurrentNumber()">💾 Отправить текущее</button>
+            <button class="btn" onclick="generateNumber()">🎲 Новое число</button>
+            <button class="btn send" onclick="sendToBot()">💾 Отправить в бот</button>
         </div>
         
         <div class="status" id="status"></div>
+        
+        <div class="history">
+            <h3>📊 Отправленные числа:</h3>
+            <div id="historyList"></div>
+        </div>
     </div>
 
     <script>
         let currentNumber = 0;
+        let sentNumbers = [];
         
-        // Функция отправки числа в бота
-        function sendNumberToBot(number) {
-            if (window.Telegram && Telegram.WebApp) {
-                try {
-                    Telegram.WebApp.sendData(number.toString());
-                    console.log("✅ Отправлено число:", number);
-                    return true;
-                } catch (error) {
-                    console.error("❌ Ошибка отправки:", error);
-                    return false;
-                }
-            }
-            return false;
-        }
-        
-        // Генерация и отправка нового числа
-        function generateAndSend() {
-            currentNumber = Math.floor(Math.random() * 999) + 1;
-            document.getElementById('numberDisplay').textContent = currentNumber;
-            document.getElementById('autoStatus').textContent = "✅ Новое число сгенерировано!";
-            
-            // Автоматически отправляем
-            if (sendNumberToBot(currentNumber)) {
-                document.getElementById('status').textContent = "✅ Автоотправлено в бот!";
-                document.getElementById('status').style.color = "#2e7d32";
-            } else {
-                document.getElementById('status').textContent = "❌ Ошибка отправки";
-                document.getElementById('status').style.color = "#d32f2f";
-            }
-        }
-        
-        // Отправка текущего числа
-        function sendCurrentNumber() {
+        // Функция отправки числа в бота БЕЗ закрытия
+        function sendToBot() {
             if (currentNumber === 0) {
                 document.getElementById('status').textContent = "❌ Сначала сгенерируйте число!";
+                document.getElementById('status').style.color = "#d32f2f";
                 return;
             }
             
-            if (sendNumberToBot(currentNumber)) {
-                document.getElementById('status').textContent = "✅ Отправлено в бот!";
-                document.getElementById('status').style.color = "#2e7d32";
+            document.getElementById('status').textContent = "⏳ Отправка...";
+            document.getElementById('status').style.color = "#ff9800";
+            
+            if (window.Telegram && Telegram.WebApp) {
+                try {
+                    // ОТПРАВЛЯЕМ ДАННЫЕ БЕЗ ЗАКРЫТИЯ
+                    Telegram.WebApp.sendData(currentNumber.toString());
+                    
+                    // Добавляем в историю
+                    sentNumbers.push({
+                        number: currentNumber,
+                        time: new Date().toLocaleTimeString()
+                    });
+                    updateHistory();
+                    
+                    document.getElementById('status').textContent = "✅ Отправлено в бот!";
+                    document.getElementById('status').style.color = "#2e7d32";
+                    
+                    console.log("Отправлено число:", currentNumber);
+                    
+                    // НЕ ЗАКРЫВАЕМ Web App!
+                    // Telegram.WebApp.close(); // ← ЭТУ СТРОЧКУ УБИРАЕМ
+                    
+                } catch (error) {
+                    document.getElementById('status').textContent = "❌ Ошибка отправки";
+                    document.getElementById('status').style.color = "#d32f2f";
+                    console.error("Ошибка:", error);
+                }
             } else {
-                document.getElementById('status').textContent = "❌ Ошибка отправки";
+                document.getElementById('status').textContent = "❌ Только в Telegram";
                 document.getElementById('status').style.color = "#d32f2f";
             }
+        }
+        
+        function generateNumber() {
+            currentNumber = Math.floor(Math.random() * 999) + 1;
+            document.getElementById('numberDisplay').textContent = currentNumber;
+            document.getElementById('status').textContent = "✅ Новое число готово!";
+            document.getElementById('status').style.color = "#2e7d32";
+        }
+        
+        function updateHistory() {
+            const historyElement = document.getElementById('historyList');
+            historyElement.innerHTML = sentNumbers.slice(-10).reverse().map(item => 
+                `<div class="history-item">🎯 ${item.number} (${item.time})</div>`
+            ).join('');
         }
         
         // Инициализация
@@ -127,14 +147,13 @@
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 
-                // Автоматически генерируем и отправляем первое число при загрузке
-                setTimeout(() => {
-                    generateAndSend();
-                }, 1000);
+                // Отключаем автоматическое закрытие после отправки
+                Telegram.WebApp.enableClosingConfirmation();
                 
-            } else {
-                document.getElementById('autoStatus').textContent = "❌ Открыто вне Telegram";
+                console.log("Web App инициализирован, закрытие отключено");
             }
+            
+            generateNumber(); // Генерируем первое число
         });
     </script>
 </body>
