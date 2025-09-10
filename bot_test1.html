@@ -3,54 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Игра</title>
+    <title>Игра - Генератор чисел</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body { font-family: Arial; text-align: center; padding: 20px; background: #f0f8ff; }
-        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .number { font-size: 48px; font-weight: bold; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .btn { padding: 15px 30px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; }
-        .status { margin-top: 15px; color: #28a745; font-weight: bold; }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background: #f0f8ff; 
+            max-width: 400px; 
+            margin: 0 auto; 
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        .number { 
+            font-size: 48px; 
+            font-weight: bold; 
+            margin: 20px 0; 
+            padding: 20px; 
+            background: #e3f2fd; 
+            border-radius: 10px; 
+            border: 2px solid #2196f3;
+        }
+        .btn { 
+            padding: 15px 30px; 
+            font-size: 18px; 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 10px;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .status { 
+            margin-top: 15px; 
+            color: #2e7d32; 
+            font-weight: bold;
+            min-height: 24px;
+        }
+        .history {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎮 Генератор чисел</h1>
+        <h1>🎲 Генератор чисел</h1>
+        
         <div class="number" id="numberDisplay">0</div>
-        <button class="btn" onclick="generateAndSend()">🎲 Сгенерировать</button>
+        
+        <div>
+            <button class="btn" onclick="generateNumber()">🎲 Новое число</button>
+            <button class="btn" onclick="sendToBot()" style="background: #2196f3;">💾 Отправить в бот</button>
+        </div>
+        
         <div class="status" id="status"></div>
+        
+        <div class="history">
+            <h3>📊 История отправок:</h3>
+            <div id="historyList"></div>
+        </div>
     </div>
 
     <script>
-        function generateAndSend() {
-            const number = Math.floor(Math.random() * 999) + 1;
-            document.getElementById('numberDisplay').textContent = number;
-            document.getElementById('status').textContent = "✅ Отправлено!";
+        let currentNumber = 0;
+        let sentNumbers = [];
+        
+        function generateNumber() {
+            currentNumber = Math.floor(Math.random() * 999) + 1;
+            document.getElementById('numberDisplay').textContent = currentNumber;
+            document.getElementById('status').textContent = "✅ Новое число готово!";
+            document.getElementById('status').style.color = "#2e7d32";
+        }
+        
+        function sendToBot() {
+            if (currentNumber === 0) {
+                document.getElementById('status').textContent = "❌ Сначала сгенерируйте число!";
+                document.getElementById('status').style.color = "#d32f2f";
+                return;
+            }
             
-            console.log("Генерируем число:", number);
+            document.getElementById('status').textContent = "⏳ Отправка...";
             
             if (window.Telegram && Telegram.WebApp) {
                 try {
-                    Telegram.WebApp.sendData(number.toString());
-                    console.log("Отправлено в бота:", number);
+                    Telegram.WebApp.sendData(currentNumber.toString());
                     
-                    // Закрываем через 1 секунду
-                    setTimeout(() => Telegram.WebApp.close(), 1000);
+                    // Добавляем в историю
+                    sentNumbers.push(currentNumber);
+                    updateHistory();
+                    
+                    document.getElementById('status').textContent = "✅ Отправлено в бот!";
+                    document.getElementById('status').style.color = "#2e7d32";
+                    
+                    console.log("Отправлено число:", currentNumber);
                     
                 } catch (error) {
-                    console.error("Ошибка:", error);
                     document.getElementById('status').textContent = "❌ Ошибка отправки";
+                    document.getElementById('status').style.color = "#d32f2f";
+                    console.error("Ошибка:", error);
                 }
+            } else {
+                document.getElementById('status').textContent = "❌ Только в Telegram";
+                document.getElementById('status').style.color = "#d32f2f";
             }
         }
         
-        // Автозапуск
+        function updateHistory() {
+            const historyElement = document.getElementById('historyList');
+            historyElement.innerHTML = sentNumbers.map(num => 
+                `<div>🎯 ${num}</div>`
+            ).join('');
+        }
+        
+        // Инициализация
         document.addEventListener('DOMContentLoaded', function() {
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
+                Telegram.WebApp.enableClosingConfirmation();
             }
-            generateAndSend(); // Автоматически генерируем при загрузке
+            generateNumber(); // Генерируем первое число при загрузке
         });
     </script>
 </body>
