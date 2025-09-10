@@ -73,21 +73,20 @@
 
     <script>
         let currentNumber = null;
-        let tg = null;
         
         // Инициализация Telegram Web App
         function initTelegram() {
             try {
-                if (window.Telegram && window.Telegram.WebApp) {
-                    tg = window.Telegram.WebApp;
-                    tg.expand();
-                    tg.enableClosingConfirmation();
+                if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+                    Telegram.WebApp.ready();
+                    Telegram.WebApp.expand();
                     console.log("Telegram Web App инициализирован");
                     return true;
                 }
+                console.log("Telegram Web App не обнаружен");
                 return false;
             } catch (error) {
-                console.log("Не в Telegram Web App");
+                console.log("Ошибка инициализации Telegram:", error);
                 return false;
             }
         }
@@ -96,16 +95,22 @@
             currentNumber = Math.floor(Math.random() * 999) + 1;
             document.getElementById('numberDisplay').textContent = currentNumber;
             document.getElementById('saveBtn').disabled = false;
+            console.log("Сгенерировано число:", currentNumber);
         }
         
         function saveScore() {
             if (currentNumber !== null) {
-                if (initTelegram() && tg) {
-                    console.log("Отправка результата:", currentNumber);
-                    tg.sendData(currentNumber.toString());
-                    // tg.close(); // Закомментировано для теста
+                console.log("Попытка отправки результата:", currentNumber);
+                
+                if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
+                    try {
+                        Telegram.WebApp.sendData(currentNumber.toString());
+                        console.log("Результат отправлен в бота:", currentNumber);
+                    } catch (error) {
+                        console.log("Ошибка отправки:", error);
+                    }
                 } else {
-                    console.log("Не удалось отправить: не в Telegram Web App");
+                    console.log("Web App не доступен");
                 }
             }
         }
@@ -113,6 +118,7 @@
         // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
             initTelegram();
+            console.log("Игра загружена");
         });
     </script>
 </body>
