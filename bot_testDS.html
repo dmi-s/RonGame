@@ -3,40 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Игра</title>
+    <title>Игра - Генератор чисел</title>
     <style>
-        body { font-family: Arial; text-align: center; padding: 20px; background: #f0f8ff; }
-        .game-container { background: white; padding: 30px; border-radius: 15px; }
-        .number { font-size: 48px; margin: 30px 0; padding: 20px; background: #eee; }
-        .btn { padding: 15px 25px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 8px; }
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 20px; 
+            background: #f0f8ff; 
+            max-width: 400px; 
+            margin: 0 auto; 
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 15px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        .number { 
+            font-size: 48px; 
+            font-weight: bold; 
+            margin: 20px 0; 
+            padding: 20px; 
+            background: #e3f2fd; 
+            border-radius: 10px; 
+            border: 2px solid #2196f3;
+        }
+        .btn { 
+            padding: 15px 25px; 
+            font-size: 16px; 
+            background: #4caf50; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover {
+            background: #45a049;
+        }
+        .status { 
+            margin-top: 15px; 
+            color: #2e7d32; 
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1>🎮 Игра в числа</h1>
-        <div class="number" id="numberDisplay">Нажмите "Рандом"</div>
-        <div id="statusMessage"></div>
-        <button class="btn" onclick="generateAndSend()">🎲 Рандом</button>
+    <div class="container">
+        <h1>🎲 Генератор чисел</h1>
+        
+        <div class="number" id="numberDisplay">0</div>
+        
+        <div>
+            <button class="btn" onclick="generateNumber()">🎲 Новое число</button>
+            <a class="btn" id="sendLink" style="background: #2196f3; cursor: pointer;">
+                💾 Отправить в бот
+            </a>
+        </div>
+        
+        <div class="status" id="status"></div>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #666;">
+            📝 Просто скопируйте число и отправьте в чат с ботом
+        </div>
     </div>
 
     <script>
-        function generateAndSend() {
-            const number = Math.floor(Math.random() * 999) + 1;
-            document.getElementById('numberDisplay').textContent = number;
-            document.getElementById('statusMessage').textContent = "✅ Число отправлено!";
-
-            // Отправляем как обычное сообщение через Telegram API
-            if (window.Telegram && Telegram.WebApp) {
-                try {
-                    // Отправляем сообщение боту
-                    Telegram.WebApp.sendData(number.toString());
-                } catch (error) {
-                    console.log("Web App ошибка:", error);
-                }
-            }
-
-            console.log("Отправляем число:", number);
+        let currentNumber = 0;
+        
+        function generateNumber() {
+            currentNumber = Math.floor(Math.random() * 999) + 1;
+            document.getElementById('numberDisplay').textContent = currentNumber;
+            
+            // Обновляем ссылку для отправки
+            const botUsername = "Testbotdmis1_bot"; // ЗАМЕНИТЕ на username вашего бота
+            const messageText = currentNumber.toString();
+            const telegramUrl = `https://t.me/${botUsername}?start=${messageText}`;
+            
+            document.getElementById('sendLink').href = telegramUrl;
+            document.getElementById('sendLink').onclick = function() {
+                window.open(telegramUrl, '_blank');
+                document.getElementById('status').textContent = "✅ Открыт Telegram! Отправьте число в чат";
+            };
+            
+            document.getElementById('status').textContent = "✅ Новое число готово!";
         }
+        
+        function copyToClipboard() {
+            navigator.clipboard.writeText(currentNumber.toString()).then(() => {
+                document.getElementById('status').textContent = "✅ Число скопировано!";
+            });
+        }
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            generateNumber(); // Генерируем первое число
+        });
     </script>
 </body>
 </html>
