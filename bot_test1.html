@@ -8,37 +8,39 @@
     <style>
         body { font-family: Arial; text-align: center; padding: 20px; }
         .number { font-size: 48px; margin: 30px 0; padding: 20px; background: #eee; }
-        .btn { padding: 15px 25px; font-size: 16px; margin: 10px; }
     </style>
 </head>
 <body>
-    <h1>🎮 Игра в числа</h1>
-    <div class="number" id="numberDisplay">Загрузка...</div>
-    <button class="btn" onclick="sendAgain()">🔄 Отправить еще раз</button>
+    <h1>🎮 Генератор чисел</h1>
+    <div class="number" id="numberDisplay">Отправка...</div>
 
     <script>
         // Автоматически генерируем и отправляем число при загрузке
-        function generateAndSend() {
+        function sendNumber() {
             const randomNumber = Math.floor(Math.random() * 999) + 1;
             document.getElementById('numberDisplay').textContent = randomNumber;
             
             console.log("Сгенерировано число:", randomNumber);
             
-            // Пытаемся отправить через Web App
+            // Отправляем через Web App
             if (window.Telegram && Telegram.WebApp) {
                 try {
                     Telegram.WebApp.sendData(randomNumber.toString());
-                    console.log("Число отправлено через Web App:", randomNumber);
+                    console.log("Число отправлено:", randomNumber);
+                    
+                    // Закрываем Web App через 2 секунды
+                    setTimeout(() => {
+                        Telegram.WebApp.close();
+                    }, 2000);
+                    
                 } catch (error) {
                     console.log("Ошибка отправки:", error);
+                    document.getElementById('numberDisplay').textContent = "Ошибка: " + error;
                 }
             } else {
                 console.log("Web App не доступен");
+                document.getElementById('numberDisplay').textContent = "Web App не доступен";
             }
-        }
-        
-        function sendAgain() {
-            generateAndSend();
         }
         
         // Запускаем сразу при загрузке
@@ -47,7 +49,7 @@
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
             }
-            generateAndSend();
+            sendNumber();
         });
     </script>
 </body>
