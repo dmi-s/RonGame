@@ -1,160 +1,2108 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Игра - Автоотправка чисел</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 20px; 
-            background: #f0f8ff; 
-            max-width: 400px; 
-            margin: 0 auto; 
-        }
-        .container { 
-            background: white; 
-            padding: 30px; 
-            border-radius: 15px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-        }
-        .number { 
-            font-size: 48px; 
-            font-weight: bold; 
-            margin: 20px 0; 
-            padding: 20px; 
-            background: #e3f2fd; 
-            border-radius: 10px; 
-            border: 2px solid #2196f3;
-        }
-        .btn { 
-            padding: 15px 25px; 
-            font-size: 16px; 
-            background: #4caf50; 
-            color: white; 
-            border: none; 
-            border-radius: 8px; 
-            cursor: pointer; 
-            margin: 10px;
-        }
-        .btn.send { 
-            background: #2196f3; 
-        }
-        .status { 
-            margin-top: 15px; 
-            color: #2e7d32; 
-            font-weight: bold;
-            min-height: 24px;
-        }
-        .history {
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .history-item {
-            margin: 5px 0;
-            padding: 5px;
-            background: #e9ecef;
-            border-radius: 4px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Панель Управления Роботом</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+      @font-face {
+        font-family: 'NexaBold';
+        src: url('Nexa-Bold.ttf') format('truetype');
+        font-weight: bold;
+        font-style: normal;
+        font-display: swap;
+    }
+    body {
+      overflow: hidden;
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+    #game-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+    }
+    canvas {
+      display: block;
+      background: linear-gradient(135deg, #ccaa00, #ffdd00, #ffff00, #ffdd00, #ccaa00);
+      border: 2px solid #222;
+      box-shadow:
+        0 0 20px #111,
+        inset 0 0 20px rgba(255,255,255,0.05),
+        inset 0 0 50px rgba(0,0,0,0.3);
+      border-radius: 6px;
+      image-rendering: pixelated;
+      width: auto;
+      height: auto;
+      max-width: 100vw;
+      max-height: 100vh;
+    }
+  </style>
+
 </head>
 <body>
-    <div class="container">
-        <h1>🎲 Генератор чисел</h1>
-        
-        <div class="number" id="numberDisplay">0</div>
-        
-        <div>
-            <button class="btn" onclick="generateNumber()">🎲 Новое число</button>
-            <button class="btn send" onclick="sendToBot()">💾 Отправить в бот</button>
-        </div>
-        
-        <div class="status" id="status"></div>
-        
-        <div class="history">
-            <h3>📊 Отправленные числа:</h3>
-            <div id="historyList"></div>
-        </div>
-    </div>
-
-    <script>
-        let currentNumber = 0;
-        let sentNumbers = [];
-        
-        // Функция отправки числа в бота БЕЗ закрытия
-        function sendToBot() {
-            if (currentNumber === 0) {
-                document.getElementById('status').textContent = "❌ Сначала сгенерируйте число!";
-                document.getElementById('status').style.color = "#d32f2f";
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+  </div>
+  <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const GAME_WIDTH = 420;
+    const GAME_HEIGHT = 650;
+    canvas.width = GAME_WIDTH;
+    canvas.height = GAME_HEIGHT;
+    const TOP_MARGIN = 20;
+    const PANEL_HEIGHT = 65;
+    const GAP_TIMER_COUNTER = 10;
+    const GAP_COUNTER_DISPLAY = 20;
+    const DISPLAY_HEIGHT = 400;
+    const BOTTOM_MARGIN = 20;
+    const TIMER_Y = TOP_MARGIN;
+    const COUNTER_Y = TIMER_Y + PANEL_HEIGHT + GAP_TIMER_COUNTER;
+    const DISPLAY_Y = COUNTER_Y + PANEL_HEIGHT + GAP_COUNTER_DISPLAY;
+    const PANEL_WIDTH = 126;
+    const LEFT_MARGIN = 10;
+    const GAP_VOLT_TIMER = 10;
+    const VOLTMETER_X = LEFT_MARGIN;
+    const VOLTMETER_Y = TIMER_Y;
+    const VOLTMETER_WIDTH = PANEL_WIDTH;
+    const VOLTMETER_HEIGHT = PANEL_HEIGHT;
+    const TIMER_X = VOLTMETER_X + VOLTMETER_WIDTH + GAP_VOLT_TIMER;
+    const TIMER_WIDTH = PANEL_WIDTH;
+    const TIMER_HEIGHT = PANEL_HEIGHT;
+    const COUNTER_X = TIMER_X;
+    const COUNTER_WIDTH = PANEL_WIDTH;
+    const COUNTER_HEIGHT = PANEL_HEIGHT;
+    const LCD_X = VOLTMETER_X;
+    const LCD_Y = COUNTER_Y;
+    const LCD_WIDTH = PANEL_WIDTH;
+    const LCD_HEIGHT = PANEL_HEIGHT;
+    const DISPLAY_WIDTH = 400;
+    const DISPLAY_X = 10;
+    const POWER_BUTTON_HEIGHT = PANEL_HEIGHT;
+    const POWER_RIGHT_MARGIN = 10;
+    const POWER_LEFT_MARGIN_FROM_TIMER = 10;
+    const POWER_X = TIMER_X + TIMER_WIDTH + POWER_LEFT_MARGIN_FROM_TIMER;
+    const POWER_WIDTH = GAME_WIDTH - POWER_X - POWER_RIGHT_MARGIN;
+    const POWER_Y = TIMER_Y;
+    const POWER_CENTER_X = POWER_X + POWER_WIDTH / 2;
+    const POWER_CENTER_Y = POWER_Y + POWER_BUTTON_HEIGHT / 2;
+    const FIELD_LEFT = COUNTER_X + COUNTER_WIDTH + 10;
+    const FIELD_RIGHT = GAME_WIDTH - 10;
+    const FIELD_TOP = COUNTER_Y;
+    const FIELD_BOTTOM = COUNTER_Y + COUNTER_HEIGHT;
+    const FIELD_WIDTH = FIELD_RIGHT - FIELD_LEFT;
+    const FIELD_HEIGHT = FIELD_BOTTOM - FIELD_TOP;
+    const SMALL_BUTTON_SIZE = 50;
+    const GAP_BETWEEN_BUTTONS = 10;
+    const FIELD_CENTER_X = (FIELD_LEFT + FIELD_RIGHT) / 2;
+    const FIELD_CENTER_Y = (FIELD_TOP + FIELD_BOTTOM) / 2;
+    const RST_X = FIELD_CENTER_X - SMALL_BUTTON_SIZE - GAP_BETWEEN_BUTTONS / 2;
+    const RST_Y = FIELD_CENTER_Y - SMALL_BUTTON_SIZE / 2;
+    const RST_CENTER_X = RST_X + SMALL_BUTTON_SIZE / 2;
+    const RST_CENTER_Y = RST_Y + SMALL_BUTTON_SIZE / 2;
+    const PRG_X = FIELD_CENTER_X + GAP_BETWEEN_BUTTONS / 2;
+    const PRG_Y = FIELD_CENTER_Y - SMALL_BUTTON_SIZE / 2;
+    const PRG_CENTER_X = PRG_X + SMALL_BUTTON_SIZE / 2;
+    const PRG_CENTER_Y = PRG_Y + SMALL_BUTTON_SIZE / 2;
+    let robotCharge = 100;
+    let lastChargeTick = 0;
+    let isPowerOn = false;
+    let isRSTPressed = false;
+    let isPRGPressed = false;
+    let powerOffBlink = 0;
+    let counterValue = 0;
+    let lastCounterTick = 0;
+    let animatingDigit = null;
+    let systemsActive = false;
+    const bootText = [
+      ">>> INIT",
+      ">>> CONNECT TO RONAVI_MCNS",
+      ">>> LOW SIGNAL",
+      ">>> SUDO START_GAME",
+      ">>> GAME START IN",
+      ">>> 3",
+      ">>> 2",
+      ">>> 1"
+    ];
+    let bootLineIndex = 0;
+    let bootCharIndex = 0;
+    let lastBootTick = 0;
+    let bootActive = false;
+    let bootCompleted = false;
+    let prgPressCount = 0;
+    let godmodeActive = false;
+    let passwordMode = false;
+    let inputCode = [];
+    let lastPasswordTick = 0;
+    let passwordLineIndex = 0;
+    let passwordCharIndex = 0;
+    const passwordText = [
+      ">>>GODMODE_OFF",
+      ">>>ENTER PASSWORD"
+    ];
+    const KEYPAD_SIZE = 50;
+    const KEYPAD_GAP = 10;
+    const KEYPAD_ROWS = 4;
+    const KEYPAD_COLS = 3;
+    const KEYPAD_TOTAL_WIDTH = KEYPAD_COLS * KEYPAD_SIZE + (KEYPAD_COLS - 1) * KEYPAD_GAP;
+    const KEYPAD_TOTAL_HEIGHT = KEYPAD_ROWS * KEYPAD_SIZE + (KEYPAD_ROWS - 1) * KEYPAD_GAP;
+    const KEYPAD_START_X = DISPLAY_X + (DISPLAY_WIDTH - KEYPAD_TOTAL_WIDTH) / 2;
+    const KEYPAD_START_Y = DISPLAY_Y + 120;
+    let pressedKey = null;
+    let errorMode = false;
+    let errorText = [
+      ">>>GODMODE_OFF",
+      ">>>ERROR",
+      ">>>POWER_OFF"
+    ];
+    let errorLineIndex = 0;
+    let errorCharIndex = 0;
+    let lastErrorTick = 0;
+    let errorCompleted = false;
+    let godmodeSuccess = false;
+    let godmodeDisplayText = [">>>GODMODE_ON"];
+    let godmodeDisplayLineIndex = 0;
+    let godmodeDisplayCharIndex = 0;
+    let lastGodmodeDisplayTick = 0;
+    let godmodeDisplayCompleted = false;
+    let isGodmodeFinalized = false;
+    let isGameOverScreenActive = false;
+    const gridSize = 40;
+    const gridWidth = 10;
+    const gridHeight = 10;
+    let snakes = [];
+    let food = [];
+    let obstacles = [];
+    let chargingStations = [];
+    let parkingSpots = [];
+    let score = 0;
+    let gameRunning = false;
+    let gameStarted = false;
+    let targetPoints = [];
+    let selectedSnakeIndex = -1;
+    let activeRobotIndex = -1;
+    let gameInterval;
+    let gameTimer;
+    let timeLeft = 180;
+    let snakeCharges = [
+        Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+        Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+        Math.floor(Math.random() * (90 - 25 + 1)) + 25
+    ];
+    let moveCounts = [0, 0, 0];
+    let onChargingStation = [-1, -1, -1];
+    let chargingTimers = [null, null, null];
+    let hasCargo = [false, false, false];
+    let cargoFood = [null, null, null];
+    let onParking = [-1, -1, -1];
+    let isBlinking = [false, false, false];
+    let snakeRoutes = [[], [], []];
+    let routeProgress = [0, 0, 0];
+    let reservedTargets = {};
+    let snakeRouteTimestamps = [0, 0, 0];
+    let lastHorizontalDirection = ['right', 'right', 'right'];
+    let snakeHeadImage = new Image();
+    let snakeHeadLeftImage = new Image();
+    let snakeHeadWithShelfImage = new Image();
+    let snakeHeadWithShelfRightImage = new Image();
+    let snakeHeadChargingImage = new Image();
+    let snakeHeadChargingRightImage = new Image();
+    let foodImage = new Image();
+    let chargingImage = new Image();
+    let parkingImage = new Image();
+    let obstacleImage = new Image();
+    snakeHeadImage.src = 'Robot.png';
+    snakeHeadLeftImage.src = 'robot_left.png';
+    snakeHeadWithShelfImage.src = 'Robot_Shelf.png';
+    snakeHeadWithShelfRightImage.src = 'Robot_Shelf_right.png';
+    snakeHeadChargingImage.src = 'Robot_Charg.png';
+    snakeHeadChargingRightImage.src = 'Robot_Charg_right.png';
+    foodImage.src = 'Shelf.png';
+    chargingImage.src = 'Charging.png';
+    parkingImage.src = 'Parking.png';
+    obstacleImage.src = 'Column.png';
+    function isObstacle(x, y) {
+        for (let obstacle of obstacles) {
+            if (obstacle.x === x && obstacle.y === y) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function isChargingStation(x, y) {
+        for (let i = 0; i < chargingStations.length; i++) {
+            if (chargingStations[i].x === x && chargingStations[i].y === y) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    function isParkingSpot(x, y) {
+        for (let i = 0; i < parkingSpots.length; i++) {
+            if (parkingSpots[i].x === x && parkingSpots[i].y === y) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    function isOtherSnake(x, y, snakeIndex) {
+        for (let i = 0; i < snakes.length; i++) {
+            if (i !== snakeIndex) {
+                for (let segment of snakes[i]) {
+                    if (segment.x === x && segment.y === y) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+    function isFood(x, y) {
+        for (let f of food) {
+            if (f.x === x && f.y === y) {
+                return true;
+            }
+        }
+        return false;
+    }
+    function routesIntersect(snakeIndex1, snakeIndex2) {
+        if (snakeRoutes[snakeIndex1].length === 0 || snakeRoutes[snakeIndex2].length === 0) {
+            return false;
+        }
+        for (let i = routeProgress[snakeIndex1]; i < snakeRoutes[snakeIndex1].length; i++) {
+            const point1 = snakeRoutes[snakeIndex1][i];
+            for (let j = routeProgress[snakeIndex2]; j < snakeRoutes[snakeIndex2].length; j++) {
+                const point2 = snakeRoutes[snakeIndex2][j];
+                if (point1.x === point2.x && point1.y === point2.y) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    function aStar(startX, startY, endX, endY, snakeIndex) {
+        function heuristic(a, b) {
+            return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+        }
+        function canMoveTo(x, y, snakeIndex) {
+            if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) return false;
+            if (isObstacle(x, y)) return false;
+            if (isOtherSnake(x, y, snakeIndex)) return false;
+            if (hasCargo[snakeIndex] && isChargingStation(x, y) !== -1) return false;
+            if (hasCargo[snakeIndex] && isFood(x, y)) return false;
+            const targetKey = `${x},${y}`;
+            if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== snakeIndex) {
+                return false;
+            }
+            return true;
+        }
+        const start = {x: startX, y: startY};
+        const end = {x: endX, y: endY};
+        let openSet = [start];
+        let closedSet = [];
+        let cameFrom = {};
+        let gScore = {};
+        let fScore = {};
+        gScore[startKey(start)] = 0;
+        fScore[startKey(start)] = heuristic(start, end);
+        while (openSet.length > 0) {
+            let current = openSet.reduce((min, node) => {
+                return fScore[startKey(node)] < fScore[startKey(min)] ? node : min;
+            });
+            if (current.x === end.x && current.y === end.y) {
+                let path = [];
+                let temp = current;
+                while (temp) {
+                    path.unshift(temp);
+                    temp = cameFrom[startKey(temp)];
+                }
+                return path;
+            }
+            const currentIndex = openSet.indexOf(current);
+            openSet.splice(currentIndex, 1);
+            closedSet.push(current);
+            const neighbors = [
+                {x: current.x, y: current.y - 1},
+                {x: current.x, y: current.y + 1},
+                {x: current.x - 1, y: current.y},
+                {x: current.x + 1, y: current.y}
+            ];
+            for (let neighbor of neighbors) {
+                if (!canMoveTo(neighbor.x, neighbor.y, snakeIndex)) continue;
+                if (closedSet.some(node => node.x === neighbor.x && node.y === neighbor.y)) continue;
+                const tentativeGScore = gScore[startKey(current)] + 1;
+                const neighborKey = startKey(neighbor);
+                const neighborInOpen = openSet.find(node => node.x === neighbor.x && node.y === neighbor.y);
+                if (!neighborInOpen) {
+                    openSet.push(neighbor);
+                    gScore[neighborKey] = tentativeGScore;
+                    fScore[neighborKey] = tentativeGScore + heuristic(neighbor, end);
+                    cameFrom[neighborKey] = current;
+                } else if (tentativeGScore < gScore[neighborKey]) {
+                    gScore[neighborKey] = tentativeGScore;
+                    fScore[neighborKey] = tentativeGScore + heuristic(neighbor, end);
+                    cameFrom[neighborKey] = current;
+                }
+            }
+        }
+        return [];
+    }
+    function startKey(point) {
+        return point.x + ',' + point.y;
+    }
+    function buildRoute(startX, startY, endX, endY, snakeIndex) {
+        const path = aStar(startX, startY, endX, endY, snakeIndex);
+        if (path.length > 1) {
+            const firstStep = path[1];
+            const dx = firstStep.x - startX;
+            if (dx > 0) {
+                lastHorizontalDirection[snakeIndex] = 'right';
+            } else if (dx < 0) {
+                lastHorizontalDirection[snakeIndex] = 'left';
+            }
+        }
+        return path;
+    }
+    function initGame() {
+        snakes = [];
+        selectedSnakeIndex = -1;
+        activeRobotIndex = -1;
+        targetPoints = [];
+        snakeCharges = [
+            Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+            Math.floor(Math.random() * (90 - 25 + 1)) + 25,
+            Math.floor(Math.random() * (90 - 25 + 1)) + 25
+        ];
+        moveCounts = [0, 0, 0];
+        onChargingStation = [-1, -1, -1];
+        chargingTimers = [null, null, null];
+        hasCargo = [false, false, false];
+        cargoFood = [null, null, null];
+        onParking = [-1, -1, -1];
+        isBlinking = [false, false, false];
+        snakeRoutes = [[], [], []];
+        routeProgress = [0, 0, 0];
+        reservedTargets = {};
+        snakeRouteTimestamps = [0, 0, 0];
+        lastHorizontalDirection = ['right', 'right', 'right'];
+        let positions = [];
+        for (let i = 0; i < 3; i++) {
+            let validPosition = false;
+            let newPosition;
+            while (!validPosition) {
+                newPosition = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let pos of positions) {
+                    if (pos.x === newPosition.x && pos.y === newPosition.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            positions.push(newPosition);
+            snakes.push([{x: newPosition.x, y: newPosition.y}]);
+            targetPoints.push(null);
+        }
+        generateObstacles();
+        generateChargingStations();
+        generateParkingSpots();
+        generateFood();
+        score = 0;
+        timeLeft = 180;
+    }
+    function generateObstacles() {
+        obstacles = [];
+        const obstacleCount = 5;
+        for (let i = 0; i < obstacleCount; i++) {
+            let newObstacle;
+            let validPosition = false;
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
+                attempts++;
+                newObstacle = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let snake of snakes) {
+                    for (let segment of snake) {
+                        if (segment.x === newObstacle.x && segment.y === newObstacle.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    if (!validPosition) break;
+                }
+                if (validPosition) {
+                    for (let existingFood of food) {
+                        if (existingFood.x === newObstacle.x && existingFood.y === newObstacle.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                if (validPosition) {
+                    for (let existingObstacle of obstacles) {
+                        const distance = Math.abs(existingObstacle.x - newObstacle.x) + Math.abs(existingObstacle.y - newObstacle.y);
+                        if (distance <= 2) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать препятствие за 1000 попыток");
+                break;
+            }
+            obstacles.push(newObstacle);
+        }
+    }
+    function generateChargingStations() {
+        chargingStations = [];
+        const stationCount = 2;
+        for (let i = 0; i < stationCount; i++) {
+            let validPosition = false;
+            let newStation;
+            let obstacleUsed = null;
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
+                attempts++;
+                const obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+                if (obstacleUsed && obstacleUsed.x === obstacle.x && obstacleUsed.y === obstacle.y) {
+                    continue;
+                }
+                const directions = [
+                    {x: 0, y: -1}, {x: 0, y: 1}, {x: -1, y: 0}, {x: 1, y: 0}
+                ];
+                const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+                newStation = {
+                    x: obstacle.x + randomDirection.x,
+                    y: obstacle.y + randomDirection.y
+                };
+                if (newStation.x >= 0 && newStation.x < gridWidth && newStation.y >= 0 && newStation.y < gridHeight) {
+                    let onObstacle = obstacles.some(o => o.x === newStation.x && o.y === newStation.y);
+                    let onSnake = snakes.some(s => s.some(seg => seg.x === newStation.x && seg.y === newStation.y));
+                    let onFood = food.some(f => f.x === newStation.x && f.y === newStation.y);
+                    let onStation = chargingStations.some(s => s.x === newStation.x && s.y === newStation.y);
+                    if (!onObstacle && !onSnake && !onFood && !onStation) {
+                        validPosition = true;
+                        obstacleUsed = obstacle;
+                    }
+                }
+            }
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать зарядную станцию за 1000 попыток");
+                break;
+            }
+            chargingStations.push(newStation);
+        }
+    }
+    function generateParkingSpots() {
+        parkingSpots = [];
+        const parkingCount = 3;
+        let attempts = 0;
+        let maxAttempts = 1000;
+        while (attempts < maxAttempts) {
+            attempts++;
+            let obstacle = obstacles[Math.floor(Math.random() * obstacles.length)];
+            const isHorizontal = Math.random() > 0.5;
+            let parkingGroup = [];
+            if (isHorizontal) {
+                parkingGroup.push({x: obstacle.x + 1, y: obstacle.y});
+                parkingGroup.push({x: obstacle.x + 2, y: obstacle.y});
+                parkingGroup.push({x: obstacle.x + 3, y: obstacle.y});
+            } else {
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 1});
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 2});
+                parkingGroup.push({x: obstacle.x, y: obstacle.y + 3});
+            }
+            let validPosition = true;
+            for (let spot of parkingGroup) {
+                if (spot.x < 0 || spot.x >= gridWidth || spot.y < 0 || spot.y >= gridHeight) {
+                    validPosition = false;
+                    break;
+                }
+                if (obstacles.some(o => o.x === spot.x && o.y === spot.y)) validPosition = false;
+                if (snakes.some(s => s.some(seg => seg.x === spot.x && seg.y === spot.y))) validPosition = false;
+                if (food.some(f => f.x === spot.x && f.y === spot.y)) validPosition = false;
+                if (chargingStations.some(s => s.x === spot.x && s.y === spot.y)) validPosition = false;
+                if (obstacles.some(o => Math.abs(o.x - spot.x) + Math.abs(o.y - spot.y) <= 0)) validPosition = false;
+            }
+            if (validPosition) {
+                parkingSpots = parkingGroup;
                 return;
             }
-            
-            document.getElementById('status').textContent = "⏳ Отправка...";
-            document.getElementById('status').style.color = "#ff9800";
-            
-            if (window.Telegram && Telegram.WebApp) {
-                try {
-                    // ОТПРАВЛЯЕМ ДАННЫЕ БЕЗ ЗАКРЫТИЯ
-                    Telegram.WebApp.sendData(currentNumber.toString());
-                    
-                    // Добавляем в историю
-                    sentNumbers.push({
-                        number: currentNumber,
-                        time: new Date().toLocaleTimeString()
-                    });
-                    updateHistory();
-                    
-                    document.getElementById('status').textContent = "✅ Отправлено в бот!";
-                    document.getElementById('status').style.color = "#2e7d32";
-                    
-                    console.log("Отправлено число:", currentNumber);
-                    
-                    // НЕ ЗАКРЫВАЕМ Web App!
-                    // Telegram.WebApp.close(); // ← ЭТУ СТРОЧКУ УБИРАЕМ
-                    
-                } catch (error) {
-                    document.getElementById('status').textContent = "❌ Ошибка отправки";
-                    document.getElementById('status').style.color = "#d32f2f";
-                    console.error("Ошибка:", error);
+        }
+        console.error(`Не удалось сгенерировать парковочные места за ${maxAttempts} попыток`);
+        parkingSpots = [];
+    }
+    function generateFood() {
+        food = [];
+        for (let i = 0; i < 3; i++) {
+            let newFood;
+            let validPosition = false;
+            let attempts = 0;
+            while (!validPosition && attempts < 1000) {
+                attempts++;
+                newFood = {
+                    x: Math.floor(Math.random() * gridWidth),
+                    y: Math.floor(Math.random() * gridHeight)
+                };
+                validPosition = true;
+                for (let snake of snakes) {
+                    for (let segment of snake) {
+                        if (segment.x === newFood.x && segment.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                    if (!validPosition) break;
                 }
+                if (validPosition) {
+                    for (let obstacle of obstacles) {
+                        if (obstacle.x === newFood.x && obstacle.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                if (validPosition) {
+                    for (let parking of parkingSpots) {
+                        if (parking.x === newFood.x && parking.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+                if (validPosition) {
+                    for (let existingFood of food) {
+                        if (existingFood.x === newFood.x && existingFood.y === newFood.y) {
+                            validPosition = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (attempts >= 1000) {
+                console.error("Не удалось сгенерировать еду за 1000 попыток");
+                break;
+            }
+            food.push(newFood);
+        }
+    }
+    function update() {
+        if (!gameStarted) return;
+        for (let i = 0; i < snakes.length; i++) {
+            const snake = snakes[i];
+            const targetPoint = targetPoints[i];
+            if (!targetPoint || snakeRoutes[i].length === 0) continue;
+            if (snakeCharges[i] <= 0) {
+                if (targetPoints[i]) {
+                    const key = `${targetPoints[i].x},${targetPoints[i].y}`;
+                    if (reservedTargets[key] === i) {
+                        delete reservedTargets[key];
+                    }
+                    targetPoints[i] = null;
+                }
+                snakeRoutes[i] = [];
+                routeProgress[i] = 0;
+                continue;
+            }
+            let mustStop = false;
+            for (let j = 0; j < snakes.length; j++) {
+                if (i === j || snakeRoutes[j].length === 0) continue;
+                if (routesIntersect(i, j) && snakeRouteTimestamps[j] < snakeRouteTimestamps[i]) {
+                    mustStop = true;
+                    break;
+                }
+            }
+            if (mustStop) continue;
+            const head = snake[0];
+            if (routeProgress[i] < snakeRoutes[i].length) {
+                const nextPoint = snakeRoutes[i][routeProgress[i]];
+                if (head.x === nextPoint.x && head.y === nextPoint.y) {
+                    routeProgress[i]++;
+                    if (routeProgress[i] >= snakeRoutes[i].length) {
+                        if (targetPoints[i]) {
+                            const key = `${targetPoints[i].x},${targetPoints[i].y}`;
+                            if (reservedTargets[key] === i) {
+                                delete reservedTargets[key];
+                            }
+                            targetPoints[i] = null;
+                        }
+                        snakeRoutes[i] = [];
+                        routeProgress[i] = 0;
+                        if (i === activeRobotIndex) {
+                            isBlinking[i] = true;
+                        }
+                        continue;
+                    }
+                }
+            }
+            if (routeProgress[i] < snakeRoutes[i].length) {
+                const nextPoint = snakeRoutes[i][routeProgress[i]];
+                const dx = nextPoint.x - head.x;
+                const dy = nextPoint.y - head.y;
+                const newHead = {x: head.x, y: head.y};
+                if (dx > 0) {
+                    newHead.x++;
+                    lastHorizontalDirection[i] = 'right';
+                }
+                else if (dx < 0) {
+                    newHead.x--;
+                    lastHorizontalDirection[i] = 'left';
+                }
+                else if (dy > 0) {
+                    newHead.y++;
+                }
+                else if (dy < 0) {
+                    newHead.y--;
+                }
+                if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
+                    return;
+                }
+                for (let j = 0; j < snake.length; j++) {
+                    if (snake[j].x === newHead.x && snake[j].y === newHead.y) {
+                        return;
+                    }
+                }
+                for (let obstacle of obstacles) {
+                    if (obstacle.x === newHead.x && obstacle.y === newHead.y) {
+                        return;
+                    }
+                }
+                for (let j = 0; j < snakes.length; j++) {
+                    if (i !== j) {
+                        for (let segment of snakes[j]) {
+                            if (segment.x === newHead.x && segment.y === newHead.y) {
+                                return;
+                            }
+                        }
+                    }
+                }
+                let stationIndex = isChargingStation(newHead.x, newHead.y);
+                let parkingIndex = isParkingSpot(newHead.x, newHead.y);
+                moveCounts[i]++;
+                if (moveCounts[i] >= 2 && stationIndex === -1 && parkingIndex === -1) {
+                    snakeCharges[i]--;
+                    moveCounts[i] = 0;
+                }
+                if (stationIndex !== -1) {
+                    if (!hasCargo[i]) {
+                        if (onChargingStation[i] === -1) {
+                            onChargingStation[i] = stationIndex;
+                            startCharging(i);
+                        }
+                    } else {
+                        if (onChargingStation[i] !== -1) {
+                            stopCharging(i);
+                            onChargingStation[i] = -1;
+                        }
+                    }
+                } else {
+                    if (onChargingStation[i] !== -1) {
+                        stopCharging(i);
+                        onChargingStation[i] = -1;
+                    }
+                }
+                if (parkingIndex !== -1) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
+                        if (hasCargo[i]) {
+                            hasCargo[i] = false;
+                            cargoFood[i] = null;
+                            score += 10;
+                        }
+                    }
+                } else {
+                    if (onParking[i] !== -1) onParking[i] = -1;
+                }
+                snake[0] = newHead;
+                let foodEaten = false;
+                let foodIndex = -1;
+                for (let j = 0; j < food.length; j++) {
+                    if (newHead.x === food[j].x && newHead.y === food[j].y) {
+                        const targetPoint = targetPoints[i];
+                        if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y && !hasCargo[i]) {
+                            foodEaten = true;
+                            foodIndex = j;
+                            break;
+                        }
+                    }
+                }
+                if (foodEaten) {
+                    hasCargo[i] = true;
+                    cargoFood[i] = {x: food[foodIndex].x, y: food[foodIndex].y};
+                    food.splice(foodIndex, 1);
+                    generateNewFood();
+                }
+            }
+        }
+    }
+    function startCharging(snakeIndex) {
+        if (chargingTimers[snakeIndex]) clearInterval(chargingTimers[snakeIndex]);
+        chargingTimers[snakeIndex] = setInterval(() => {
+            if (snakeCharges[snakeIndex] < 100) {
+                snakeCharges[snakeIndex] = Math.min(100, snakeCharges[snakeIndex] + 2);
+            }
+        }, 1000);
+    }
+    function stopCharging(snakeIndex) {
+        if (chargingTimers[snakeIndex]) {
+            clearInterval(chargingTimers[snakeIndex]);
+            chargingTimers[snakeIndex] = null;
+        }
+    }
+    function generateNewFood() {
+        let newFood;
+        let validPosition = false;
+        let attempts = 0;
+        while (!validPosition && attempts < 1000) {
+            attempts++;
+            newFood = {
+                x: Math.floor(Math.random() * gridWidth),
+                y: Math.floor(Math.random() * gridHeight)
+            };
+            validPosition = true;
+            for (let snake of snakes) {
+                for (let segment of snake) {
+                    if (segment.x === newFood.x && segment.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+                if (!validPosition) break;
+            }
+            if (validPosition) {
+                for (let obstacle of obstacles) {
+                    if (obstacle.x === newFood.x && obstacle.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let station of chargingStations) {
+                    if (station.x === newFood.x && station.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let parking of parkingSpots) {
+                    if (parking.x === newFood.x && parking.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+            if (validPosition) {
+                for (let existingFood of food) {
+                    if (existingFood.x === newFood.x && existingFood.y === newFood.y) {
+                        validPosition = false;
+                        break;
+                    }
+                }
+            }
+        }
+        if (attempts < 1000) food.push(newFood);
+    }
+    function drawGame() {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        ctx.clip();
+        ctx.translate(DISPLAY_X, DISPLAY_Y);
+        ctx.fillStyle = '#b1b1b1';
+        ctx.fillRect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        ctx.strokeStyle = '#cccccc';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= gridWidth; x++) {
+            ctx.beginPath();
+            ctx.moveTo(x * gridSize, 0);
+            ctx.lineTo(x * gridSize, DISPLAY_HEIGHT);
+            ctx.stroke();
+        }
+        for (let y = 0; y <= gridHeight; y++) {
+            ctx.beginPath();
+            ctx.moveTo(0, y * gridSize);
+            ctx.lineTo(DISPLAY_WIDTH, y * gridSize);
+            ctx.stroke();
+        }
+        obstacles.forEach(obstacle => {
+            if (obstacleImage.complete) {
+                ctx.drawImage(obstacleImage, obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
             } else {
-                document.getElementById('status').textContent = "❌ Только в Telegram";
-                document.getElementById('status').style.color = "#d32f2f";
+                ctx.fillStyle = '#800080';
+                ctx.fillRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
             }
-        }
-        
-        function generateNumber() {
-            currentNumber = Math.floor(Math.random() * 999) + 1;
-            document.getElementById('numberDisplay').textContent = currentNumber;
-            document.getElementById('status').textContent = "✅ Новое число готово!";
-            document.getElementById('status').style.color = "#2e7d32";
-        }
-        
-        function updateHistory() {
-            const historyElement = document.getElementById('historyList');
-            historyElement.innerHTML = sentNumbers.slice(-10).reverse().map(item => 
-                `<div class="history-item">🎯 ${item.number} (${item.time})</div>`
-            ).join('');
-        }
-        
-        // Инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            if (window.Telegram && Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-                
-                // Отключаем автоматическое закрытие после отправки
-                Telegram.WebApp.enableClosingConfirmation();
-                
-                console.log("Web App инициализирован, закрытие отключено");
-            }
-            
-            generateNumber(); // Генерируем первое число
         });
-    </script>
+        chargingStations.forEach((station, index) => {
+            if (chargingImage.complete) {
+                ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+            } else {
+                ctx.fillStyle = '#ff69b4';
+                ctx.fillRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+                ctx.strokeStyle = 'black';
+                ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
+            }
+        });
+        food.forEach(f => {
+            let shouldHide = false;
+            for (let i = 0; i < snakes.length; i++) {
+                const head = snakes[i][0];
+                if (head.x === f.x && head.y === f.y && !hasCargo[i]) {
+                    shouldHide = true;
+                    break;
+                }
+            }
+            if (!shouldHide) {
+                if (foodImage.complete) {
+                    ctx.drawImage(foodImage, f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                } else {
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = 'darkred';
+                    ctx.strokeRect(f.x * gridSize, f.y * gridSize, gridSize, gridSize);
+                }
+            }
+        });
+        parkingSpots.forEach(parking => {
+            let showParking = true;
+            for (let i = 0; i < snakes.length; i++) {
+                const head = snakes[i][0];
+                if (head.x === parking.x && head.y === parking.y) {
+                    const targetPoint = targetPoints[i];
+                    if (targetPoint && targetPoint.x === parking.x && targetPoint.y === parking.y) {
+                        showParking = true;
+                    } else if (hasCargo[i]) {
+                        showParking = false;
+                    }
+                    break;
+                }
+            }
+            if (showParking) {
+                if (parkingImage.complete) {
+                    ctx.drawImage(parkingImage, parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
+                } else {
+                    ctx.fillStyle = '#0000ff';
+                    ctx.fillRect(parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
+                    ctx.strokeStyle = 'black';
+                    ctx.strokeRect(parking.x * gridSize, parking.y * gridSize, gridSize, gridSize);
+                }
+            }
+        });
+        snakes.forEach((snake, snakeIndex) => {
+            snake.forEach((segment, index) => {
+                if (index === 0) {
+                    let headImageToUse = snakeHeadImage;
+                    if (hasCargo[snakeIndex]) {
+                        if (lastHorizontalDirection[snakeIndex] === 'left') {
+                            headImageToUse = snakeHeadWithShelfImage;
+                        } else {
+                            headImageToUse = snakeHeadWithShelfRightImage;
+                        }
+                    } else {
+                        if (lastHorizontalDirection[snakeIndex] === 'left') {
+                            headImageToUse = snakeHeadLeftImage;
+                        } else {
+                            headImageToUse = snakeHeadImage;
+                        }
+                    }
+                    if (!isBlinking[snakeIndex] || (isBlinking[snakeIndex] && Math.floor(Date.now() / 250) % 2 === 0)) {
+                        if (headImageToUse.complete) {
+                            ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                        } else {
+                            ctx.fillStyle = '#ffffff';
+                            ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                        }
+                    }
+                } else {
+                    ctx.fillStyle = '#00cc00';
+                    ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+                }
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0)';
+                ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
+            });
+        });
+        snakeRoutes.forEach((route, snakeIndex) => {
+            if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
+                ctx.strokeStyle = 'yellow';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                const head = snakes[snakeIndex][0];
+                ctx.moveTo(head.x * gridSize + gridSize/2, head.y * gridSize + gridSize/2);
+                for (let i = routeProgress[snakeIndex]; i < route.length; i++) {
+                    const point = route[i];
+                    ctx.lineTo(point.x * gridSize + gridSize/2, point.y * gridSize + gridSize/2);
+                }
+                ctx.stroke();
+            }
+        });
+        targetPoints.forEach((point, index) => {
+            if (point) {
+                ctx.strokeStyle = 'yellow';
+                ctx.strokeRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
+            }
+        });
+        ctx.restore();
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+    }
+    function gameStep() {
+        update();
+        drawGame();
+    }
+    function startGame() {
+        if (gameRunning) {
+            clearInterval(gameInterval);
+            clearInterval(gameTimer);
+            chargingTimers.forEach(t => t && clearInterval(t));
+        }
+        initGame();
+        gameRunning = true;
+        gameStarted = false;
+    }
+    canvas.addEventListener('click', handleButtonClick);
+    canvas.addEventListener('touchend', function(e) {
+      e.preventDefault();
+      handleButtonClick(e);
+    });
+    function handleButtonClick(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      let x, y;
+      if (e.type === 'touchend') {
+        x = (e.changedTouches[0].clientX - rect.left) * scaleX;
+        y = (e.changedTouches[0].clientY - rect.top) * scaleY;
+      } else {
+        x = (e.clientX - rect.left) * scaleX;
+        y = (e.clientY - rect.top) * scaleY;
+      }
+      const dxPOWER = x - POWER_CENTER_X;
+      const dyPOWER = y - POWER_CENTER_Y;
+      const distPOWER = Math.sqrt(dxPOWER * dxPOWER + dyPOWER * dyPOWER);
+      const dxRST = x - RST_CENTER_X;
+      const dyRST = y - RST_CENTER_Y;
+      const distRST = Math.sqrt(dxRST * dxRST + dyRST * dyRST);
+      const dxPRG = x - PRG_CENTER_X;
+      const dyPRG = y - PRG_CENTER_Y;
+      const distPRG = Math.sqrt(dxPRG * dxPRG + dyPRG * dyPRG);
+      if (isGodmodeFinalized && !isGameOverScreenActive) {
+        if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
+          isPowerOn = !isPowerOn;
+          if (!isPowerOn) {
+            resetAll();
+          } else {
+            lastCounterTick = performance.now();
+            lastChargeTick = performance.now();
+            bootActive = true;
+            bootCompleted = false;
+            bootLineIndex = 0;
+            bootCharIndex = 0;
+            lastBootTick = performance.now();
+            systemsActive = false;
+            robotCharge = 100;
+            prgPressCount = 0;
+            godmodeActive = false;
+            passwordMode = false;
+            inputCode = [];
+            errorMode = false;
+            errorCompleted = false;
+            godmodeSuccess = false;
+            godmodeDisplayCompleted = false;
+            isGodmodeFinalized = false;
+          }
+        }
+        return;
+      }
+      if (errorCompleted) {
+        if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
+          isPowerOn = !isPowerOn;
+          if (!isPowerOn) {
+            resetAll();
+          } else {
+            lastCounterTick = performance.now();
+            lastChargeTick = performance.now();
+            bootActive = true;
+            bootCompleted = false;
+            bootLineIndex = 0;
+            bootCharIndex = 0;
+            lastBootTick = performance.now();
+            systemsActive = false;
+            robotCharge = 100;
+            prgPressCount = 0;
+            godmodeActive = false;
+            passwordMode = false;
+            inputCode = [];
+            errorMode = false;
+            errorCompleted = false;
+            godmodeSuccess = false;
+            godmodeDisplayCompleted = false;
+            isGodmodeFinalized = false;
+          }
+        }
+        return;
+      }
+      if (godmodeActive && !passwordMode && !errorMode && !godmodeSuccess) {
+        handleKeypadClick(x, y);
+        return;
+      }
+      if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
+        isPowerOn = !isPowerOn;
+        if (!isPowerOn) {
+          resetAll();
+        } else {
+          lastCounterTick = performance.now();
+          lastChargeTick = performance.now();
+          bootActive = true;
+          bootCompleted = false;
+          bootLineIndex = 0;
+          bootCharIndex = 0;
+          lastBootTick = performance.now();
+          systemsActive = false;
+          robotCharge = 100;
+          prgPressCount = 0;
+          godmodeActive = false;
+          passwordMode = false;
+          inputCode = [];
+          errorMode = false;
+          errorCompleted = false;
+          godmodeSuccess = false;
+          godmodeDisplayCompleted = false;
+          isGodmodeFinalized = false;
+          isGameOverScreenActive = false;
+          startGame();
+        }
+      } else if (distRST <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted) {
+        isRSTPressed = true;
+        setTimeout(function() { isRSTPressed = false; }, 200);
+        if (isGameOverScreenActive) {
+            isGameOverScreenActive = false;
+            resetAll();
+            startGame();
+        } else {
+            initGame();
+            gameStarted = false;
+            timeLeft = 180;
+        }
+      } else if (distPRG <= SMALL_BUTTON_SIZE / 2 && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+        isPRGPressed = true;
+        setTimeout(function() { isPRGPressed = false; }, 200);
+        prgPressCount++;
+        if (prgPressCount >= 10) {
+          activateGodmode();
+        }
+      } else {
+        if (isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+          const clickX = Math.floor((x - DISPLAY_X) / gridSize);
+          const clickY = Math.floor((y - DISPLAY_Y) / gridSize);
+          if (clickX >= 0 && clickX < gridWidth && clickY >= 0 && clickY < gridHeight) {
+            if (!gameStarted) {
+              for (let i = 0; i < snakes.length; i++) {
+                const head = snakes[i][0];
+                if (head.x === clickX && head.y === clickY) {
+                  selectedSnakeIndex = i;
+                  activeRobotIndex = i;
+                  const head = snakes[i][0];
+                  const targetKey = `${clickX},${clickY}`;
+                  if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== i) {
+                    return;
+                  }
+                  if (targetPoints[i]) {
+                    const oldKey = `${targetPoints[i].x},${targetPoints[i].y}`;
+                    if (reservedTargets[oldKey] === i) delete reservedTargets[oldKey];
+                  }
+                  snakeRoutes[i] = buildRoute(head.x, head.y, clickX, clickY, i);
+                  routeProgress[i] = 0;
+                  targetPoints[i] = {x: clickX, y: clickY};
+                  reservedTargets[targetKey] = i;
+                  snakeRouteTimestamps[i] = Date.now();
+                  isBlinking[i] = false;
+                  gameStarted = true;
+                  return;
+                }
+              }
+              return;
+            }
+            for (let i = 0; i < snakes.length; i++) {
+              const head = snakes[i][0];
+              if (head.x === clickX && head.y === clickY) {
+                selectedSnakeIndex = i;
+                activeRobotIndex = i;
+                isBlinking = [false, false, false];
+                isBlinking[i] = true;
+                return;
+              }
+            }
+            if (selectedSnakeIndex !== -1) {
+              if (isObstacle(clickX, clickY)) return;
+              const stationIndex = isChargingStation(clickX, clickY);
+              if (stationIndex !== -1) {
+                if (hasCargo[selectedSnakeIndex]) return;
+                const head = snakes[selectedSnakeIndex][0];
+                const targetKey = `${clickX},${clickY}`;
+                if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
+                  return;
+                }
+                if (targetPoints[selectedSnakeIndex]) {
+                  const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                  if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                }
+                snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
+                routeProgress[selectedSnakeIndex] = 0;
+                targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
+                reservedTargets[targetKey] = selectedSnakeIndex;
+                snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
+                isBlinking[selectedSnakeIndex] = false;
+              } else {
+                let isFood = food.some(f => f.x === clickX && f.y === clickY);
+                if (isFood && hasCargo[selectedSnakeIndex]) return;
+                const head = snakes[selectedSnakeIndex][0];
+                const targetKey = `${clickX},${clickY}`;
+                if (reservedTargets[targetKey] !== undefined && reservedTargets[targetKey] !== selectedSnakeIndex) {
+                  return;
+                }
+                if (targetPoints[selectedSnakeIndex]) {
+                  const oldKey = `${targetPoints[selectedSnakeIndex].x},${targetPoints[selectedSnakeIndex].y}`;
+                  if (reservedTargets[oldKey] === selectedSnakeIndex) delete reservedTargets[oldKey];
+                }
+                snakeRoutes[selectedSnakeIndex] = buildRoute(head.x, head.y, clickX, clickY, selectedSnakeIndex);
+                routeProgress[selectedSnakeIndex] = 0;
+                targetPoints[selectedSnakeIndex] = {x: clickX, y: clickY};
+                reservedTargets[targetKey] = selectedSnakeIndex;
+                snakeRouteTimestamps[selectedSnakeIndex] = Date.now();
+                isBlinking[selectedSnakeIndex] = false;
+              }
+            }
+          }
+        }
+      }
+    }
+    function handleKeypadClick(x, y) {
+      if (passwordMode || errorMode || godmodeSuccess) return;
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const digit = row * 3 + col + 1;
+          const keyX = KEYPAD_START_X + col * (KEYPAD_SIZE + KEYPAD_GAP);
+          const keyY = KEYPAD_START_Y + row * (KEYPAD_SIZE + KEYPAD_GAP);
+          if (x >= keyX && x <= keyX + KEYPAD_SIZE &&
+              y >= keyY && y <= keyY + KEYPAD_SIZE) {
+            if (inputCode.length < 3) {
+              inputCode.push(digit);
+            }
+            pressedKey = digit;
+            setTimeout(() => pressedKey = null, 100);
+            return;
+          }
+        }
+      }
+      const zeroX = KEYPAD_START_X + 1 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const zeroY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      if (x >= zeroX && x <= zeroX + KEYPAD_SIZE &&
+          y >= zeroY && y <= zeroY + KEYPAD_SIZE) {
+        if (inputCode.length < 3) {
+          inputCode.push(0);
+        }
+        pressedKey = 0;
+        setTimeout(() => pressedKey = null, 100);
+        return;
+      }
+      const delX = KEYPAD_START_X + 0 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const delY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      if (x >= delX && x <= delX + KEYPAD_SIZE &&
+          y >= delY && y <= delY + KEYPAD_SIZE) {
+        if (inputCode.length > 0) {
+          inputCode.pop();
+        }
+        pressedKey = 'DEL';
+        setTimeout(() => pressedKey = null, 100);
+        return;
+      }
+      const starX = KEYPAD_START_X + 2 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const starY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      if (x >= starX && x <= starX + KEYPAD_SIZE &&
+          y >= starY && y <= starY + KEYPAD_SIZE) {
+        checkPassword();
+        pressedKey = '*';
+        setTimeout(() => pressedKey = null, 100);
+        return;
+      }
+    }
+    function activateGodmode() {
+      godmodeActive = true;
+      passwordMode = true;
+      inputCode = [];
+      passwordLineIndex = 0;
+      passwordCharIndex = 0;
+      lastPasswordTick = performance.now();
+      systemsActive = false;
+      errorMode = false;
+      errorCompleted = false;
+      godmodeSuccess = false;
+      godmodeDisplayCompleted = false;
+      isGodmodeFinalized = false;
+    }
+    function checkPassword() {
+      passwordMode = false;
+      if (inputCode[0] === 6 && inputCode[1] === 6 && inputCode[2] === 6) {
+        counterValue = 999;
+        godmodeSuccess = true;
+        godmodeDisplayLineIndex = 0;
+        godmodeDisplayCharIndex = 0;
+        lastGodmodeDisplayTick = performance.now();
+        godmodeDisplayCompleted = false;
+        isGameOverScreenActive = true;
+        systemsActive = false;
+        setupTelegramMainButton();
+      } else {
+        errorMode = true;
+        errorLineIndex = 0;
+        errorCharIndex = 0;
+        lastErrorTick = performance.now();
+        errorCompleted = false;
+      }
+      inputCode = [];
+    }
+    function resetAll() {
+      counterValue = 0;
+      animatingDigit = null;
+      isRSTPressed = false;
+      isPRGPressed = false;
+      robotCharge = 100;
+      bootActive = false;
+      bootCompleted = false;
+      bootLineIndex = 0;
+      bootCharIndex = 0;
+      systemsActive = false;
+      prgPressCount = 0;
+      godmodeActive = false;
+      passwordMode = false;
+      inputCode = [];
+      errorMode = false;
+      errorCompleted = false;
+      godmodeSuccess = false;
+      godmodeDisplayCompleted = false;
+      isGodmodeFinalized = false;
+      isGameOverScreenActive = false;
+      if (gameRunning) {
+        if (gameInterval) clearInterval(gameInterval);
+        if (gameTimer) clearInterval(gameTimer);
+        chargingTimers.forEach(t => t && clearInterval(t));
+        gameRunning = false;
+        gameStarted = false;
+      }
+    }
+    function drawModernButton3D(x, y, width, height, isPressed, baseColor, pressedColor, text, isActive) {
+        let buttonColor = isPressed && isActive ? pressedColor : baseColor;
+        let textColor = '#000';
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.beginPath();
+        roundRect(ctx, x, y, width, height, 8);
+        ctx.fillStyle = buttonColor;
+        ctx.fill();
+        if (!isPressed) {
+            ctx.beginPath();
+            ctx.moveTo(x + 2, y + 2);
+            ctx.lineTo(x + width - 2, y + 2);
+            ctx.quadraticCurveTo(x + width, y, x + width - 2, y + 2);
+            ctx.lineTo(x + 2, y + 2);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.fill();
+        }
+        if (!isPressed) {
+            ctx.beginPath();
+            ctx.moveTo(x + 2, y + height - 2);
+            ctx.lineTo(x + width - 2, y + height - 2);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - 2, y + height - 2);
+            ctx.lineTo(x + 2, y + height - 2);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fill();
+        }
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = textColor;
+        if (width === POWER_WIDTH) {
+            ctx.font = 'bold 18px "Courier New", monospace';
+        } else {
+            ctx.font = 'bold 14px "Courier New", monospace';
+        }
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x + width / 2, y + height / 2);
+    }
+    function drawPowerButton() {
+        const originalFillStyle = ctx.fillStyle;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const originalLineWidth = ctx.lineWidth;
+        const originalShadowColor = ctx.shadowColor;
+        const originalShadowBlur = ctx.shadowBlur;
+        const originalShadowOffsetX = ctx.shadowOffsetX;
+        const originalShadowOffsetY = ctx.shadowOffsetY;
+        const originalLineCap = ctx.lineCap;
+        const isPressedState = isPowerOn;
+        ctx.beginPath();
+        roundRect(ctx, POWER_X, POWER_Y, POWER_WIDTH, POWER_BUTTON_HEIGHT, 8);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(POWER_X, POWER_Y, POWER_X + POWER_WIDTH, POWER_Y + POWER_BUTTON_HEIGHT);
+        gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
+        gradient.addColorStop(0.5, isPressedState ? '#cc0000' : '#ff0000');
+        gradient.addColorStop(1, isPressedState ? '#bb0000' : '#cc0000');
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        if (!isPressedState) {
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.8)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 8;
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(POWER_X + 2, POWER_Y + 2, POWER_WIDTH - 4, 4);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(POWER_X + 2, POWER_Y + POWER_BUTTON_HEIGHT - 6, POWER_WIDTH - 4, 4);
+        } else {
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            ctx.stroke();
+        }
+        ctx.strokeStyle = '#990000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 18px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('POWER', POWER_X + POWER_WIDTH / 2, POWER_Y + POWER_BUTTON_HEIGHT / 2);
+        if (!isPowerOn) {
+            const brightness = 0.8 + Math.sin(powerOffBlink * 1.5) * 0.2;
+            const r = Math.floor(150 + brightness * 50);
+            const g = Math.floor(30 + brightness * 20);
+            const b = Math.floor(30 + brightness * 20);
+        }
+        ctx.fillStyle = originalFillStyle;
+        ctx.strokeStyle = originalStrokeStyle;
+        ctx.lineWidth = originalLineWidth;
+        ctx.shadowColor = originalShadowColor;
+        ctx.shadowBlur = originalShadowBlur;
+        ctx.shadowOffsetX = originalShadowOffsetX;
+        ctx.shadowOffsetY = originalShadowOffsetY;
+        ctx.lineCap = originalLineCap;
+    }
+    function drawRSTButton() {
+        const originalFillStyle = ctx.fillStyle;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const originalLineWidth = ctx.lineWidth;
+        const originalShadowColor = ctx.shadowColor;
+        const originalShadowBlur = ctx.shadowBlur;
+        const originalShadowOffsetX = ctx.shadowOffsetX;
+        const originalShadowOffsetY = ctx.shadowOffsetY;
+        const originalLineCap = ctx.lineCap;
+        const isPressedState = isRSTPressed;
+        const isActive = isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
+        ctx.beginPath();
+        roundRect(ctx, RST_X, RST_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(RST_X, RST_Y, RST_X + SMALL_BUTTON_SIZE, RST_Y + SMALL_BUTTON_SIZE);
+        if (isActive) {
+            gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
+            gradient.addColorStop(0.5, isPressedState ? '#cc0000' : '#ff0000');
+            gradient.addColorStop(1, isPressedState ? '#bb0000' : '#cc0000');
+        } else {
+            gradient.addColorStop(0, '#600000');
+            gradient.addColorStop(0.5, '#500000');
+            gradient.addColorStop(1, '#400000');
+        }
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        if (!isPressedState && isActive) {
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.8)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 8;
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(RST_X + 2, RST_Y + 2, SMALL_BUTTON_SIZE - 4, 4);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(RST_X + 2, RST_Y + SMALL_BUTTON_SIZE - 6, SMALL_BUTTON_SIZE - 4, 4);
+        } else if (isActive) {
+            ctx.shadowColor = 'rgba(153, 0, 0, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            ctx.stroke();
+        }
+        ctx.strokeStyle = '#990000';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('RESET', RST_X + SMALL_BUTTON_SIZE / 2, RST_Y + SMALL_BUTTON_SIZE / 2);
+        ctx.fillStyle = originalFillStyle;
+        ctx.strokeStyle = originalStrokeStyle;
+        ctx.lineWidth = originalLineWidth;
+        ctx.shadowColor = originalShadowColor;
+        ctx.shadowBlur = originalShadowBlur;
+        ctx.shadowOffsetX = originalShadowOffsetX;
+        ctx.shadowOffsetY = originalShadowOffsetY;
+        ctx.lineCap = originalLineCap;
+    }
+    function drawPRGButton() {
+        const originalFillStyle = ctx.fillStyle;
+        const originalStrokeStyle = ctx.strokeStyle;
+        const originalLineWidth = ctx.lineWidth;
+        const originalShadowColor = ctx.shadowColor;
+        const originalShadowBlur = ctx.shadowBlur;
+        const originalShadowOffsetX = ctx.shadowOffsetX;
+        const originalShadowOffsetY = ctx.shadowOffsetY;
+        const originalLineCap = ctx.lineCap;
+        const isPressedState = isPRGPressed;
+        const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
+        ctx.beginPath();
+        roundRect(ctx, PRG_X, PRG_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
+        ctx.closePath();
+        const gradient = ctx.createLinearGradient(PRG_X, PRG_Y, PRG_X + SMALL_BUTTON_SIZE, PRG_Y + SMALL_BUTTON_SIZE);
+        if (isActive) {
+            gradient.addColorStop(0, isPressedState ? '#e65c00' : '#ff7c00');
+            gradient.addColorStop(0.5, isPressedState ? '#cc5500' : '#ff6600');
+            gradient.addColorStop(1, isPressedState ? '#b34d00' : '#ff5500');
+        } else {
+            gradient.addColorStop(0, '#600000');
+            gradient.addColorStop(0.5, '#500000');
+            gradient.addColorStop(1, '#400000');
+        }
+        ctx.fillStyle = gradient;
+        ctx.fill();
+        if (!isPressedState && isActive) {
+            ctx.shadowColor = 'rgba(153, 51, 0, 0.8)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 8;
+            ctx.stroke();
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.fillRect(PRG_X + 2, PRG_Y + 2, SMALL_BUTTON_SIZE - 4, 4);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+            ctx.fillRect(PRG_X + 2, PRG_Y + SMALL_BUTTON_SIZE - 6, SMALL_BUTTON_SIZE - 4, 4);
+        } else if (isActive) {
+            ctx.shadowColor = 'rgba(153, 51, 0, 0.4)';
+            ctx.shadowBlur = 10;
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = 4;
+            ctx.stroke();
+        }
+        ctx.strokeStyle = '#993300';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('PROG', PRG_X + SMALL_BUTTON_SIZE / 2, PRG_Y + SMALL_BUTTON_SIZE / 2);
+        ctx.fillStyle = originalFillStyle;
+        ctx.strokeStyle = originalStrokeStyle;
+        ctx.lineWidth = originalLineWidth;
+        ctx.shadowColor = originalShadowColor;
+        ctx.shadowBlur = originalShadowBlur;
+        ctx.shadowOffsetX = originalShadowOffsetX;
+        ctx.shadowOffsetY = originalShadowOffsetY;
+        ctx.lineCap = originalLineCap;
+    }
+    function drawVoltmeter() {
+        ctx.fillStyle = '#0a0a0a';
+        roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#444';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        let textColor = (systemsActive && activeRobotIndex !== -1) ? '#ffffff' : '#666';
+        ctx.fillStyle = textColor;
+        ctx.font = '12px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.fillText('0', VOLTMETER_X + 15, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
+        ctx.fillText('100', VOLTMETER_X + VOLTMETER_WIDTH - 20, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
+        let currentCharge = systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted ? (activeRobotIndex !== -1 ? snakeCharges[activeRobotIndex] : robotCharge) : robotCharge;
+        let energyColor = textColor;
+        if (currentCharge < 50 && isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && activeRobotIndex !== -1) {
+            const blinkEnergy = Math.floor(performance.now() / 1000) % 2;
+            if (blinkEnergy === 0) {
+                energyColor = '#666';
+            } else {
+                energyColor = '#ffffff';
+            }
+        }
+        ctx.fillStyle = energyColor;
+        ctx.font = 'bold 16px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('ENERGY', VOLTMETER_X + VOLTMETER_WIDTH / 2, VOLTMETER_Y + VOLTMETER_HEIGHT / 2 - 18);
+        const pivotX = VOLTMETER_X + VOLTMETER_WIDTH / 2;
+        const pivotY = VOLTMETER_Y + VOLTMETER_HEIGHT - 5;
+        const angle = -Math.PI * (1 - (currentCharge / 100));
+        const needleLength = 30;
+        const tipX = pivotX + Math.cos(angle) * needleLength;
+        const tipY = pivotY + Math.sin(angle) * needleLength;
+        ctx.beginPath();
+        ctx.moveTo(pivotX, pivotY);
+        ctx.lineTo(tipX, tipY);
+        ctx.strokeStyle = '#ff3030';
+        ctx.lineWidth = 2;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
+        ctx.fillStyle = '#ff3030';
+        ctx.fill();
+    }
+    function drawLCDDisplay() {
+        ctx.fillStyle = '#0a0a0a';
+        roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
+        ctx.fill();
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        let topText = "-----";
+        let bottomText = "-----";
+        if (systemsActive && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+            if (activeRobotIndex !== -1) {
+                topText = `UNIT${activeRobotIndex + 1}`;
+                bottomText = hasCargo[activeRobotIndex] ? "LOAD" : "EMPTY";
+            }
+        }
+        const charWidth = LCD_WIDTH / 5;
+        const topY = LCD_Y + 22;
+        const bottomY = LCD_Y + 45;
+        ctx.fillStyle = '#666';
+        ctx.font = 'bold 14px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        const shouldBlinkLCD = (systemsActive && activeRobotIndex !== -1);
+        const blinkLCD = shouldBlinkLCD ? (Math.floor(performance.now() / 1000) % 2) : 0;
+        for (let i = 0; i < 5; i++) {
+            if (i < topText.length && topText !== "-----") {
+                if (i < 4) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
+                } else {
+                    if (blinkLCD === 0) {
+                        ctx.fillStyle = '#ffffff';
+                    } else {
+                        ctx.fillStyle = '#666';
+                    }
+                    ctx.fillText(topText[i], LCD_X + charWidth * (i + 0.5), topY);
+                }
+                ctx.fillStyle = '#666';
+            } else {
+                ctx.fillText('-', LCD_X + charWidth * (i + 0.5), topY);
+            }
+        }
+        for (let i = 0; i < 5; i++) {
+            if (i < bottomText.length && bottomText !== "-----") {
+                if (bottomText === "LOAD" && i === 4) {
+                    ctx.fillStyle = '#666';
+                    ctx.fillText('-', LCD_X + charWidth * (i + 0.5), bottomY);
+                } else {
+                    if (blinkLCD === 0) {
+                        ctx.fillStyle = '#ffffff';
+                    } else {
+                        ctx.fillStyle = '#666';
+                    }
+                    ctx.fillText(bottomText[i], LCD_X + charWidth * (i + 0.5), bottomY);
+                }
+                ctx.fillStyle = '#666';
+            } else {
+                ctx.fillText('-', LCD_X + charWidth * (i + 0.5), bottomY);
+            }
+        }
+    }
+    function draw3DCounter() {
+      const now = performance.now();
+      if (isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive && now - lastCounterTick >= 1000) {
+        lastCounterTick = now;
+        const oldValue = counterValue;
+        counterValue = score;
+        const oldHundreds = Math.floor(oldValue / 100) % 10;
+        const oldTens = Math.floor(oldValue / 10) % 10;
+        const oldUnits = oldValue % 10;
+        const newHundreds = Math.floor(counterValue / 100) % 10;
+        const newTens = Math.floor(counterValue / 10) % 10;
+        const newUnits = counterValue % 10;
+        if (newUnits !== oldUnits) {
+          animatingDigit = { wheel: 2, from: oldUnits, to: newUnits, progress: 0 };
+        }
+        if (newTens !== oldTens) {
+          animatingDigit = { wheel: 1, from: oldTens, to: newTens, progress: 0 };
+        }
+        if (newHundreds !== oldHundreds) {
+          animatingDigit = { wheel: 0, from: oldHundreds, to: newHundreds, progress: 0 };
+        }
+      }
+      if (animatingDigit && isPowerOn) {
+        animatingDigit.progress += 0.04;
+        if (animatingDigit.progress >= 1) {
+          animatingDigit = null;
+        }
+      }
+      ctx.fillStyle = '#0a0a0a';
+      roundRect(ctx, COUNTER_X, COUNTER_Y, COUNTER_WIDTH, COUNTER_HEIGHT, 6);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.save();
+      roundRect(ctx, COUNTER_X, COUNTER_Y, COUNTER_WIDTH, COUNTER_HEIGHT, 6);
+      ctx.clip();
+      const wheelWidth = COUNTER_WIDTH / 3;
+      const digits = [
+        Math.floor(counterValue / 100) % 10,
+        Math.floor(counterValue / 10) % 10,
+        counterValue % 10
+      ].map(function(d) {
+        return isNaN(d) ? 0 : d;
+      });
+      for (let i = 0; i < 3; i++) {
+        const x = COUNTER_X + i * wheelWidth;
+        const y = COUNTER_Y;
+        const centerX = x + wheelWidth / 2;
+        const centerY = y + COUNTER_HEIGHT / 2;
+        if (animatingDigit && animatingDigit.wheel === i) {
+          const fromDigit = animatingDigit.from;
+          const toDigit = animatingDigit.to;
+          const p = animatingDigit.progress;
+          draw3DRectAndDigit(fromDigit, centerX, centerY, wheelWidth, COUNTER_HEIGHT, p * Math.PI, true);
+          draw3DRectAndDigit(toDigit, centerX, centerY, wheelWidth, COUNTER_HEIGHT, -Math.PI + p * Math.PI, false);
+        } else {
+          drawStaticRectAndDigit(digits[i], centerX, centerY, wheelWidth, COUNTER_HEIGHT);
+        }
+      }
+      ctx.restore();
+    }
+    function drawStaticRectAndDigit(digit, centerX, centerY, width, height) {
+      const halfHeight = height / 2;
+      const rectWidth = width * 0.95;
+      ctx.fillStyle = 'rgba(255,255,255,0.1)';
+      ctx.fillRect(centerX - rectWidth/2, centerY - halfHeight, rectWidth, halfHeight);
+      ctx.save();
+      ctx.translate(centerX, centerY);
+      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666';
+      ctx.font = 'bold 24px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(digit), 0, 0);
+      ctx.restore();
+      ctx.fillStyle = 'rgba(0,0,0,0.3)';
+      ctx.fillRect(centerX - rectWidth/2, centerY, rectWidth, halfHeight);
+    }
+    function draw3DRectAndDigit(digit, centerX, centerY, width, height, rotationAngle, isUpper) {
+      const cosA = Math.cos(rotationAngle);
+      const sinA = Math.sin(rotationAngle);
+      const scale = 0.8 + 0.2 * Math.abs(cosA);
+      const yOffset = sinA * height * 0.25;
+      ctx.save();
+      ctx.translate(centerX, centerY + yOffset);
+      ctx.scale(scale, scale);
+      const halfHeight = height / 2;
+      const rectWidth = width * 0.95;
+      if (isUpper) {
+        ctx.fillStyle = 'rgba(255,255,255,0.1)';
+        ctx.fillRect(-rectWidth/2, -halfHeight, rectWidth, halfHeight);
+      } else {
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fillRect(-rectWidth/2, 0, rectWidth, halfHeight);
+      }
+      ctx.fillStyle = 'rgba(0,0,0,0.5)';
+      ctx.font = 'bold 24px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(digit), 1, 1);
+      ctx.fillStyle = isPowerOn ? '#ffffff' : '#666';
+      ctx.fillText(String(digit), 0, 0);
+      if (cosA > 0) {
+        ctx.fillStyle = 'rgba(255,255,255,0.2)';
+        ctx.fillRect(-rectWidth/2, -halfHeight/2, rectWidth, halfHeight/4);
+      }
+      ctx.restore();
+    }
+    function drawTimer() {
+      ctx.fillStyle = '#0a0a0a';
+      roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
+      ctx.fill();
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      if (isPowerOn) {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        const timeText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        let textColor = '#ffffff';
+        if (timeLeft <= 30 && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+          const blink = Math.floor(performance.now() / 500) % 2;
+          textColor = blink === 0 ? '#0a0a0a' : '#ffffff';
+        }
+        ctx.fillStyle = textColor;
+        ctx.font = 'bold 36px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(timeText, TIMER_X + TIMER_WIDTH / 2, TIMER_Y + TIMER_HEIGHT / 2);
+        if (timeLeft <= 0) {
+            isGameOverScreenActive = true;
+            systemsActive = false;
+            setupTelegramMainButton();
+        }
+      } else {
+        ctx.fillStyle = '#555';
+        ctx.font = 'bold 36px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('--:--', TIMER_X + TIMER_WIDTH / 2, TIMER_Y + TIMER_HEIGHT / 2);
+      }
+    }
+    function drawBootText() {
+      if (!bootActive || !isPowerOn || godmodeActive || isGodmodeFinalized || errorCompleted) return;
+      if (bootCompleted) return;
+      const now = performance.now();
+      if (now - lastBootTick >= 80) {
+        lastBootTick = now;
+        if (bootCharIndex >= bootText[bootLineIndex].length) {
+          bootCharIndex = 0;
+          bootLineIndex++;
+          if (bootLineIndex >= bootText.length) {
+            bootCompleted = true;
+            systemsActive = true;
+            gameInterval = setInterval(gameStep, 250);
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(gameTimer);
+                    if (timeLeft === 0) {
+                        isGameOverScreenActive = true;
+                        systemsActive = false;
+                        setupTelegramMainButton();
+                    }
+                }
+            }, 1000);
+            return;
+          }
+        } else {
+          bootCharIndex++;
+        }
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < bootLineIndex; i++) {
+        ctx.fillText(bootText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
+      }
+      if (bootLineIndex < bootText.length) {
+        const currentLine = bootText[bootLineIndex].substring(0, bootCharIndex);
+        ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + bootLineIndex * 20);
+      }
+    }
+    function drawPasswordText() {
+      if (!godmodeActive || !passwordMode || !isPowerOn || isGodmodeFinalized || errorCompleted) return;
+      const now = performance.now();
+      if (now - lastPasswordTick >= 80) {
+        lastPasswordTick = now;
+        if (passwordCharIndex >= passwordText[passwordLineIndex].length) {
+          passwordCharIndex = 0;
+          passwordLineIndex++;
+          if (passwordLineIndex >= passwordText.length) {
+            passwordMode = false;
+            return;
+          }
+        } else {
+          passwordCharIndex++;
+        }
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < passwordLineIndex; i++) {
+        ctx.fillText(passwordText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
+      }
+      if (passwordLineIndex < passwordText.length) {
+        const currentLine = passwordText[passwordLineIndex].substring(0, passwordCharIndex);
+        ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + passwordLineIndex * 20);
+      }
+    }
+    function drawInputField() {
+      if (!godmodeActive || passwordMode || !isPowerOn || errorMode || godmodeSuccess || isGodmodeFinalized || errorCompleted) return;
+      ctx.font = 'bold 48px "Courier New", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const centerX = DISPLAY_X + 200;
+      const centerY = DISPLAY_Y + 75;
+      for (let i = 0; i < 3; i++) {
+        const xPos = centerX - 60 + i * 60;
+        if (i < inputCode.length) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillText(inputCode[i].toString(), xPos, centerY);
+        } else {
+          ctx.fillStyle = '#666';
+          ctx.fillText("-", xPos, centerY);
+        }
+      }
+    }
+    function drawKeypad() {
+      if (!godmodeActive || passwordMode || !isPowerOn || errorMode || godmodeSuccess || isGodmodeFinalized || errorCompleted) return;
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const digit = row * 3 + col + 1;
+          const keyX = KEYPAD_START_X + col * (KEYPAD_SIZE + KEYPAD_GAP);
+          const keyY = KEYPAD_START_Y + row * (KEYPAD_SIZE + KEYPAD_GAP);
+          drawKey(keyX, keyY, String(digit), pressedKey === digit);
+        }
+      }
+      const zeroX = KEYPAD_START_X + 1 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const zeroY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      drawKey(zeroX, zeroY, "0", pressedKey === 0);
+      const delX = KEYPAD_START_X + 0 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const delY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      drawKey(delX, delY, "DEL", pressedKey === 'DEL');
+      const starX = KEYPAD_START_X + 2 * (KEYPAD_SIZE + KEYPAD_GAP);
+      const starY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
+      drawKey(starX, starY, "*", pressedKey === '*');
+    }
+    function drawKey(x, y, label, isPressed) {
+        ctx.fillStyle = isPressed ? '#aaaaaa' : '#333333';
+        roundRect(ctx, x, y, KEYPAD_SIZE, KEYPAD_SIZE, 8);
+        ctx.fill();
+        ctx.strokeStyle = '#666666';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 24px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(label, x + KEYPAD_SIZE/2, y + KEYPAD_SIZE/2);
+    }
+    function drawGodmodeDisplay() {
+      if (!godmodeSuccess || !isPowerOn || isGodmodeFinalized || errorCompleted) return;
+      const now = performance.now();
+      if (now - lastGodmodeDisplayTick >= 80) {
+        lastGodmodeDisplayTick = now;
+        if (godmodeDisplayCharIndex >= godmodeDisplayText[godmodeDisplayLineIndex].length) {
+          godmodeDisplayCompleted = true;
+          isGodmodeFinalized = true;
+          return;
+        } else {
+          godmodeDisplayCharIndex++;
+        }
+      }
+      ctx.fillStyle = 'black';
+      ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      const currentLine = godmodeDisplayText[godmodeDisplayLineIndex].substring(0, godmodeDisplayCharIndex);
+      ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20);
+    }
+    function drawErrorText() {
+      if (!errorMode || !isPowerOn || errorCompleted || isGodmodeFinalized) return;
+      const now = performance.now();
+      if (now - lastErrorTick >= 80) {
+        lastErrorTick = now;
+        if (errorCharIndex >= errorText[errorLineIndex].length) {
+          errorCharIndex = 0;
+          errorLineIndex++;
+          if (errorLineIndex >= errorText.length) {
+            errorCompleted = true;
+            isPowerOn = false;
+            resetAll();
+            return;
+          }
+        } else {
+          errorCharIndex++;
+        }
+      }
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '14px "Courier New", monospace';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      for (let i = 0; i < errorLineIndex; i++) {
+        ctx.fillText(errorText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
+      }
+      if (errorLineIndex < errorText.length) {
+        const currentLine = errorText[errorLineIndex].substring(0, errorCharIndex);
+        ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + errorLineIndex * 20);
+      }
+    }
+    function drawGlowBorder() {
+        if (!isPowerOn || errorCompleted) return;
+        const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 800);
+        ctx.save();
+        ctx.shadowColor = `rgba(255, 255, 255, ${0.4 * pulse})`;
+        ctx.shadowBlur = 30;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.strokeStyle = 'transparent';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(
+            DISPLAY_X - 1,
+            DISPLAY_Y - 1,
+            DISPLAY_WIDTH + 2,
+            DISPLAY_HEIGHT + 2
+        );
+        roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
+        ctx.stroke();
+        ctx.restore();
+        ctx.lineWidth = 2;
+        if (systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        } else {
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        }
+        roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
+        ctx.stroke();
+        roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
+        ctx.stroke();
+    }
+    function drawGameOverScreen() {
+        ctx.fillStyle = 'black';
+        ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 36px "Courier New", monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`СЧЕТ: ${counterValue}`, DISPLAY_X + 200, DISPLAY_Y + 150);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '16px "Courier New", monospace';
+        ctx.fillText("Нажмите кнопку снизу", DISPLAY_X + 200, DISPLAY_Y + 250);
+        ctx.fillText("для отправки результата", DISPLAY_X + 200, DISPLAY_Y + 280);
+    }
+    function drawRonaviText() {
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 30px "NexaBold", Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText('RONAVI', GAME_WIDTH / 2, GAME_HEIGHT - 20);
+    }
+    function setupTelegramMainButton() {
+        if (!window.Telegram || !window.Telegram.WebApp) {
+            console.warn("Telegram WebApp не доступен. Главная кнопка не настроена.");
+            return;
+        }
+        const mainButton = window.Telegram.WebApp.MainButton;
+        mainButton.setParams({
+            text: "Сохранить и отправить",
+            color: "#FF6F61",
+            text_color: "#ffffff"
+        });
+        mainButton.onClick(function() {
+            mainButton.hide();
+            const resultData = {
+                action: "save_score",
+                score: counterValue,
+                timestamp: new Date().toISOString()
+            };
+            // ИСПРАВЛЕНИЕ: Используем sendData вместо отправки текстового сообщения
+            window.Telegram.WebApp.sendData(JSON.stringify(resultData));
+        });
+        mainButton.show();
+    }
+    function gameLoop() {
+      ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+      if (!isPowerOn) {
+        powerOffBlink += 0.05;
+      }
+      if (!systemsActive || errorCompleted || isGodmodeFinalized) {
+          ctx.fillStyle = '#000';
+          ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      }
+      if (systemsActive && !errorCompleted && !isGodmodeFinalized && !isGameOverScreenActive) {
+        drawGame();
+      }
+      if (isGameOverScreenActive) {
+        drawGameOverScreen();
+      }
+      drawLCDDisplay();
+      drawVoltmeter();
+      draw3DCounter();
+      drawTimer();
+      drawPowerButton();
+      drawRSTButton();
+      drawPRGButton();
+      drawGlowBorder();
+      drawBootText();
+      if (godmodeActive) {
+        drawPasswordText();
+        drawInputField();
+        drawKeypad();
+        drawErrorText();
+        drawGodmodeDisplay();
+      }
+      ctx.strokeStyle = 'black';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+      drawRonaviText();
+      requestAnimationFrame(gameLoop);
+    }
+    function roundRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width - radius, y);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+    window.addEventListener('load', function() {
+        if (!(window.Telegram && window.Telegram.WebApp)) {
+            alert("❌ Эта игра работает только внутри Telegram. Пожалуйста, откройте ее через бота.");
+            return;
+        }
+        window.Telegram.WebApp.ready();
+        setTimeout(gameLoop, 100);
+    });
+  </script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </body>
 </html>
