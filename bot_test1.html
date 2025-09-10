@@ -1,87 +1,159 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Минимальная игра</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 40px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
-    }
-    input[type="number"] {
-      font-size: 24px;
-      width: 150px;
-      padding: 8px;
-      text-align: center;
-    }
-    button {
-      font-size: 18px;
-      padding: 10px 20px;
-      cursor: pointer;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Игра - Случайные числа</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f0f8ff;
+            text-align: center;
+        }
+        
+        .game-container {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-top: 50px;
+        }
+        
+        .number-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 30px 0;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .buttons-container {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 15px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        
+        .random-btn {
+            background: #3498db;
+            color: white;
+        }
+        
+        .random-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        
+        .save-btn {
+            background: #27ae60;
+            color: white;
+        }
+        
+        .save-btn:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 30px;
+        }
+    </style>
 </head>
 <body>
+    <div class="game-container">
+        <h1>🎮 Игра в числа</h1>
+        
+        <div class="number-display" id="numberDisplay">
+            Нажмите "Рандом"
+        </div>
+        
+        <div class="buttons-container">
+            <button class="btn random-btn" onclick="generateRandomNumber()">
+                🎲 Рандом
+            </button>
+            <button class="btn save-btn" onclick="saveScore()" id="saveBtn" disabled>
+                💾 Сохранить
+            </button>
+        </div>
+    </div>
 
-  <input id="numberField" type="number" value="0" />
-
-  <div>
-    <button id="randomBtn">Рандом</button>
-    <button id="saveBtn">Сохранить</button>
-  </div>
-
-  <script>
-    // Получаем параметры URL (необязательно, чтобы использовать chat_id и t)
-    function getQueryParams() {
-      const params = {};
-      const queryString = window.location.search.substring(1);
-      const pairs = queryString.split('&');
-      for (const pair of pairs) {
-        const [key, value] = pair.split('=');
-        if (key) {
-          params[decodeURIComponent(key)] = decodeURIComponent(value || '');
+    <script>
+        // Переменная для хранения текущего числа
+        let currentNumber = null;
+        
+        // Функция для генерации случайного числа
+        function generateRandomNumber() {
+            // Генерируем случайное число от 1 до 999
+            currentNumber = Math.floor(Math.random() * 999) + 1;
+            
+            // Отображаем число
+            document.getElementById('numberDisplay').textContent = currentNumber;
+            
+            // Активируем кнопку сохранения
+            document.getElementById('saveBtn').disabled = false;
         }
-      }
-      return params;
-    }
-
-    const params = getQueryParams();
-    const chatId = params['chat_id'] || 'не указан';
-    const timestamp = params['t'] || 'не указан';
-
-    const numberField = document.getElementById('numberField');
-    const randomBtn = document.getElementById('randomBtn');
-    const saveBtn = document.getElementById('saveBtn');
-
-    // Функция генерации случайного числа (например, от 1 до 100)
-    function generateRandomNumber() {
-      return Math.floor(Math.random() * 100) + 1;
-    }
-
-    // Событие: по нажатию на "Рандом" записываем новое число в поле
-    randomBtn.addEventListener('click', () => {
-      const randomNum = generateRandomNumber();
-      numberField.value = randomNum;
-    });
-
-    // Событие: по нажатию на "Сохранить"
-    saveBtn.addEventListener('click', () => {
-      const currentValue = numberField.value;
-      // Здесь можно отправить на сервер, локально сохранить или что-то еще
-      // Пока просто выводим в консоль с chat_id для примера
-      console.log(`Сохранено число: ${currentValue} для chat_id: ${chatId}`);
-
-      // Можно отобразить уведомление пользователю
-      alert(`Число ${currentValue} сохранено!`);
-    });
-
-    // При загрузке страницы можно установить начальное значение случайное
-    numberField.value = generateRandomNumber();
-  </script>
-
+        
+        // Функция для сохранения результата
+        function saveScore() {
+            if (currentNumber !== null) {
+                // Отправляем результат в Telegram бот
+                sendToTelegram(currentNumber);
+                
+                // Блокируем кнопки после сохранения
+                document.getElementById('saveBtn').disabled = true;
+                
+                // Показываем сообщение об успешном сохранении
+                alert('Результат отправлен в Telegram!');
+            }
+        }
+        
+        // Функция для отправки данных в Telegram
+        function sendToTelegram(score) {
+            // Используем Telegram Web App API для отправки данных
+            if (window.Telegram && window.Telegram.WebApp) {
+                // Если открыто через Telegram Web App
+                window.Telegram.WebApp.sendData(score.toString());
+            } else {
+                // Альтернативный метод для тестирования вне Telegram
+                // В реальном сценарии это должно работать через Telegram Web App
+                console.log('Результат для отправки в Telegram:', score);
+                alert(`Результат ${score} готов к отправке в бота!`);
+                
+                // Для демонстрации - просто показываем результат
+                // В реальном проекте здесь будет интеграция с Telegram Web App
+            }
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Игра загружена!');
+        });
+    </script>
 </body>
 </html>
