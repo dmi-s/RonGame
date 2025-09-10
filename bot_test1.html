@@ -73,6 +73,24 @@
 
     <script>
         let currentNumber = null;
+        let tg = null;
+        
+        // Инициализация Telegram Web App
+        function initTelegram() {
+            try {
+                if (window.Telegram && window.Telegram.WebApp) {
+                    tg = window.Telegram.WebApp;
+                    tg.expand();
+                    tg.enableClosingConfirmation();
+                    console.log("Telegram Web App инициализирован");
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.log("Не в Telegram Web App");
+                return false;
+            }
+        }
         
         function generateRandomNumber() {
             currentNumber = Math.floor(Math.random() * 999) + 1;
@@ -82,21 +100,19 @@
         
         function saveScore() {
             if (currentNumber !== null) {
-                if (window.Telegram && window.Telegram.WebApp) {
-                    const tg = window.Telegram.WebApp;
+                if (initTelegram() && tg) {
+                    console.log("Отправка результата:", currentNumber);
                     tg.sendData(currentNumber.toString());
-                    tg.close();
+                    // tg.close(); // Закомментировано для теста
+                } else {
+                    console.log("Не удалось отправить: не в Telegram Web App");
                 }
             }
         }
         
-        // Инициализация Telegram Web App
+        // Инициализация при загрузке
         document.addEventListener('DOMContentLoaded', function() {
-            if (window.Telegram && window.Telegram.WebApp) {
-                const tg = window.Telegram.WebApp;
-                tg.expand();
-                tg.enableClosingConfirmation();
-            }
+            initTelegram();
         });
     </script>
 </body>
