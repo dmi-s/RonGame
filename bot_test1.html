@@ -14,15 +14,12 @@
             background-color: #f0f8ff;
             text-align: center;
         }
-        
         .game-container {
             background: white;
             padding: 30px;
             border-radius: 15px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin-top: 50px;
         }
-        
         .number-display {
             font-size: 48px;
             font-weight: bold;
@@ -32,175 +29,71 @@
             background: #ecf0f1;
             border-radius: 10px;
             min-height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
-        
         .buttons-container {
             display: flex;
             gap: 15px;
             justify-content: center;
-            flex-wrap: wrap;
         }
-        
         .btn {
             padding: 15px 25px;
             font-size: 16px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.3s ease;
             font-weight: bold;
         }
-        
         .random-btn {
             background: #3498db;
             color: white;
         }
-        
-        .random-btn:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-        }
-        
         .save-btn {
             background: #27ae60;
             color: white;
         }
-        
-        .save-btn:hover {
-            background: #229954;
-            transform: translateY(-2px);
-        }
-        
         .btn:disabled {
             background: #bdc3c7;
             cursor: not-allowed;
-            transform: none;
         }
-        
         h1 {
             color: #2c3e50;
             margin-bottom: 30px;
-        }
-        
-        .status-message {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            display: none;
-        }
-        
-        .success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
-        }
-        
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            display: block;
         }
     </style>
 </head>
 <body>
     <div class="game-container">
         <h1>🎮 Игра в числа</h1>
-        
-        <div class="number-display" id="numberDisplay">
-            Нажмите "Рандом"
-        </div>
-        
+        <div class="number-display" id="numberDisplay">Нажмите "Рандом"</div>
         <div class="buttons-container">
-            <button class="btn random-btn" onclick="generateRandomNumber()">
-                🎲 Рандом
-            </button>
-            <button class="btn save-btn" onclick="saveScore()" id="saveBtn" disabled>
-                💾 Сохранить
-            </button>
+            <button class="btn random-btn" onclick="generateRandomNumber()">🎲 Рандом</button>
+            <button class="btn save-btn" onclick="saveScore()" id="saveBtn" disabled>💾 Сохранить</button>
         </div>
-        
-        <div class="status-message" id="statusMessage"></div>
     </div>
 
     <script>
-        // Переменная для хранения текущего числа
         let currentNumber = null;
-        let tg = null;
         
-        // Инициализация Telegram Web App
-        function initTelegramWebApp() {
-            try {
-                tg = window.Telegram.WebApp;
-                tg.expand(); // Раскрываем Web App на весь экран
-                tg.enableClosingConfirmation(); // Запрос подтверждения при закрытии
-                return true;
-            } catch (error) {
-                console.log('Web App открыт вне Telegram');
-                return false;
-            }
-        }
-        
-        // Функция для генерации случайного числа
         function generateRandomNumber() {
-            // Генерируем случайное число от 1 до 999
             currentNumber = Math.floor(Math.random() * 999) + 1;
-            
-            // Отображаем число
             document.getElementById('numberDisplay').textContent = currentNumber;
-            
-            // Активируем кнопку сохранения
             document.getElementById('saveBtn').disabled = false;
-            
-            // Скрываем сообщения статуса
-            hideStatusMessage();
         }
         
-        // Функция для сохранения результата
         function saveScore() {
             if (currentNumber !== null) {
-                // Отправляем результат в Telegram бот
-                sendToTelegram(currentNumber);
+                if (window.Telegram && window.Telegram.WebApp) {
+                    const tg = window.Telegram.WebApp;
+                    tg.sendData(currentNumber.toString());
+                    tg.close();
+                }
             }
         }
         
-        // Функция для отправки данных в Telegram
-        function sendToTelegram(score) {
-            const isTelegram = initTelegramWebApp();
-            
-            if (isTelegram && tg) {
-                // Отправляем данные через Telegram Web App
-                tg.sendData(score.toString());
-                showStatusMessage('Результат успешно отправлен!', 'success');
-                
-                // Блокируем кнопку после отправки
-                document.getElementById('saveBtn').disabled = true;
-                
-            } else {
-                showStatusMessage('Открыто вне Telegram. Данные не могут быть отправлены.', 'error');
-            }
-        }
-        
-        // Показать сообщение статуса
-        function showStatusMessage(message, type) {
-            const statusElement = document.getElementById('statusMessage');
-            statusElement.textContent = message;
-            statusElement.className = 'status-message ' + type;
-        }
-        
-        // Скрыть сообщение статуса
-        function hideStatusMessage() {
-            const statusElement = document.getElementById('statusMessage');
-            statusElement.className = 'status-message';
-            statusElement.textContent = '';
-        }
-        
-        // Инициализация при загрузке страницы
         document.addEventListener('DOMContentLoaded', function() {
-            initTelegramWebApp();
-            console.log('Игра загружена!');
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.expand();
+            }
         });
     </script>
 </body>
