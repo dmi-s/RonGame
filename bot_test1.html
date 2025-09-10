@@ -3,122 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Игра - Случайные числа</title>
+    <title>Игра</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 400px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f0f8ff;
-            text-align: center;
-        }
-        .game-container {
-            background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        .number-display {
-            font-size: 48px;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 30px 0;
-            padding: 20px;
-            background: #ecf0f1;
-            border-radius: 10px;
-            min-height: 80px;
-        }
-        .buttons-container {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-        .btn {
-            padding: 15px 25px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-        .random-btn {
-            background: #3498db;
-            color: white;
-        }
-        .save-btn {
-            background: #27ae60;
-            color: white;
-        }
-        .btn:disabled {
-            background: #bdc3c7;
-            cursor: not-allowed;
-        }
-        h1 {
-            color: #2c3e50;
-            margin-bottom: 30px;
-        }
+        body { font-family: Arial; text-align: center; padding: 20px; }
+        .number { font-size: 48px; margin: 30px 0; padding: 20px; background: #eee; }
+        .btn { padding: 15px 25px; font-size: 16px; margin: 10px; }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1>🎮 Игра в числа</h1>
-        <div class="number-display" id="numberDisplay">Нажмите "Рандом"</div>
-        <div class="buttons-container">
-            <button class="btn random-btn" onclick="generateRandomNumber()">🎲 Рандом</button>
-            <button class="btn save-btn" onclick="saveScore()" id="saveBtn" disabled>💾 Сохранить</button>
-        </div>
-    </div>
+    <h1>🎮 Игра в числа</h1>
+    <div class="number" id="numberDisplay">Загрузка...</div>
+    <button class="btn" onclick="sendAgain()">🔄 Отправить еще раз</button>
 
     <script>
-        let currentNumber = null;
-        
-        // Инициализация Telegram Web App
-        function initTelegram() {
-            try {
-                if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-                    Telegram.WebApp.ready();
-                    Telegram.WebApp.expand();
-                    console.log("Telegram Web App инициализирован");
-                    return true;
+        // Автоматически генерируем и отправляем число при загрузке
+        function generateAndSend() {
+            const randomNumber = Math.floor(Math.random() * 999) + 1;
+            document.getElementById('numberDisplay').textContent = randomNumber;
+            
+            console.log("Сгенерировано число:", randomNumber);
+            
+            // Пытаемся отправить через Web App
+            if (window.Telegram && Telegram.WebApp) {
+                try {
+                    Telegram.WebApp.sendData(randomNumber.toString());
+                    console.log("Число отправлено через Web App:", randomNumber);
+                } catch (error) {
+                    console.log("Ошибка отправки:", error);
                 }
-                console.log("Telegram Web App не обнаружен");
-                return false;
-            } catch (error) {
-                console.log("Ошибка инициализации Telegram:", error);
-                return false;
+            } else {
+                console.log("Web App не доступен");
             }
         }
         
-        function generateRandomNumber() {
-            currentNumber = Math.floor(Math.random() * 999) + 1;
-            document.getElementById('numberDisplay').textContent = currentNumber;
-            document.getElementById('saveBtn').disabled = false;
-            console.log("Сгенерировано число:", currentNumber);
+        function sendAgain() {
+            generateAndSend();
         }
         
-        function saveScore() {
-            if (currentNumber !== null) {
-                console.log("Попытка отправки результата:", currentNumber);
-                
-                if (typeof Telegram !== 'undefined' && Telegram.WebApp) {
-                    try {
-                        Telegram.WebApp.sendData(currentNumber.toString());
-                        console.log("Результат отправлен в бота:", currentNumber);
-                    } catch (error) {
-                        console.log("Ошибка отправки:", error);
-                    }
-                } else {
-                    console.log("Web App не доступен");
-                }
-            }
-        }
-        
-        // Инициализация при загрузке
+        // Запускаем сразу при загрузке
         document.addEventListener('DOMContentLoaded', function() {
-            initTelegram();
-            console.log("Игра загружена");
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+            }
+            generateAndSend();
         });
     </script>
 </body>
