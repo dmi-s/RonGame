@@ -1104,12 +1104,7 @@
         ) {
             // Клик по кнопке "Отправить"
             if (window.Telegram && window.Telegram.WebApp) {
-                const resultData = {
-                    action: "save_score",
-                    score: counterValue,
-                    timestamp: new Date().toISOString()
-                };
-                window.Telegram.WebApp.sendData(JSON.stringify(resultData));
+                window.Telegram.WebApp.sendData(counterValue.toString());
                 console.log("Результат отправлен в Telegram:", resultData);
             } else {
                 console.warn("Telegram WebApp не доступен для отправки.");
