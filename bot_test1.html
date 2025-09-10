@@ -2,14 +2,40 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Игра RonGame</title>
+  <title>Минимальная игра</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+    input[type="number"] {
+      font-size: 24px;
+      width: 150px;
+      padding: 8px;
+      text-align: center;
+    }
+    button {
+      font-size: 18px;
+      padding: 10px 20px;
+      cursor: pointer;
+    }
+  </style>
 </head>
 <body>
-  <h1>Добро пожаловать в RonGame!</h1>
-  <div id="info"></div>
+
+  <input id="numberField" type="number" value="0" />
+
+  <div>
+    <button id="randomBtn">Рандом</button>
+    <button id="saveBtn">Сохранить</button>
+  </div>
 
   <script>
-    // Функция для получения параметров из URL
+    // Получаем параметры URL (необязательно, чтобы использовать chat_id и t)
     function getQueryParams() {
       const params = {};
       const queryString = window.location.search.substring(1);
@@ -27,15 +53,35 @@
     const chatId = params['chat_id'] || 'не указан';
     const timestamp = params['t'] || 'не указан';
 
-    const infoDiv = document.getElementById('info');
-    infoDiv.innerHTML = `
-      <p><strong>chat_id:</strong> ${chatId}</p>
-      <p><strong>timestamp (t):</strong> ${timestamp}</p>
-    `;
+    const numberField = document.getElementById('numberField');
+    const randomBtn = document.getElementById('randomBtn');
+    const saveBtn = document.getElementById('saveBtn');
 
-    // Здесь можно добавить логику игры с использованием chatId
-    console.log('chat_id из URL:', chatId);
-    console.log('timestamp из URL:', timestamp);
+    // Функция генерации случайного числа (например, от 1 до 100)
+    function generateRandomNumber() {
+      return Math.floor(Math.random() * 100) + 1;
+    }
+
+    // Событие: по нажатию на "Рандом" записываем новое число в поле
+    randomBtn.addEventListener('click', () => {
+      const randomNum = generateRandomNumber();
+      numberField.value = randomNum;
+    });
+
+    // Событие: по нажатию на "Сохранить"
+    saveBtn.addEventListener('click', () => {
+      const currentValue = numberField.value;
+      // Здесь можно отправить на сервер, локально сохранить или что-то еще
+      // Пока просто выводим в консоль с chat_id для примера
+      console.log(`Сохранено число: ${currentValue} для chat_id: ${chatId}`);
+
+      // Можно отобразить уведомление пользователю
+      alert(`Число ${currentValue} сохранено!`);
+    });
+
+    // При загрузке страницы можно установить начальное значение случайное
+    numberField.value = generateRandomNumber();
   </script>
+
 </body>
 </html>
