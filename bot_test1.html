@@ -2,56 +2,40 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8" />
-  <title>Игра с ботом</title>
+  <title>Игра RonGame</title>
 </head>
 <body>
-  <h1>Игра: сгенерируй число для бота</h1>
-  <button onclick="generateNumber()">Сгенерировать число</button>
-  <p id="number">Число пока не сгенерировано</p>
-  <button id="save-btn" disabled onclick="saveNumber()">Сохранить и отправить боту</button>
+  <h1>Добро пожаловать в RonGame!</h1>
+  <div id="info"></div>
 
   <script>
-    let generatedNumber = null;
-    const urlParams = new URLSearchParams(window.location.search);
-    const chatId = urlParams.get('chat_id');
-
-    if (!chatId) {
-      alert('Ошибка: chat_id не найден в URL');
-    }
-
-    function generateNumber() {
-      generatedNumber = Math.floor(Math.random() * 100) + 1;
-      document.getElementById('number').textContent = 'Сгенерировано число: ' + generatedNumber;
-      document.getElementById('save-btn').disabled = false;
-    }
-
-    function saveNumber() {
-      if (!generatedNumber || !chatId) {
-        alert('Ошибка: число не сгенерировано или chat_id не найден');
-        return;
-      }
-
-      // Здесь нам нужно отправить число боту.
-      // Но бот — телеграм-бот, а не веб-сервер.
-      // Для отправки данных боту нужен отдельный сервер.
-      // Ниже пример запроса к твоему серверу (адрес надо будет заменить):
-
-      fetch('https://your-server.com/save_number', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: chatId, number: generatedNumber })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.status === 'success') {
-          alert('Число отправлено боту!');
-          document.getElementById('save-btn').disabled = true;
-        } else {
-          alert('Ошибка при отправке: ' + data.message);
+    // Функция для получения параметров из URL
+    function getQueryParams() {
+      const params = {};
+      const queryString = window.location.search.substring(1);
+      const pairs = queryString.split('&');
+      for (const pair of pairs) {
+        const [key, value] = pair.split('=');
+        if (key) {
+          params[decodeURIComponent(key)] = decodeURIComponent(value || '');
         }
-      })
-      .catch(() => alert('Ошибка сети при отправке данных'));
+      }
+      return params;
     }
+
+    const params = getQueryParams();
+    const chatId = params['chat_id'] || 'не указан';
+    const timestamp = params['t'] || 'не указан';
+
+    const infoDiv = document.getElementById('info');
+    infoDiv.innerHTML = `
+      <p><strong>chat_id:</strong> ${chatId}</p>
+      <p><strong>timestamp (t):</strong> ${timestamp}</p>
+    `;
+
+    // Здесь можно добавить логику игры с использованием chatId
+    console.log('chat_id из URL:', chatId);
+    console.log('timestamp из URL:', timestamp);
   </script>
 </body>
 </html>
