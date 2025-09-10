@@ -4,40 +4,54 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Игра</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body { font-family: Arial; text-align: center; padding: 20px; background: #f0f8ff; }
-        .game-container { background: white; padding: 30px; border-radius: 15px; }
-        .number { font-size: 48px; margin: 30px 0; padding: 20px; background: #eee; }
-        .btn { padding: 15px 25px; font-size: 16px; background: #3498db; color: white; border: none; border-radius: 8px; }
+        .container { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .number { font-size: 48px; font-weight: bold; margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; }
+        .btn { padding: 15px 30px; font-size: 18px; background: #28a745; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        .status { margin-top: 15px; color: #28a745; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="game-container">
-        <h1>🎮 Игра в числа</h1>
-        <div class="number" id="numberDisplay">Нажмите "Рандом"</div>
-        <div id="statusMessage"></div>
-        <button class="btn" onclick="generateAndSend()">🎲 Рандом</button>
+    <div class="container">
+        <h1>🎮 Генератор чисел</h1>
+        <div class="number" id="numberDisplay">0</div>
+        <button class="btn" onclick="generateAndSend()">🎲 Сгенерировать</button>
+        <div class="status" id="status"></div>
     </div>
 
     <script>
         function generateAndSend() {
             const number = Math.floor(Math.random() * 999) + 1;
             document.getElementById('numberDisplay').textContent = number;
-            document.getElementById('statusMessage').textContent = "✅ Число орор отправлено!";
+            document.getElementById('status').textContent = "✅ Отправлено!";
             
-            // Отправляем как обычное сообщение через Telegram API
+            console.log("Генерируем число:", number);
+            
             if (window.Telegram && Telegram.WebApp) {
                 try {
-                    // Отправляем сообщение боту
                     Telegram.WebApp.sendData(number.toString());
+                    console.log("Отправлено в бота:", number);
+                    
+                    // Закрываем через 1 секунду
+                    setTimeout(() => Telegram.WebApp.close(), 1000);
+                    
                 } catch (error) {
-                    console.log("Web App ошибка:", error);
+                    console.error("Ошибка:", error);
+                    document.getElementById('status').textContent = "❌ Ошибка отправки";
                 }
             }
-            
-            console.log("Отправляем оккк число:", number);
         }
+        
+        // Автозапуск
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+            }
+            generateAndSend(); // Автоматически генерируем при загрузке
+        });
     </script>
 </body>
 </html>
-
