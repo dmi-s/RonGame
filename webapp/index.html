@@ -116,13 +116,12 @@
     const PRG_Y = FIELD_CENTER_Y - SMALL_BUTTON_SIZE / 2;
     const PRG_CENTER_X = PRG_X + SMALL_BUTTON_SIZE / 2;
     const PRG_CENTER_Y = PRG_Y + SMALL_BUTTON_SIZE / 2;
-    // --- НОВЫЕ КОНСТАНТЫ ДЛЯ КНОПКИ ОТПРАВКИ ---
-    const SEND_BUTTON_WIDTH = 200;
-    const SEND_BUTTON_HEIGHT = 50;
-    const SEND_BUTTON_X = DISPLAY_X + (DISPLAY_WIDTH - SEND_BUTTON_WIDTH) / 2; // Центрируем по горизонтали
-    const SEND_BUTTON_Y = DISPLAY_Y + 320; // Располагаем ниже текста
+    // --- ЗАКОММЕНТИРОВАННЫЕ КОНСТАНТЫ ДЛЯ КНОПКИ ОТПРАВКИ ---
+    // const SEND_BUTTON_WIDTH = 200;
+    // const SEND_BUTTON_HEIGHT = 50;
+    // const SEND_BUTTON_X = DISPLAY_X + (DISPLAY_WIDTH - SEND_BUTTON_WIDTH) / 2; // Центрируем по горизонтали
+    // const SEND_BUTTON_Y = DISPLAY_Y + 320; // Располагаем ниже текста
     // ------------------------------------------
-
     let robotCharge = 100;
     let lastChargeTick = 0;
     let isPowerOn = false;
@@ -240,7 +239,6 @@
     chargingImage.src = 'Charging.png';
     parkingImage.src = 'Parking.png';
     obstacleImage.src = 'Column.png';
-
     function isObstacle(x, y) {
         for (let obstacle of obstacles) {
             if (obstacle.x === x && obstacle.y === y) {
@@ -249,7 +247,6 @@
         }
         return false;
     }
-
     function isChargingStation(x, y) {
         for (let i = 0; i < chargingStations.length; i++) {
             if (chargingStations[i].x === x && chargingStations[i].y === y) {
@@ -258,7 +255,6 @@
         }
         return -1;
     }
-
     function isParkingSpot(x, y) {
         for (let i = 0; i < parkingSpots.length; i++) {
             if (parkingSpots[i].x === x && parkingSpots[i].y === y) {
@@ -267,7 +263,6 @@
         }
         return -1;
     }
-
     function isOtherSnake(x, y, snakeIndex) {
         for (let i = 0; i < snakes.length; i++) {
             if (i !== snakeIndex) {
@@ -280,7 +275,6 @@
         }
         return false;
     }
-
     function isFood(x, y) {
         for (let f of food) {
             if (f.x === x && f.y === y) {
@@ -289,7 +283,6 @@
         }
         return false;
     }
-
     function routesIntersect(snakeIndex1, snakeIndex2) {
         if (snakeRoutes[snakeIndex1].length === 0 || snakeRoutes[snakeIndex2].length === 0) {
             return false;
@@ -305,12 +298,10 @@
         }
         return false;
     }
-
     function aStar(startX, startY, endX, endY, snakeIndex) {
         function heuristic(a, b) {
             return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
         }
-
         function canMoveTo(x, y, snakeIndex) {
             if (x < 0 || x >= gridWidth || y < 0 || y >= gridHeight) return false;
             if (isObstacle(x, y)) return false;
@@ -323,7 +314,6 @@
             }
             return true;
         }
-
         const start = {x: startX, y: startY};
         const end = {x: endX, y: endY};
         let openSet = [start];
@@ -331,15 +321,12 @@
         let cameFrom = {};
         let gScore = {};
         let fScore = {};
-
         gScore[startKey(start)] = 0;
         fScore[startKey(start)] = heuristic(start, end);
-
         while (openSet.length > 0) {
             let current = openSet.reduce((min, node) => {
                 return fScore[startKey(node)] < fScore[startKey(min)] ? node : min;
             });
-
             if (current.x === end.x && current.y === end.y) {
                 let path = [];
                 let temp = current;
@@ -349,26 +336,21 @@
                 }
                 return path;
             }
-
             const currentIndex = openSet.indexOf(current);
             openSet.splice(currentIndex, 1);
             closedSet.push(current);
-
             const neighbors = [
                 {x: current.x, y: current.y - 1},
                 {x: current.x, y: current.y + 1},
                 {x: current.x - 1, y: current.y},
                 {x: current.x + 1, y: current.y}
             ];
-
             for (let neighbor of neighbors) {
                 if (!canMoveTo(neighbor.x, neighbor.y, snakeIndex)) continue;
                 if (closedSet.some(node => node.x === neighbor.x && node.y === neighbor.y)) continue;
-
                 const tentativeGScore = gScore[startKey(current)] + 1;
                 const neighborKey = startKey(neighbor);
                 const neighborInOpen = openSet.find(node => node.x === neighbor.x && node.y === neighbor.y);
-
                 if (!neighborInOpen) {
                     openSet.push(neighbor);
                     gScore[neighborKey] = tentativeGScore;
@@ -383,11 +365,9 @@
         }
         return [];
     }
-
     function startKey(point) {
         return point.x + ',' + point.y;
     }
-
     function buildRoute(startX, startY, endX, endY, snakeIndex) {
         const path = aStar(startX, startY, endX, endY, snakeIndex);
         if (path.length > 1) {
@@ -401,7 +381,6 @@
         }
         return path;
     }
-
     function initGame() {
         snakes = [];
         selectedSnakeIndex = -1;
@@ -424,7 +403,6 @@
         reservedTargets = {};
         snakeRouteTimestamps = [0, 0, 0];
         lastHorizontalDirection = ['right', 'right', 'right'];
-
         let positions = [];
         for (let i = 0; i < 3; i++) {
             let validPosition = false;
@@ -446,16 +424,13 @@
             snakes.push([{x: newPosition.x, y: newPosition.y}]);
             targetPoints.push(null);
         }
-
         generateObstacles();
         generateChargingStations();
         generateParkingSpots();
         generateFood();
-
         score = 0;
         timeLeft = 180;
     }
-
     function generateObstacles() {
         obstacles = [];
         const obstacleCount = 5;
@@ -504,7 +479,6 @@
             obstacles.push(newObstacle);
         }
     }
-
     function generateChargingStations() {
         chargingStations = [];
         const stationCount = 2;
@@ -545,7 +519,6 @@
             chargingStations.push(newStation);
         }
     }
-
     function generateParkingSpots() {
         parkingSpots = [];
         const parkingCount = 3;
@@ -585,7 +558,6 @@
         console.error(`Не удалось сгенерировать парковочные места за ${maxAttempts} попыток`);
         parkingSpots = [];
     }
-
     function generateFood() {
         food = [];
         for (let i = 0; i < 3; i++) {
@@ -648,15 +620,12 @@
             food.push(newFood);
         }
     }
-
     function update() {
         if (!gameStarted) return;
-
         for (let i = 0; i < snakes.length; i++) {
             const snake = snakes[i];
             const targetPoint = targetPoints[i];
             if (!targetPoint || snakeRoutes[i].length === 0) continue;
-
             if (snakeCharges[i] <= 0) {
                 if (targetPoints[i]) {
                     const key = `${targetPoints[i].x},${targetPoints[i].y}`;
@@ -669,7 +638,6 @@
                 routeProgress[i] = 0;
                 continue;
             }
-
             let mustStop = false;
             for (let j = 0; j < snakes.length; j++) {
                 if (i === j || snakeRoutes[j].length === 0) continue;
@@ -681,7 +649,6 @@
                 }
             }
             if (mustStop) continue;
-
             const head = snake[0];
             if (routeProgress[i] < snakeRoutes[i].length) {
                 const nextPoint = snakeRoutes[i][routeProgress[i]];
@@ -704,13 +671,11 @@
                     }
                 }
             }
-
             if (routeProgress[i] < snakeRoutes[i].length) {
                 const nextPoint = snakeRoutes[i][routeProgress[i]];
                 const dx = nextPoint.x - head.x;
                 const dy = nextPoint.y - head.y;
                 const newHead = {x: head.x, y: head.y};
-
                 if (dx > 0) {
                     newHead.x++;
                     lastHorizontalDirection[i] = 'right';
@@ -725,23 +690,19 @@
                 else if (dy < 0) {
                     newHead.y--;
                 }
-
                 if (newHead.x < 0 || newHead.x >= gridWidth || newHead.y < 0 || newHead.y >= gridHeight) {
                     return;
                 }
-
                 for (let j = 0; j < snake.length; j++) {
                     if (snake[j].x === newHead.x && snake[j].y === newHead.y) {
                         return;
                     }
                 }
-
                 for (let obstacle of obstacles) {
                     if (obstacle.x === newHead.x && obstacle.y === newHead.y) {
                         return;
                     }
                 }
-
                 for (let j = 0; j < snakes.length; j++) {
                     if (i !== j) {
                         for (let segment of snakes[j]) {
@@ -751,16 +712,13 @@
                         }
                     }
                 }
-
                 let stationIndex = isChargingStation(newHead.x, newHead.y);
                 let parkingIndex = isParkingSpot(newHead.x, newHead.y);
-
                 moveCounts[i]++;
                 if (moveCounts[i] >= 2 && stationIndex === -1 && parkingIndex === -1) {
                     snakeCharges[i]--;
                     moveCounts[i] = 0;
                 }
-
                 if (stationIndex !== -1) {
                     if (!hasCargo[i]) {
                         if (onChargingStation[i] === -1) {
@@ -779,7 +737,6 @@
                         onChargingStation[i] = -1;
                     }
                 }
-
                 if (parkingIndex !== -1) {
                     const targetPoint = targetPoints[i];
                     if (targetPoint && newHead.x === targetPoint.x && newHead.y === targetPoint.y) {
@@ -792,9 +749,7 @@
                 } else {
                     if (onParking[i] !== -1) onParking[i] = -1;
                 }
-
                 snake[0] = newHead;
-
                 let foodEaten = false;
                 let foodIndex = -1;
                 for (let j = 0; j < food.length; j++) {
@@ -807,7 +762,6 @@
                         }
                     }
                 }
-
                 if (foodEaten) {
                     hasCargo[i] = true;
                     cargoFood[i] = {x: food[foodIndex].x, y: food[foodIndex].y};
@@ -817,23 +771,20 @@
             }
         }
     }
-
     function startCharging(snakeIndex) {
         if (chargingTimers[snakeIndex]) clearInterval(chargingTimers[snakeIndex]);
         chargingTimers[snakeIndex] = setInterval(() => {
             if (snakeCharges[snakeIndex] < 100) {
-                snakeCharges[snakeIndex] = Math.min(100, snakeCharges[snakeIndex] + 2);
+                snakeCharges[snakeIndex] = Math.min(100, snakeCharges[snakeIndex] + 4);
             }
         }, 1000);
     }
-
     function stopCharging(snakeIndex) {
         if (chargingTimers[snakeIndex]) {
             clearInterval(chargingTimers[snakeIndex]);
             chargingTimers[snakeIndex] = null;
         }
     }
-
     function generateNewFood() {
         let newFood;
         let validPosition = false;
@@ -889,17 +840,14 @@
         }
         if (attempts < 1000) food.push(newFood);
     }
-
     function drawGame() {
         ctx.save();
         ctx.beginPath();
         ctx.rect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
         ctx.clip();
         ctx.translate(DISPLAY_X, DISPLAY_Y);
-
         ctx.fillStyle = '#b1b1b1';
         ctx.fillRect(0, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-
         ctx.strokeStyle = '#cccccc';
         ctx.lineWidth = 1;
         for (let x = 0; x <= gridWidth; x++) {
@@ -914,7 +862,6 @@
             ctx.lineTo(DISPLAY_WIDTH, y * gridSize);
             ctx.stroke();
         }
-
         obstacles.forEach(obstacle => {
             if (obstacleImage.complete) {
                 ctx.drawImage(obstacleImage, obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
@@ -925,7 +872,6 @@
                 ctx.strokeRect(obstacle.x * gridSize, obstacle.y * gridSize, gridSize, gridSize);
             }
         });
-
         chargingStations.forEach((station, index) => {
             if (chargingImage.complete) {
                 ctx.drawImage(chargingImage, station.x * gridSize, station.y * gridSize, gridSize, gridSize);
@@ -936,7 +882,6 @@
                 ctx.strokeRect(station.x * gridSize, station.y * gridSize, gridSize, gridSize);
             }
         });
-
         food.forEach(f => {
             let shouldHide = false;
             for (let i = 0; i < snakes.length; i++) {
@@ -957,7 +902,6 @@
                 }
             }
         });
-
         parkingSpots.forEach(parking => {
             let showParking = true;
             for (let i = 0; i < snakes.length; i++) {
@@ -983,7 +927,6 @@
                 }
             }
         });
-
         snakes.forEach((snake, snakeIndex) => {
             snake.forEach((segment, index) => {
                 if (index === 0) {
@@ -1001,7 +944,6 @@
                             headImageToUse = snakeHeadImage;
                         }
                     }
-
                     if (!isBlinking[snakeIndex] || (isBlinking[snakeIndex] && Math.floor(Date.now() / 250) % 2 === 0)) {
                         if (headImageToUse.complete) {
                             ctx.drawImage(headImageToUse, segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
@@ -1018,7 +960,6 @@
                 ctx.strokeRect(segment.x * gridSize, segment.y * gridSize, gridSize, gridSize);
             });
         });
-
         snakeRoutes.forEach((route, snakeIndex) => {
             if (route.length > 0 && routeProgress[snakeIndex] < route.length) {
                 ctx.strokeStyle = 'yellow';
@@ -1033,25 +974,21 @@
                 ctx.stroke();
             }
         });
-
         targetPoints.forEach((point, index) => {
             if (point) {
                 ctx.strokeStyle = 'yellow';
                 ctx.strokeRect(point.x * gridSize, point.y * gridSize, gridSize, gridSize);
             }
         });
-
         ctx.restore();
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 1;
         ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     }
-
     function gameStep() {
         update();
         drawGame();
     }
-
     function startGame() {
         if (gameRunning) {
             clearInterval(gameInterval);
@@ -1062,13 +999,11 @@
         gameRunning = true;
         gameStarted = false;
     }
-
     canvas.addEventListener('click', handleButtonClick);
     canvas.addEventListener('touchend', function(e) {
       e.preventDefault();
       handleButtonClick(e);
     });
-
     function handleButtonClick(e) {
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -1081,39 +1016,34 @@
         x = (e.clientX - rect.left) * scaleX;
         y = (e.clientY - rect.top) * scaleY;
       }
-
       const dxPOWER = x - POWER_CENTER_X;
       const dyPOWER = y - POWER_CENTER_Y;
       const distPOWER = Math.sqrt(dxPOWER * dxPOWER + dyPOWER * dyPOWER);
-
       const dxRST = x - RST_CENTER_X;
       const dyRST = y - RST_CENTER_Y;
       const distRST = Math.sqrt(dxRST * dxRST + dyRST * dyRST);
-
       const dxPRG = x - PRG_CENTER_X;
       const dyPRG = y - PRG_CENTER_Y;
       const distPRG = Math.sqrt(dxPRG * dxPRG + dyPRG * dyPRG);
-
-      // --- НОВЫЙ БЛОК: Обработка клика по кнопке "Отправить" ---
-      if (isGameOverScreenActive) {
-        if (
-            x >= SEND_BUTTON_X &&
-            x <= SEND_BUTTON_X + SEND_BUTTON_WIDTH &&
-            y >= SEND_BUTTON_Y &&
-            y <= SEND_BUTTON_Y + SEND_BUTTON_HEIGHT
-        ) {
-            // Клик по кнопке "Отправить"
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.sendData(counterValue.toString());
-                console.log("Результат отправлен в Telegram:", resultData);
-            } else {
-                console.warn("Telegram WebApp не доступен для отправки.");
-            }
-            return; // Прекращаем дальнейшую обработку клика
-        }
-      }
-      // --- КОНЕЦ НОВОГО БЛОКА ---
-
+      // --- ЗАКОММЕНТИРОВАННЫЙ БЛОК: Обработка клика по кнопке "Отправить" ---
+      // if (isGameOverScreenActive) {
+      //   if (
+      //       x >= SEND_BUTTON_X &&
+      //       x <= SEND_BUTTON_X + SEND_BUTTON_WIDTH &&
+      //       y >= SEND_BUTTON_Y &&
+      //       y <= SEND_BUTTON_Y + SEND_BUTTON_HEIGHT
+      //   ) {
+      //       // Клик по кнопке "Отправить"
+      //       if (window.Telegram && window.Telegram.WebApp) {
+      //           window.Telegram.WebApp.sendData(counterValue.toString());
+      //           console.log("Результат отправлен в Telegram:", resultData);
+      //       } else {
+      //           console.warn("Telegram WebApp не доступен для отправки.");
+      //       }
+      //       return; // Прекращаем дальнейшую обработку клика
+      //   }
+      // }
+      // --- КОНЕЦ ЗАКОММЕНТИРОВАННОГО БЛОКА ---
       if (isGodmodeFinalized && !isGameOverScreenActive) {
         if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
@@ -1142,7 +1072,6 @@
         }
         return;
       }
-
       if (errorCompleted) {
         if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
           isPowerOn = !isPowerOn;
@@ -1171,12 +1100,10 @@
         }
         return;
       }
-
       if (godmodeActive && !passwordMode && !errorMode && !godmodeSuccess) {
         handleKeypadClick(x, y);
         return;
       }
-
       if (x >= POWER_X && x <= POWER_X + POWER_WIDTH && y >= POWER_Y && y <= POWER_Y + POWER_BUTTON_HEIGHT) {
         isPowerOn = !isPowerOn;
         if (!isPowerOn) {
@@ -1308,7 +1235,6 @@
         }
       }
     }
-
     function handleKeypadClick(x, y) {
       if (passwordMode || errorMode || godmodeSuccess) return;
       for (let row = 0; row < 3; row++) {
@@ -1359,7 +1285,6 @@
         return;
       }
     }
-
     function activateGodmode() {
       godmodeActive = true;
       passwordMode = true;
@@ -1374,7 +1299,6 @@
       godmodeDisplayCompleted = false;
       isGodmodeFinalized = false;
     }
-
     function checkPassword() {
       passwordMode = false;
       if (inputCode[0] === 6 && inputCode[1] === 6 && inputCode[2] === 6) {
@@ -1387,6 +1311,15 @@
         isGameOverScreenActive = true;
         systemsActive = false;
         // setupTelegramMainButton(); // Удалено, т.к. используем свою кнопку
+
+        // --- АВТОМАТИЧЕСКАЯ ОТПРАВКА РЕЗУЛЬТАТА ---
+        if (window.Telegram && window.Telegram.WebApp) {
+            window.Telegram.WebApp.sendData(counterValue.toString());
+            console.log("Результат автоматически отправлен в Telegram:", counterValue);
+        } else {
+            console.warn("Telegram WebApp не доступен для автоматической отправки.");
+        }
+        // ---------------------------------------
       } else {
         errorMode = true;
         errorLineIndex = 0;
@@ -1396,7 +1329,6 @@
       }
       inputCode = [];
     }
-
     function resetAll() {
       counterValue = 0;
       animatingDigit = null;
@@ -1426,21 +1358,17 @@
         gameStarted = false;
       }
     }
-
     function drawModernButton3D(x, y, width, height, isPressed, baseColor, pressedColor, text, isActive) {
         let buttonColor = isPressed && isActive ? pressedColor : baseColor;
         let textColor = '#000';
-
         ctx.shadowColor = 'transparent';
         ctx.shadowBlur = 0;
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = 0;
-
         ctx.beginPath();
         roundRect(ctx, x, y, width, height, 8);
         ctx.fillStyle = buttonColor;
         ctx.fill();
-
         if (!isPressed) {
             ctx.beginPath();
             ctx.moveTo(x + 2, y + 2);
@@ -1451,7 +1379,6 @@
             ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
             ctx.fill();
         }
-
         if (!isPressed) {
             ctx.beginPath();
             ctx.moveTo(x + 2, y + height - 2);
@@ -1462,11 +1389,9 @@
             ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
             ctx.fill();
         }
-
         ctx.strokeStyle = '#000';
         ctx.lineWidth = 2;
         ctx.stroke();
-
         ctx.fillStyle = textColor;
         if (width === POWER_WIDTH) {
             ctx.font = 'bold 18px "Courier New", monospace';
@@ -1477,7 +1402,6 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(text, x + width / 2, y + height / 2);
     }
-
     function drawPowerButton() {
         const originalFillStyle = ctx.fillStyle;
         const originalStrokeStyle = ctx.strokeStyle;
@@ -1487,21 +1411,16 @@
         const originalShadowOffsetX = ctx.shadowOffsetX;
         const originalShadowOffsetY = ctx.shadowOffsetY;
         const originalLineCap = ctx.lineCap;
-
         const isPressedState = isPowerOn;
-
         ctx.beginPath();
         roundRect(ctx, POWER_X, POWER_Y, POWER_WIDTH, POWER_BUTTON_HEIGHT, 8);
         ctx.closePath();
-
         const gradient = ctx.createLinearGradient(POWER_X, POWER_Y, POWER_X + POWER_WIDTH, POWER_Y + POWER_BUTTON_HEIGHT);
         gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
         gradient.addColorStop(0.5, isPressedState ? '#cc0000' : '#ff0000');
         gradient.addColorStop(1, isPressedState ? '#bb0000' : '#cc0000');
-
         ctx.fillStyle = gradient;
         ctx.fill();
-
         if (!isPressedState) {
             ctx.shadowColor = 'rgba(153, 0, 0, 0.8)';
             ctx.shadowBlur = 20;
@@ -1519,25 +1438,21 @@
             ctx.shadowOffsetY = 4;
             ctx.stroke();
         }
-
         ctx.strokeStyle = '#990000';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.stroke();
-
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 18px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('POWER', POWER_X + POWER_WIDTH / 2, POWER_Y + POWER_BUTTON_HEIGHT / 2);
-
         if (!isPowerOn) {
             const brightness = 0.8 + Math.sin(powerOffBlink * 1.5) * 0.2;
             const r = Math.floor(150 + brightness * 50);
             const g = Math.floor(30 + brightness * 20);
             const b = Math.floor(30 + brightness * 20);
         }
-
         ctx.fillStyle = originalFillStyle;
         ctx.strokeStyle = originalStrokeStyle;
         ctx.lineWidth = originalLineWidth;
@@ -1547,7 +1462,6 @@
         ctx.shadowOffsetY = originalShadowOffsetY;
         ctx.lineCap = originalLineCap;
     }
-
     function drawRSTButton() {
         const originalFillStyle = ctx.fillStyle;
         const originalStrokeStyle = ctx.strokeStyle;
@@ -1557,14 +1471,11 @@
         const originalShadowOffsetX = ctx.shadowOffsetX;
         const originalShadowOffsetY = ctx.shadowOffsetY;
         const originalLineCap = ctx.lineCap;
-
         const isPressedState = isRSTPressed;
         const isActive = isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
-
         ctx.beginPath();
         roundRect(ctx, RST_X, RST_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
         ctx.closePath();
-
         const gradient = ctx.createLinearGradient(RST_X, RST_Y, RST_X + SMALL_BUTTON_SIZE, RST_Y + SMALL_BUTTON_SIZE);
         if (isActive) {
             gradient.addColorStop(0, isPressedState ? '#dd0000' : '#ff3030');
@@ -1575,10 +1486,8 @@
             gradient.addColorStop(0.5, '#500000');
             gradient.addColorStop(1, '#400000');
         }
-
         ctx.fillStyle = gradient;
         ctx.fill();
-
         if (!isPressedState && isActive) {
             ctx.shadowColor = 'rgba(153, 0, 0, 0.8)';
             ctx.shadowBlur = 20;
@@ -1596,18 +1505,15 @@
             ctx.shadowOffsetY = 4;
             ctx.stroke();
         }
-
         ctx.strokeStyle = '#990000';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.stroke();
-
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('RESET', RST_X + SMALL_BUTTON_SIZE / 2, RST_Y + SMALL_BUTTON_SIZE / 2);
-
         ctx.fillStyle = originalFillStyle;
         ctx.strokeStyle = originalStrokeStyle;
         ctx.lineWidth = originalLineWidth;
@@ -1617,7 +1523,6 @@
         ctx.shadowOffsetY = originalShadowOffsetY;
         ctx.lineCap = originalLineCap;
     }
-
     function drawPRGButton() {
         const originalFillStyle = ctx.fillStyle;
         const originalStrokeStyle = ctx.strokeStyle;
@@ -1627,14 +1532,11 @@
         const originalShadowOffsetX = ctx.shadowOffsetX;
         const originalShadowOffsetY = ctx.shadowOffsetY;
         const originalLineCap = ctx.lineCap;
-
         const isPressedState = isPRGPressed;
         const isActive = isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive;
-
         ctx.beginPath();
         roundRect(ctx, PRG_X, PRG_Y, SMALL_BUTTON_SIZE, SMALL_BUTTON_SIZE, 8);
         ctx.closePath();
-
         const gradient = ctx.createLinearGradient(PRG_X, PRG_Y, PRG_X + SMALL_BUTTON_SIZE, PRG_Y + SMALL_BUTTON_SIZE);
         if (isActive) {
             gradient.addColorStop(0, isPressedState ? '#e65c00' : '#ff7c00');
@@ -1645,10 +1547,8 @@
             gradient.addColorStop(0.5, '#500000');
             gradient.addColorStop(1, '#400000');
         }
-
         ctx.fillStyle = gradient;
         ctx.fill();
-
         if (!isPressedState && isActive) {
             ctx.shadowColor = 'rgba(153, 51, 0, 0.8)';
             ctx.shadowBlur = 20;
@@ -1666,18 +1566,15 @@
             ctx.shadowOffsetY = 4;
             ctx.stroke();
         }
-
         ctx.strokeStyle = '#993300';
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.stroke();
-
         ctx.fillStyle = '#ffffff';
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('PROG', PRG_X + SMALL_BUTTON_SIZE / 2, PRG_Y + SMALL_BUTTON_SIZE / 2);
-
         ctx.fillStyle = originalFillStyle;
         ctx.strokeStyle = originalStrokeStyle;
         ctx.lineWidth = originalLineWidth;
@@ -1687,7 +1584,6 @@
         ctx.shadowOffsetY = originalShadowOffsetY;
         ctx.lineCap = originalLineCap;
     }
-
     function drawVoltmeter() {
         ctx.fillStyle = '#0a0a0a';
         roundRect(ctx, VOLTMETER_X, VOLTMETER_Y, VOLTMETER_WIDTH, VOLTMETER_HEIGHT, 6);
@@ -1695,14 +1591,12 @@
         ctx.strokeStyle = '#444';
         ctx.lineWidth = 2;
         ctx.stroke();
-
         let textColor = (systemsActive && activeRobotIndex !== -1) ? '#ffffff' : '#666';
         ctx.fillStyle = textColor;
         ctx.font = '12px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.fillText('0', VOLTMETER_X + 15, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
         ctx.fillText('100', VOLTMETER_X + VOLTMETER_WIDTH - 20, VOLTMETER_Y + VOLTMETER_HEIGHT - 8);
-
         let currentCharge = systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted ? (activeRobotIndex !== -1 ? snakeCharges[activeRobotIndex] : robotCharge) : robotCharge;
         let energyColor = textColor;
         if (currentCharge < 50 && isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && activeRobotIndex !== -1) {
@@ -1713,20 +1607,17 @@
                 energyColor = '#ffffff';
             }
         }
-
         ctx.fillStyle = energyColor;
         ctx.font = 'bold 16px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText('ENERGY', VOLTMETER_X + VOLTMETER_WIDTH / 2, VOLTMETER_Y + VOLTMETER_HEIGHT / 2 - 18);
-
         const pivotX = VOLTMETER_X + VOLTMETER_WIDTH / 2;
         const pivotY = VOLTMETER_Y + VOLTMETER_HEIGHT - 5;
         const angle = -Math.PI * (1 - (currentCharge / 100));
         const needleLength = 30;
         const tipX = pivotX + Math.cos(angle) * needleLength;
         const tipY = pivotY + Math.sin(angle) * needleLength;
-
         ctx.beginPath();
         ctx.moveTo(pivotX, pivotY);
         ctx.lineTo(tipX, tipY);
@@ -1734,13 +1625,11 @@
         ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.stroke();
-
         ctx.beginPath();
         ctx.arc(pivotX, pivotY, 3, 0, Math.PI * 2);
         ctx.fillStyle = '#ff3030';
         ctx.fill();
     }
-
     function drawLCDDisplay() {
         ctx.fillStyle = '#0a0a0a';
         roundRect(ctx, LCD_X, LCD_Y, LCD_WIDTH, LCD_HEIGHT, 6);
@@ -1748,7 +1637,6 @@
         ctx.strokeStyle = '#333';
         ctx.lineWidth = 1;
         ctx.stroke();
-
         let topText = "-----";
         let bottomText = "-----";
         if (systemsActive && isPowerOn && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive) {
@@ -1757,19 +1645,15 @@
                 bottomText = hasCargo[activeRobotIndex] ? "LOAD" : "EMPTY";
             }
         }
-
         const charWidth = LCD_WIDTH / 5;
         const topY = LCD_Y + 22;
         const bottomY = LCD_Y + 45;
-
         ctx.fillStyle = '#666';
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-
         const shouldBlinkLCD = (systemsActive && activeRobotIndex !== -1);
         const blinkLCD = shouldBlinkLCD ? (Math.floor(performance.now() / 1000) % 2) : 0;
-
         for (let i = 0; i < 5; i++) {
             if (i < topText.length && topText !== "-----") {
                 if (i < 4) {
@@ -1788,7 +1672,6 @@
                 ctx.fillText('-', LCD_X + charWidth * (i + 0.5), topY);
             }
         }
-
         for (let i = 0; i < 5; i++) {
             if (i < bottomText.length && bottomText !== "-----") {
                 if (bottomText === "LOAD" && i === 4) {
@@ -1808,7 +1691,6 @@
             }
         }
     }
-
     function draw3DCounter() {
       const now = performance.now();
       if (isPowerOn && systemsActive && !godmodeActive && !isGodmodeFinalized && !errorCompleted && !isGameOverScreenActive && now - lastCounterTick >= 1000) {
@@ -1831,25 +1713,21 @@
           animatingDigit = { wheel: 0, from: oldHundreds, to: newHundreds, progress: 0 };
         }
       }
-
       if (animatingDigit && isPowerOn) {
         animatingDigit.progress += 0.04;
         if (animatingDigit.progress >= 1) {
           animatingDigit = null;
         }
       }
-
       ctx.fillStyle = '#0a0a0a';
       roundRect(ctx, COUNTER_X, COUNTER_Y, COUNTER_WIDTH, COUNTER_HEIGHT, 6);
       ctx.fill();
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 2;
       ctx.stroke();
-
       ctx.save();
       roundRect(ctx, COUNTER_X, COUNTER_Y, COUNTER_WIDTH, COUNTER_HEIGHT, 6);
       ctx.clip();
-
       const wheelWidth = COUNTER_WIDTH / 3;
       const digits = [
         Math.floor(counterValue / 100) % 10,
@@ -1858,13 +1736,11 @@
       ].map(function(d) {
         return isNaN(d) ? 0 : d;
       });
-
       for (let i = 0; i < 3; i++) {
         const x = COUNTER_X + i * wheelWidth;
         const y = COUNTER_Y;
         const centerX = x + wheelWidth / 2;
         const centerY = y + COUNTER_HEIGHT / 2;
-
         if (animatingDigit && animatingDigit.wheel === i) {
           const fromDigit = animatingDigit.from;
           const toDigit = animatingDigit.to;
@@ -1875,10 +1751,8 @@
           drawStaticRectAndDigit(digits[i], centerX, centerY, wheelWidth, COUNTER_HEIGHT);
         }
       }
-
       ctx.restore();
     }
-
     function drawStaticRectAndDigit(digit, centerX, centerY, width, height) {
       const halfHeight = height / 2;
       const rectWidth = width * 0.95;
@@ -1895,20 +1769,16 @@
       ctx.fillStyle = 'rgba(0,0,0,0.3)';
       ctx.fillRect(centerX - rectWidth/2, centerY, rectWidth, halfHeight);
     }
-
     function draw3DRectAndDigit(digit, centerX, centerY, width, height, rotationAngle, isUpper) {
       const cosA = Math.cos(rotationAngle);
       const sinA = Math.sin(rotationAngle);
       const scale = 0.8 + 0.2 * Math.abs(cosA);
       const yOffset = sinA * height * 0.25;
-
       ctx.save();
       ctx.translate(centerX, centerY + yOffset);
       ctx.scale(scale, scale);
-
       const halfHeight = height / 2;
       const rectWidth = width * 0.95;
-
       if (isUpper) {
         ctx.fillStyle = 'rgba(255,255,255,0.1)';
         ctx.fillRect(-rectWidth/2, -halfHeight, rectWidth, halfHeight);
@@ -1916,24 +1786,19 @@
         ctx.fillStyle = 'rgba(0,0,0,0.3)';
         ctx.fillRect(-rectWidth/2, 0, rectWidth, halfHeight);
       }
-
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
       ctx.font = 'bold 24px "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(String(digit), 1, 1);
-
       ctx.fillStyle = isPowerOn ? '#ffffff' : '#666';
       ctx.fillText(String(digit), 0, 0);
-
       if (cosA > 0) {
         ctx.fillStyle = 'rgba(255,255,255,0.2)';
         ctx.fillRect(-rectWidth/2, -halfHeight/2, rectWidth, halfHeight/4);
       }
-
       ctx.restore();
     }
-
     function drawTimer() {
       ctx.fillStyle = '#0a0a0a';
       roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
@@ -1941,7 +1806,6 @@
       ctx.strokeStyle = '#333';
       ctx.lineWidth = 1;
       ctx.stroke();
-
       if (isPowerOn) {
         const mins = Math.floor(timeLeft / 60);
         const secs = timeLeft % 60;
@@ -1964,11 +1828,9 @@
         ctx.fillText('--:--', TIMER_X + TIMER_WIDTH / 2, TIMER_Y + TIMER_HEIGHT / 2);
       }
     }
-
     function drawBootText() {
       if (!bootActive || !isPowerOn || godmodeActive || isGodmodeFinalized || errorCompleted) return;
       if (bootCompleted) return;
-
       const now = performance.now();
       if (now - lastBootTick >= 80) {
         lastBootTick = now;
@@ -1987,6 +1849,15 @@
                         isGameOverScreenActive = true;
                         systemsActive = false;
                         // setupTelegramMainButton(); // Удалено, т.к. используем свою кнопку
+
+                        // --- АВТОМАТИЧЕСКАЯ ОТПРАВКА РЕЗУЛЬТАТА ПРИ ОКОНЧАНИИ ВРЕМЕНИ ---
+                        if (window.Telegram && window.Telegram.WebApp) {
+                            window.Telegram.WebApp.sendData(counterValue.toString());
+                            console.log("Результат автоматически отправлен в Telegram:", counterValue);
+                        } else {
+                            console.warn("Telegram WebApp не доступен для автоматической отправки.");
+                        }
+                        // -----------------------------------------------------
                     }
                 }
             }, 1000);
@@ -1996,25 +1867,20 @@
           bootCharIndex++;
         }
       }
-
       ctx.fillStyle = '#ffffff';
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-
       for (let i = 0; i < bootLineIndex; i++) {
         ctx.fillText(bootText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
       }
-
       if (bootLineIndex < bootText.length) {
         const currentLine = bootText[bootLineIndex].substring(0, bootCharIndex);
         ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + bootLineIndex * 20);
       }
     }
-
     function drawPasswordText() {
       if (!godmodeActive || !passwordMode || !isPowerOn || isGodmodeFinalized || errorCompleted) return;
-
       const now = performance.now();
       if (now - lastPasswordTick >= 80) {
         lastPasswordTick = now;
@@ -2029,31 +1895,25 @@
           passwordCharIndex++;
         }
       }
-
       ctx.fillStyle = '#ffffff';
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-
       for (let i = 0; i < passwordLineIndex; i++) {
         ctx.fillText(passwordText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
       }
-
       if (passwordLineIndex < passwordText.length) {
         const currentLine = passwordText[passwordLineIndex].substring(0, passwordCharIndex);
         ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + passwordLineIndex * 20);
       }
     }
-
     function drawInputField() {
       if (!godmodeActive || passwordMode || !isPowerOn || errorMode || godmodeSuccess || isGodmodeFinalized || errorCompleted) return;
-
       ctx.font = 'bold 48px "Courier New", monospace';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       const centerX = DISPLAY_X + 200;
       const centerY = DISPLAY_Y + 75;
-
       for (let i = 0; i < 3; i++) {
         const xPos = centerX - 60 + i * 60;
         if (i < inputCode.length) {
@@ -2065,10 +1925,8 @@
         }
       }
     }
-
     function drawKeypad() {
       if (!godmodeActive || passwordMode || !isPowerOn || errorMode || godmodeSuccess || isGodmodeFinalized || errorCompleted) return;
-
       for (let row = 0; row < 3; row++) {
         for (let col = 0; col < 3; col++) {
           const digit = row * 3 + col + 1;
@@ -2077,20 +1935,16 @@
           drawKey(keyX, keyY, String(digit), pressedKey === digit);
         }
       }
-
       const zeroX = KEYPAD_START_X + 1 * (KEYPAD_SIZE + KEYPAD_GAP);
       const zeroY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
       drawKey(zeroX, zeroY, "0", pressedKey === 0);
-
       const delX = KEYPAD_START_X + 0 * (KEYPAD_SIZE + KEYPAD_GAP);
       const delY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
       drawKey(delX, delY, "DEL", pressedKey === 'DEL');
-
       const starX = KEYPAD_START_X + 2 * (KEYPAD_SIZE + KEYPAD_GAP);
       const starY = KEYPAD_START_Y + 3 * (KEYPAD_SIZE + KEYPAD_GAP);
       drawKey(starX, starY, "*", pressedKey === '*');
     }
-
     function drawKey(x, y, label, isPressed) {
         ctx.fillStyle = isPressed ? '#aaaaaa' : '#333333';
         roundRect(ctx, x, y, KEYPAD_SIZE, KEYPAD_SIZE, 8);
@@ -2104,10 +1958,8 @@
         ctx.textBaseline = 'middle';
         ctx.fillText(label, x + KEYPAD_SIZE/2, y + KEYPAD_SIZE/2);
     }
-
     function drawGodmodeDisplay() {
       if (!godmodeSuccess || !isPowerOn || isGodmodeFinalized || errorCompleted) return;
-
       const now = performance.now();
       if (now - lastGodmodeDisplayTick >= 80) {
         lastGodmodeDisplayTick = now;
@@ -2119,7 +1971,6 @@
           godmodeDisplayCharIndex++;
         }
       }
-
       ctx.fillStyle = 'black';
       ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
       ctx.fillStyle = '#ffffff';
@@ -2129,10 +1980,8 @@
       const currentLine = godmodeDisplayText[godmodeDisplayLineIndex].substring(0, godmodeDisplayCharIndex);
       ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20);
     }
-
     function drawErrorText() {
       if (!errorMode || !isPowerOn || errorCompleted || isGodmodeFinalized) return;
-
       const now = performance.now();
       if (now - lastErrorTick >= 80) {
         lastErrorTick = now;
@@ -2149,22 +1998,18 @@
           errorCharIndex++;
         }
       }
-
       ctx.fillStyle = '#ffffff';
       ctx.font = '14px "Courier New", monospace';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-
       for (let i = 0; i < errorLineIndex; i++) {
         ctx.fillText(errorText[i], DISPLAY_X + 10, DISPLAY_Y + 20 + i * 20);
       }
-
       if (errorLineIndex < errorText.length) {
         const currentLine = errorText[errorLineIndex].substring(0, errorCharIndex);
         ctx.fillText(currentLine, DISPLAY_X + 10, DISPLAY_Y + 20 + errorLineIndex * 20);
       }
     }
-
     function drawGlowBorder() {
         if (!isPowerOn || errorCompleted) return;
         const pulse = 0.7 + 0.3 * Math.sin(performance.now() / 800);
@@ -2203,7 +2048,6 @@
         roundRect(ctx, TIMER_X, TIMER_Y, TIMER_WIDTH, TIMER_HEIGHT, 4);
         ctx.stroke();
     }
-
     function drawGameOverScreen() {
         ctx.fillStyle = 'black';
         ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
@@ -2214,38 +2058,32 @@
         ctx.fillText(`СЧЕТ: ${counterValue}`, DISPLAY_X + 200, DISPLAY_Y + 150);
         ctx.fillStyle = '#ffffff';
         ctx.font = '16px "Courier New", monospace';
-        ctx.fillText("Нажмите кнопку снизу", DISPLAY_X + 200, DISPLAY_Y + 250);
-        ctx.fillText("для отправки результата", DISPLAY_X + 200, DISPLAY_Y + 280);
+        ctx.fillText("Результат автоматически", DISPLAY_X + 200, DISPLAY_Y + 250);
+        ctx.fillText("отправлен в Telegram", DISPLAY_X + 200, DISPLAY_Y + 280);
     }
-
-    // --- НОВАЯ ФУНКЦИЯ: Отрисовка кнопки отправки ---
-    function drawSendButton() {
-        if (!isGameOverScreenActive) return; // Кнопка видна ТОЛЬКО на экране окончания игры
-
-        const buttonX = SEND_BUTTON_X;
-        const buttonY = SEND_BUTTON_Y;
-        const buttonWidth = SEND_BUTTON_WIDTH;
-        const buttonHeight = SEND_BUTTON_HEIGHT;
-
-        // Рисуем фон кнопки
-        ctx.fillStyle = '#2196F3'; // Яркий синий цвет
-        roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 8);
-        ctx.fill();
-
-        // Рисуем границу
-        ctx.strokeStyle = '#1976D2'; // Темно-синий для контраста
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Рисуем текст
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = 'bold 18px "Courier New", monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('📤 Отправить', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
-    }
+    // --- ЗАКОММЕНТИРОВАННАЯ ФУНКЦИЯ: Отрисовка кнопки отправки ---
+    // function drawSendButton() {
+    //     if (!isGameOverScreenActive) return; // Кнопка видна ТОЛЬКО на экране окончания игры
+    //     const buttonX = SEND_BUTTON_X;
+    //     const buttonY = SEND_BUTTON_Y;
+    //     const buttonWidth = SEND_BUTTON_WIDTH;
+    //     const buttonHeight = SEND_BUTTON_HEIGHT;
+    //     // Рисуем фон кнопки
+    //     ctx.fillStyle = '#2196F3'; // Яркий синий цвет
+    //     roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 8);
+    //     ctx.fill();
+    //     // Рисуем границу
+    //     ctx.strokeStyle = '#1976D2'; // Темно-синий для контраста
+    //     ctx.lineWidth = 2;
+    //     ctx.stroke();
+    //     // Рисуем текст
+    //     ctx.fillStyle = '#FFFFFF';
+    //     ctx.font = 'bold 18px "Courier New", monospace';
+    //     ctx.textAlign = 'center';
+    //     ctx.textBaseline = 'middle';
+    //     ctx.fillText('📤 Отправить', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+    // }
     // -----------------------------------------------
-
     function drawRonaviText() {
       ctx.fillStyle = '#000';
       ctx.font = 'bold 30px "NexaBold", Arial, sans-serif';
@@ -2253,28 +2091,22 @@
       ctx.textBaseline = 'bottom';
       ctx.fillText('RONAVI', GAME_WIDTH / 2, GAME_HEIGHT - 20);
     }
-
     function gameLoop() {
       ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
-
       if (!isPowerOn) {
         powerOffBlink += 0.05;
       }
-
       if (!systemsActive || errorCompleted || isGodmodeFinalized) {
           ctx.fillStyle = '#000';
           ctx.fillRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
       }
-
       if (systemsActive && !errorCompleted && !isGodmodeFinalized && !isGameOverScreenActive) {
         drawGame();
       }
-
       if (isGameOverScreenActive) {
         drawGameOverScreen();
-        drawSendButton(); // <-- ДОБАВЛЯЕМ ОТРИСОВКУ КНОПКИ
+        // drawSendButton(); // <-- ЗАКОММЕНТИРОВАНА ОТРИСОВКА КНОПКИ
       }
-
       drawLCDDisplay();
       drawVoltmeter();
       draw3DCounter();
@@ -2284,7 +2116,6 @@
       drawPRGButton();
       drawGlowBorder();
       drawBootText();
-
       if (godmodeActive) {
         drawPasswordText();
         drawInputField();
@@ -2292,15 +2123,12 @@
         drawErrorText();
         drawGodmodeDisplay();
       }
-
       ctx.strokeStyle = 'black';
       ctx.lineWidth = 1;
       ctx.strokeRect(DISPLAY_X, DISPLAY_Y, DISPLAY_WIDTH, DISPLAY_HEIGHT);
       drawRonaviText();
-
       requestAnimationFrame(gameLoop);
     }
-
     function roundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
       ctx.moveTo(x + radius, y);
@@ -2314,7 +2142,6 @@
       ctx.quadraticCurveTo(x, y, x + radius, y);
       ctx.closePath();
     }
-
     // --- УДАЛЯЕМ или ЗАКОММЕНТИРУЕМ эту функцию ---
     // function setupTelegramMainButton() {
     //     if (!window.Telegram || !window.Telegram.WebApp) {
@@ -2339,7 +2166,6 @@
     //     mainButton.show();
     // }
     // -----------------------------------------------
-
     window.addEventListener('load', function() {
         if (!(window.Telegram && window.Telegram.WebApp)) {
             alert("❌ Эта игра работает только внутри Telegram. Пожалуйста, откройте ее через бота.");
