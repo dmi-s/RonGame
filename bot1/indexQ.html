@@ -133,7 +133,7 @@
             background-repeat: no-repeat;
             z-index: 5; /* Всегда поверх всего */
             opacity: 1;
-            transition: opacity 0.15s ease-in-out; /* Ускоренная анимация */
+            transition: opacity 0.25s ease-in-out; /* Плавное появление/исчезновение */
         }
         .charge-bar {
             position: absolute;
@@ -144,7 +144,7 @@
             background-color: #ccc;
             z-index: 3;
             opacity: 1;
-            transition: opacity 0.15s ease-in-out; /* Ускоренная анимация */
+            transition: opacity 0.25s ease-in-out;
         }
         .charge-level {
             height: 100%;
@@ -587,8 +587,9 @@
                             this.constantBlinkInterval = null;
                             this.movesElement.style.backgroundColor = '';
                         }
-                        // Если клик по уже выбранному роботу — просто обновляем цели
+                        // Если клик по уже выбранному роботу — срабатывает ручное управление (поднять/опустить стол)
                         if (this.selectedRobot === clickedRobotId) {
+                            this.handleManualShelfInteraction(robot, row, col);
                             this.startTargetBlinking(robot);
                             this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
                             return;
@@ -622,6 +623,35 @@
                         this.setRobotTarget(this.selectedRobot, row, col);
                     }
                 });
+            }
+            // Новый метод: обработка ручного взаимодействия со столом
+            handleManualShelfInteraction(robot, row, col) {
+                const key = `${row},${col}`;
+                const cell = this.getCell(row, col);
+                if (!cell) return;
+                if (robot.hasShelf) {
+                    // Робот с грузом: пытаемся оставить стол
+                    // Можно оставить стол только на пустой клетке (не на зарядке, не на столе)
+                    if (!this.state.chargingStations.has(key) && !this.state.shelves.has(key)) {
+                        robot.hasShelf = false;
+                        // Добавляем стол в реестр
+                        this.state.shelves.add(key);
+                        // Обновляем визуальное состояние клетки
+                        this.restoreCellState(cell, row, col);
+                        console.log(`Робот вручную оставил стол на (${row}, ${col})`);
+                    }
+                } else {
+                    // Пустой робот: пытаемся поднять стол
+                    // Можно поднять стол только если он есть в этой клетке
+                    if (this.state.shelves.has(key)) {
+                        robot.hasShelf = true;
+                        // Удаляем стол из реестра
+                        this.state.shelves.delete(key);
+                        // Обновляем визуальное состояние клетки
+                        this.restoreCellState(cell, row, col);
+                        console.log(`Робот вручную поднял стол на (${row}, ${col})`);
+                    }
+                }
             }
             startTargetBlinking(robot) {
                 this.stopAllBlinking();
@@ -995,7 +1025,7 @@
                     // Это может произойти, если стартовая клетка совпадает с конечной.
                     if (current.row === endRow && current.col === endCol) {
                          // Проверяем, что конечная клетка доступна как цель
-                        if (!this.isCellPassable(endRow, endCol, isRobotCarryingShelf, true, true, forRobotId)) {
+                        if (!this.isCellPassable(endRow, endCol, isRobotCarryingShelf, false, true, forRobotId)) {
                             localObstacleCells.add(endKey);
                             return { route: null, obstacles: Array.from(localObstacleCells) };
                         }
@@ -1020,7 +1050,7 @@
                         // Проверка: если соседняя клетка - это цель
                         if (newRow === endRow && newCol === endCol) {
                             // Проверяем, что конечная клетка доступна как цель
-                            if (this.isCellPassable(endRow, endCol, isRobotCarryingShelf, true, true, forRobotId)) {
+                            if (this.isCellPassable(endRow, endCol, isRobotCarryingShelf, false, true, forRobotId)) {
                                 // Если доступна, строим путь
                                 const path = [];
                                 const finalStep = { row: newRow, col: newCol };
@@ -1041,6 +1071,7 @@
                         }
                         // --- ИЗМЕНЕНИЕ КОНЕЦ ---
                         // 🔥 При построении пути для ПРОМЕЖУТОЧНЫХ клеток используем isFinalDestination = false
+                        // 🔥 ВАЖНО: передаем ignoreRoute = false, чтобы учитывать чужие маршруты
                         if (this.isCellPassable(newRow, newCol, isRobotCarryingShelf, false, false, forRobotId)) {
                             visited.add(newKey);
                             parent[newKey] = current;
@@ -1127,37 +1158,10 @@
                             if (this.selectedRobot === robotId) {
                                 this.stopAllBlinking();
                             }
-                            // 🔥🔥🔥 ИСПРАВЛЕНИЕ: Полная очистка всех клеток маршрута при прерывании
-                            const currentRoute = this.state.activeRoutes.get(robotId);
-                            if (currentRoute) {
-                                for (const step of currentRoute) {
-                                    const stepCell = this.getCell(step.row, step.col);
-                                    if (stepCell) {
-                                        this.restoreCellState(stepCell, step.row, step.col);
-                                    }
-                                }
-                            }
-                            // Восстанавливаем состояние робота в его текущей позиции
+                            // 🔥🔥🔥 ИСПРАВЛЕНИЕ: Восстанавливаем состояние ТОЛЬКО текущей клетки робота
                             const currentCell = this.getCell(robot.row, robot.col);
                             if (currentCell) {
-                                // Полная очистка клетки
-                                while (currentCell.firstChild) {
-                                    currentCell.removeChild(currentCell.firstChild);
-                                }
-                                currentCell.className = 'cell';
-                                // Восстанавливаем фон клетки
-                                const currentKey = `${robot.row},${robot.col}`;
-                                if (this.state.parkingCells.has(currentKey)) currentCell.classList.add('parking');
-                                else if (this.state.obstacles.has(currentKey)) currentCell.classList.add('column');
-                                else if (this.state.chargingStations.has(currentKey)) currentCell.classList.add('charging-station');
-                                else if (this.state.shelves.has(currentKey)) currentCell.classList.add('shelf');
-                                // Добавляем робота обратно
-                                this.addRobotImage(currentCell, 'Robot.png');
-                                this.addChargeBar(currentCell, robot.charge);
-                                // Если робот выбран, добавляем выделение
-                                if (this.selectedRobot === robotId) {
-                                    currentCell.classList.add('selected');
-                                }
+                                this.restoreCellState(currentCell, robot.row, robot.col);
                             }
                             break;
                         }
@@ -1166,7 +1170,6 @@
                         const currentCell = this.getCell(prevStep.row, prevStep.col);
                         const nextCell = this.getCell(nextStep.row, nextStep.col);
                         if (!nextCell) break;
-
                         // Проверка: если следующая клетка — зарядка и робот везёт груз — оставляем груз здесь
                         if (this.state.chargingStations.has(`${nextStep.row},${nextStep.col}`) && robot.hasShelf) {
                             // Оставляем груз в ТЕКУЩЕЙ клетке (перед заездом на зарядку)
@@ -1174,60 +1177,38 @@
                                 this.dropShelfHere(robot, currentCell, prevStep.row, prevStep.col);
                             }
                         }
-
-                        // Подготавливаем следующую клетку (робот пока невидим)
-                        while (nextCell.firstChild) {
-                            nextCell.removeChild(nextCell.firstChild);
-                        }
-                        nextCell.className = 'cell';
-                        const nextKey = `${nextStep.row},${nextStep.col}`;
-                        if (this.state.parkingCells.has(nextKey)) nextCell.classList.add('parking');
-                        else if (this.state.obstacles.has(nextKey)) nextCell.classList.add('column');
-                        else if (this.state.chargingStations.has(nextKey)) nextCell.classList.add('charging-station');
-                        else if (this.state.shelves.has(nextKey)) nextCell.classList.add('shelf');
-
-                        this.addRobotImage(nextCell, 'Robot.png');
-                        this.addChargeBar(nextCell, robot.charge);
-                        const nextRobotImg = nextCell.querySelector('.robot-image');
-                        const nextChargeBar = nextCell.querySelector('.charge-bar');
-                        if (nextRobotImg) nextRobotImg.style.opacity = '0';
-                        if (nextChargeBar) nextChargeBar.style.opacity = '0';
-
-                        // Скрываем робота в текущей клетке
+                        // Плавно скрываем робота в текущей клетке
                         if (currentCell) {
                             const currentRobotImg = currentCell.querySelector('.robot-image');
                             const currentChargeBar = currentCell.querySelector('.charge-bar');
                             if (currentRobotImg) currentRobotImg.style.opacity = '0';
                             if (currentChargeBar) currentChargeBar.style.opacity = '0';
                         }
-
-                        // Ждём 100 мс — анимация исчезновения
-                        await new Promise(resolve => setTimeout(resolve, 100));
-
-                        // Удаляем содержимое текущей клетки
+                        // Ждём 150 мс — начало анимации исчезновения
+                        await new Promise(resolve => setTimeout(resolve, 150));
+                        // Полностью очищаем старую клетку (убираем фон и всё содержимое)
                         if (currentCell) {
                             while (currentCell.firstChild) {
                                 currentCell.removeChild(currentCell.firstChild);
                             }
-                            // Восстанавливаем фон текущей клетки
-                            currentCell.className = 'cell';
-                            const currentKey = `${prevStep.row},${prevStep.col}`;
-                            if (this.state.parkingCells.has(currentKey)) currentCell.classList.add('parking');
-                            else if (this.state.obstacles.has(currentKey)) currentCell.classList.add('column');
-                            else if (this.state.chargingStations.has(currentKey)) currentCell.classList.add('charging-station');
-                            else if (this.state.shelves.has(currentKey)) currentCell.classList.add('shelf');
+                            currentCell.className = 'cell'; // Убираем весь фон
                         }
-
-                        // Показываем робота в следующей клетке
-                        if (nextRobotImg) nextRobotImg.style.opacity = '1';
-                        if (nextChargeBar) nextChargeBar.style.opacity = '1';
-
+                        // Подготавливаем следующую клетку (робот пока невидим)
+                        while (nextCell.firstChild) {
+                            nextCell.removeChild(nextCell.firstChild);
+                        }
+                        nextCell.className = 'cell'; // Убираем фон на время анимации
+                        this.addRobotImage(nextCell, this.getRobotImageType(robot, nextStep.row, nextStep.col));
+                        this.addChargeBar(nextCell, robot.charge);
+                        const nextRobotImg = nextCell.querySelector('.robot-image');
+                        const nextChargeBar = nextCell.querySelector('.charge-bar');
+                        if (nextRobotImg) nextRobotImg.style.opacity = '0';
+                        if (nextChargeBar) nextChargeBar.style.opacity = '0';
                         // Удаление линии шага
                         if (lines.length > 0) {
                             const lineToRemove = lines.shift();
                             if (lineToRemove && lineToRemove.parentNode) lineToRemove.remove();
                         }
-
                         // Обновляем позицию робота в данных
                         robot.row = nextStep.row;
                         robot.col = nextStep.col;
@@ -1243,12 +1224,17 @@
                             robot.route = robot.route.slice(i - 1);
                             this.state.activeRoutes.set(robotId, robot.route);
                         }
+                        // Плавно показываем робота в новой клетке
+                        if (nextRobotImg) nextRobotImg.style.opacity = '1';
+                        if (nextChargeBar) nextChargeBar.style.opacity = '1';
                         // Обновляем интерфейс заряда
                         if (this.selectedRobot === robotId) {
                             this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
                         }
-                        // Ждём 150 мс — основная анимация
-                        await new Promise(resolve => setTimeout(resolve, 150));
+                        // Ждём 250 мс — основная анимация
+                        await new Promise(resolve => setTimeout(resolve, 250));
+                        // Теперь восстанавливаем фон клетки
+                        this.restoreCellBackground(nextCell, nextStep.row, nextStep.col);
                     }
                     if (!signal.aborted) {
                         // Финальная очистка
@@ -1257,12 +1243,35 @@
                         robot.route = null;
                         const finalCell = this.getCell(robot.row, robot.col);
                         if (finalCell) {
-                            this.restoreCellState(finalCell, robot.row, robot.col);
-                            // Добавляем робота в финальную клетку
-                            this.addRobotImage(finalCell, 'Robot.png');
+                            // 🔥🔥🔥 АВТОМАТИЧЕСКОЕ ВЗАИМОДЕЙСТВИЕ СО СТОЛОМ ПРИ ДОСТИЖЕНИИ ЦЕЛИ
+                            const finalKey = `${robot.row},${robot.col}`;
+                            let shouldUpdateVisual = false;
+                            // Автоматическое поднятие стола, если робот прибыл на клетку со столом
+                            if (!robot.hasShelf && this.state.shelves.has(finalKey)) {
+                                robot.hasShelf = true;
+                                this.state.shelves.delete(finalKey);
+                                console.log(`Робот автоматически поднял стол на (${robot.row}, ${robot.col})`);
+                                shouldUpdateVisual = true;
+                            }
+                            // Автоматическое оставление стола, если робот прибыл на парковку с грузом
+                            else if (robot.hasShelf && this.state.parkingCells.has(finalKey)) {
+                                robot.hasShelf = false;
+                                // Стол остается на парковке
+                                console.log(`Робот автоматически оставил стол на парковке (${robot.row}, ${robot.col})`);
+                                shouldUpdateVisual = true;
+                            }
+                            // Обновляем визуальное состояние клетки
+                            if (shouldUpdateVisual) {
+                                this.restoreCellState(finalCell, robot.row, robot.col);
+                            } else {
+                                // Восстанавливаем только фон, если не было взаимодействия со столом
+                                this.restoreCellBackground(finalCell, robot.row, robot.col);
+                            }
+                            // Добавляем робота в финальную клетку с правильным изображением
+                            this.addRobotImage(finalCell, this.getRobotImageType(robot, robot.row, robot.col));
                             this.addChargeBar(finalCell, robot.charge);
                             // Если прибыл на зарядку — начинаем заряжаться
-                            if (this.state.chargingStations.has(`${robot.row},${robot.col}`)) {
+                            if (this.state.chargingStations.has(finalKey)) {
                                 this.startCharging(robotId);
                             }
                             // Если робот выбран, добавляем выделение
@@ -1278,6 +1287,8 @@
                         if (this.selectedRobot === robotId) {
                              this.startTargetBlinking(robot);
                         }
+                        // 🔥🔥🔥 ПРОВЕРКА УСЛОВИЯ ПОБЕДЫ
+                        this.checkVictoryCondition();
                     }
                 } catch (error) {
                     if (error.message !== 'aborted') throw error;
@@ -1288,14 +1299,40 @@
                     }
                 }
             }
-            // 🔥🔥🔥 НОВЫЙ МЕТОД: Восстановление состояния клетки
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Определение типа изображения робота
+            getRobotImageType(robot, row, col) {
+                const key = `${row},${col}`;
+                // Если робот на зарядке И заряжается — Robot_Charg.png
+                if (this.state.chargingStations.has(key) && robot.isCharging) {
+                    return 'Robot_Charg.png';
+                }
+                // Если робот с грузом — Robot_Shelf.png
+                else if (robot.hasShelf) {
+                    return 'Robot_Shelf.png';
+                }
+                // По умолчанию — обычный робот
+                else {
+                    return 'Robot.png';
+                }
+            }
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Восстановление только фона клетки (без робота)
+            restoreCellBackground(cell, row, col) {
+                const key = `${row},${col}`;
+                // Восстанавливаем класс клетки и фон
+                cell.className = 'cell';
+                if (this.state.parkingCells.has(key)) cell.classList.add('parking');
+                else if (this.state.obstacles.has(key)) cell.classList.add('column');
+                else if (this.state.chargingStations.has(key)) cell.classList.add('charging-station');
+                else if (this.state.shelves.has(key)) cell.classList.add('shelf');
+            }
+            // 🔥🔥🔥 ИЗМЕНЕННЫЙ МЕТОД: Восстановление состояния клетки (фон + робот)
             restoreCellState(cell, row, col) {
                 const key = `${row},${col}`;
                 // Полная очистка клетки
                 while (cell.firstChild) {
                     cell.removeChild(cell.firstChild);
                 }
-                // Восстанавливаем класс клетки
+                // Восстанавливаем класс клетки и фон
                 cell.className = 'cell';
                 if (this.state.parkingCells.has(key)) cell.classList.add('parking');
                 else if (this.state.obstacles.has(key)) cell.classList.add('column');
@@ -1311,13 +1348,25 @@
                 }
                 // Если робот есть, добавляем его изображение
                 if (robotHere) {
-                    // Определяем, какой тип изображения робота показывать
-                    let robotImage = 'Robot.png';
-                    if (this.state.chargingStations.has(key) && robotHere.isCharging) {
-                        robotImage = 'Robot_Charg.png';
-                    }
-                    this.addRobotImage(cell, robotImage);
+                    // 🔥🔥🔥 Добавляем изображение робота
+                    this.addRobotImage(cell, this.getRobotImageType(robotHere, row, col));
+                    // 🔥🔥🔥 Добавляем полосу заряда
                     this.addChargeBar(cell, robotHere.charge);
+                    // 🔥🔥🔥 СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ СТОЛА В ТОЙ ЖЕ КЛЕТКЕ
+                    // Если стол есть в реестре (значит, стол в той же клетке)
+                    if (this.state.shelves.has(key)) {
+                        // Создаем отдельный элемент для изображения стола
+                        const shelfImage = document.createElement('div');
+                        shelfImage.className = 'robot-image'; // Используем тот же класс для стилей
+                        shelfImage.style.backgroundImage = `url('Shelf.png')`;
+                        shelfImage.style.zIndex = 6; // Стол поверх робота
+                        cell.appendChild(shelfImage);
+                        // 🔥🔥🔥 МЕНЯЕМ ПОРЯДОК В ЗАВИСИМОСТИ ОТ ФОКУСА
+                        // Если этот робот НЕ выбран, то стол должен быть ПОД роботом
+                        if (this.selectedRobot !== robotHere.id) {
+                            shelfImage.style.zIndex = 4; // Стол под роботом
+                        }
+                    }
                 }
             }
             dropShelfHere(robot, cell, row, col) {
@@ -1330,12 +1379,7 @@
                 }
                 // Обновляем визуальное состояние клетки
                 if (cell) {
-                    while (cell.firstChild) {
-                        cell.removeChild(cell.firstChild);
-                    }
-                    cell.className = 'cell shelf';
-                    this.addRobotImage(cell, 'Robot.png');
-                    this.addChargeBar(cell, robot.charge);
+                    this.restoreCellState(cell, row, col);
                 }
                 console.log(`Робот оставил стол на (${row}, ${col})`);
             }
@@ -1351,16 +1395,7 @@
                 // Обновляем визуальное состояние клетки с зарядкой
                 const cell = this.getCell(robot.row, robot.col);
                 if (cell) {
-                    // Очищаем содержимое клетки
-                    while (cell.firstChild) {
-                        cell.removeChild(cell.firstChild);
-                    }
-                    // Устанавливаем белый фон
-                    cell.className = 'cell';
-                    // Добавляем изображение робота на зарядке
-                    this.addRobotImage(cell, 'Robot_Charg.png');
-                    // Добавляем полосу заряда
-                    this.addChargeBar(cell, robot.charge);
+                    this.restoreCellState(cell, robot.row, robot.col);
                     // Если робот выбран, добавляем градиентный фон
                     if (this.selectedRobot === robotId) {
                         cell.classList.add('selected');
@@ -1382,16 +1417,7 @@
                         // Обновляем визуальное состояние клетки после полной зарядки
                         const finalCell = this.getCell(robot.row, robot.col);
                         if (finalCell) {
-                            // Очищаем содержимое клетки
-                            while (finalCell.firstChild) {
-                                finalCell.removeChild(finalCell.firstChild);
-                            }
-                            // Устанавливаем белый фон
-                            finalCell.className = 'cell';
-                            // Добавляем обычное изображение робота
-                            this.addRobotImage(finalCell, 'Robot.png');
-                            // Добавляем полосу заряда
-                            this.addChargeBar(finalCell, robot.charge);
+                            this.restoreCellState(finalCell, robot.row, robot.col);
                             // Если робот выбран, добавляем градиентный фон и мигающие цели
                             if (this.selectedRobot === robotId) {
                                 finalCell.classList.add('selected');
@@ -1410,6 +1436,64 @@
                     }
                 }, 1000);
                 this.state.chargingIntervals.set(robotId, chargeInterval);
+            }
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Проверка условия победы
+            checkVictoryCondition() {
+                // Победа: все 10 столов находятся на парковке (либо как отдельные объекты, либо на роботах, стоящих на парковке)
+                let shelvesOnParking = 0;
+                // Считаем столы, которые стоят на парковке как объекты
+                for (const shelfKey of this.state.shelves) {
+                    if (this.state.parkingCells.has(shelfKey)) {
+                        shelvesOnParking++;
+                    }
+                }
+                // Считаем роботов с грузом, которые стоят на парковке
+                for (const [id, robot] of this.state.robots) {
+                    if (robot.hasShelf) {
+                        const robotKey = `${robot.row},${robot.col}`;
+                        if (this.state.parkingCells.has(robotKey)) {
+                            shelvesOnParking++;
+                        }
+                    }
+                }
+                // Если на парковке 10 столов — победа
+                if (shelvesOnParking === 10) {
+                    this.triggerVictory();
+                }
+            }
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Обработка победы
+            triggerVictory() {
+                this.gameOver = true;
+                // Останавливаем таймер
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                }
+                // Останавливаем всех роботов
+                for (const [id, controller] of this.abortControllers) {
+                    controller.abort();
+                }
+                this.abortControllers.clear();
+                // Останавливаем все процессы зарядки
+                for (const [id, interval] of this.state.chargingIntervals) {
+                    clearInterval(interval);
+                }
+                this.state.chargingIntervals.clear();
+                // Блокируем доску
+                this.board.style.pointerEvents = 'none';
+                // Показываем VICTORY
+                const overlay = document.createElement('div');
+                overlay.className = 'game-over-overlay';
+                overlay.style.color = 'yellow';
+                overlay.textContent = 'VICTORY!';
+                this.board.appendChild(overlay);
+                // Обновляем статус
+                this.movesElement.textContent = 'VICTORY!';
+                this.timerElement.textContent = 'VICTORY!';
+                // Останавливаем постоянное мигание
+                if (this.constantBlinkInterval) {
+                    clearInterval(this.constantBlinkInterval);
+                    this.constantBlinkInterval = null;
+                }
             }
             triggerGameOver() {
                 this.gameOver = true;
