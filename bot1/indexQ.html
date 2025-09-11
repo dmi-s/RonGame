@@ -1,0 +1,1452 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Логистические роботы</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+        body {
+            background: black;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .container {
+            background: black;
+            border-radius: 0;
+            padding: 8px;
+            box-shadow: none;
+            text-align: center;
+            width: 100vw;
+            max-width: 100%;
+            max-height: 100vh;
+            margin: 4px 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+        .stats-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 0 6px;
+            gap: 8px;
+            width: 100%;
+            max-width: 550px;
+        }
+        .stat-item {
+            background: #ecf0f1;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: min(0.9em, 4vw);
+            flex: 1;
+            min-width: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .game-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 1px;
+            overflow: hidden;
+        }
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            grid-template-rows: repeat(13, 1fr);
+            gap: 1px;
+            width: min(94vw, 94vh * (10/13), 480px);
+            height: min(94vh, 94vw * (13/10), 624px);
+            max-width: 100%;
+            max-height: 100%;
+            border: 2px solid #34495e;
+            background: #bdc3c7;
+            position: relative;
+            overflow: hidden;
+            aspect-ratio: 10 / 13;
+        }
+        .cell {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: calc(min(94vw, 94vh * (10/13), 480px) / 10 * 0.4);
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            position: relative;
+            border-radius: 1px;
+            background-color: #ecf0f1;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+        }
+        .cell:hover {
+            transform: scale(0.95);
+            opacity: 0.9;
+            z-index: 2;
+        }
+        /* Фоновые изображения */
+        .parking {
+            background-image: url('Parking.png');
+        }
+        .column {
+            background-image: url('Column.png');
+        }
+        .charging-station {
+            background-image: url('Charging.png');
+        }
+        .shelf {
+            background-image: url('Shelf.png'); /* Это СТОЛЫ */
+        }
+        /* Изображение робота как отдельный элемент */
+        .robot-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            z-index: 5; /* Всегда поверх всего */
+            opacity: 1;
+            transition: opacity 0.15s ease-in-out; /* Ускоренная анимация */
+        }
+        .charge-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: #ccc;
+            z-index: 3;
+            opacity: 1;
+            transition: opacity 0.15s ease-in-out; /* Ускоренная анимация */
+        }
+        .charge-level {
+            height: 100%;
+            transition: width 0.3s ease;
+        }
+        .charge-level.low { background-color: #e74c3c; }
+        .charge-level.medium { background-color: #f39c12; }
+        .charge-level.good { background-color: #f1c40f; }
+        .charge-level.high { background-color: #27ae60; }
+        /* === ГРАДИЕНТНЫЙ ФОН ВЫБРАННОГО РОБОТА === */
+        .cell.selected::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, #000, #ffff00);
+            background-size: 200% 200%;
+            animation: pulseGradient 2s ease infinite;
+            z-index: 1;
+            border-radius: 1px;
+            pointer-events: none;
+        }
+        @keyframes pulseGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        /* === КЛЕТКИ НАЗНАЧЕНИЯ: мигают фоном #ecf0f1 ↔ #ffff77 === */
+        .target-cell {
+            animation: blinkTarget 1s ease infinite;
+        }
+        @keyframes blinkTarget {
+            0%, 100% { background-color: #ecf0f1; }
+            50% { background-color: #ffff77; }
+        }
+        /* === БЕГУЩИЕ ОГНИ (красные) === */
+        .blinking-cell {
+            position: relative;
+            overflow: hidden;
+        }
+        .moving-part {
+            position: absolute;
+            background: red;
+            pointer-events: none;
+        }
+        /* === МАРШРУТНАЯ ЛИНИЯ === */
+        .route-line {
+            position: absolute;
+            background-color: yellow;
+            z-index: 4;
+            pointer-events: none;
+        }
+        button {
+            background: yellow;
+            color: black;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: min(1em, 4.5vw);
+            font-weight: bold;
+            transition: background 0.3s;
+            margin-top: 12px;
+            width: 100%;
+            max-width: 550px;
+        }
+        button:hover {
+            background: #ffeb3b;
+        }
+        .splash-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('Ronavi.png') no-repeat center center;
+            background-size: cover;
+            z-index: 900;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: red;
+            font-size: 48px;
+            font-weight: bold;
+            text-shadow: 0 0 10px yellow;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="stats-container">
+            <div id="moves" class="stat-item">Заряд робота: 100%</div>
+            <div id="timer" class="stat-item">Время: 20:00</div>
+        </div>
+        <div class="game-wrapper">
+            <div class="game-board" id="game-board">
+                <div class="splash-screen"></div>
+            </div>
+        </div>
+        <button id="reset-btn">Новая игра</button>
+    </div>
+    <script>
+        class LogisticsGame {
+            constructor() {
+                this.board = document.getElementById('game-board');
+                this.movesElement = document.getElementById('moves');
+                this.timerElement = document.getElementById('timer');
+                this.resetBtn = document.getElementById('reset-btn');
+                this.rows = 13;
+                this.cols = 10;
+                this.totalTime = 20 * 60;
+                this.remainingTime = this.totalTime;
+                this.timerInterval = null;
+                this.gameStarted = false;
+                this.selectedRobot = null;
+                this.abortControllers = new Map(); // robotId -> AbortController
+                this.warningCount = new Map(); // (robotId, targetKey) -> count
+                this.gameOver = false; // флаг окончания игры
+                this.constantBlinkInterval = null; // для мигания поля заряда
+                // Параметры
+                this.gameParams = {
+                    columnsCount: 12,
+                    chargingStationsCount: 3,
+                    robotsCount: 3,
+                    shelvesCount: 10,
+                    minDistance: {
+                        columnToColumn: 3,
+                        chargingToCharging: 3,
+                        shelfToShelf: 2,
+                        robotToRobot: 4,
+                        chargingToShelf: 2
+                    },
+                    columnRows: { min: 2, max: 11 },
+                    columnCols: { min: 1, max: 8 },
+                    chargingRows: { min: 4, max: 9 },
+                    chargingCols: { min: 4, max: 7 },
+                    robotRows: { min: 2, max: 12 },
+                    robotCols: { min: 0, max: 9 },
+                    shelfRows: { min: 3, max: 12 },
+                    shelfCols: { min: 0, max: 9 }
+                };
+                // Реестры
+                this.state = {
+                    robots: new Map(), // { id: { row, col, charge, hasShelf, route, isCharging } }
+                    chargingStations: new Set(),
+                    shelves: new Set(), // Это СТОЛЫ
+                    parkingCells: new Set(),
+                    obstacles: new Set(), // столбы
+                    activeRoutes: new Map(), // robotId -> массив клеток маршрута (включая цель)
+                    movingRobots: new Set(), // robotId, которые сейчас в движении
+                    routeLines: new Map(), // robotId -> массив DOM-элементов линий
+                    chargingIntervals: new Map() // robotId -> intervalId
+                };
+                this.init();
+            }
+            init() {
+                this.showSplashScreen();
+                this.resetBtn.addEventListener('click', () => this.startNewGame());
+            }
+            showSplashScreen() {
+                const splash = this.board.querySelector('.splash-screen');
+                if (splash) splash.style.display = 'flex';
+            }
+            hideSplashScreen() {
+                const splash = this.board.querySelector('.splash-screen');
+                if (splash) splash.remove();
+            }
+            async startNewGame() {
+                // Останавливаем всё
+                this.stopAllBlinking();
+                if (this.constantBlinkInterval) {
+                    clearInterval(this.constantBlinkInterval);
+                    this.constantBlinkInterval = null;
+                }
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                    this.timerInterval = null;
+                }
+                for (const [id, controller] of this.abortControllers) {
+                    controller.abort();
+                }
+                this.abortControllers.clear();
+                // Очищаем состояние
+                this.state.robots.clear();
+                this.state.chargingStations.clear();
+                this.state.shelves.clear();
+                this.state.parkingCells.clear();
+                this.state.obstacles.clear();
+                this.state.activeRoutes.clear();
+                this.state.movingRobots.clear();
+                this.state.routeLines.clear();
+                this.state.chargingIntervals.clear();
+                this.warningCount.clear();
+                this.gameOver = false;
+                // Убираем overlay GAME OVER, если есть
+                const overlay = this.board.querySelector('.game-over-overlay');
+                if (overlay) overlay.remove();
+                // Разблокируем доску
+                this.board.style.pointerEvents = 'auto';
+                // Создаём пустую доску
+                this.createBoard();
+                this.gameStarted = false;
+                this.selectedRobot = null;
+                this.remainingTime = this.totalTime;
+                this.updateTimerDisplay();
+                this.movesElement.textContent = 'Заряд робота: 100%';
+                this.movesElement.style.backgroundColor = ''; // Сбрасываем мигание
+                // Парковка
+                for (let col = 0; col < this.cols; col++) {
+                    const cell = this.getCell(0, col);
+                    cell.className = 'cell parking';
+                    this.state.parkingCells.add(`${0},${col}`);
+                }
+                // Ждём 200 мс перед генерацией поля
+                await new Promise(resolve => setTimeout(resolve, 200));
+                await this.generateFieldWithAnimation();
+                this.setupEventListeners();
+            }
+            createBoard() {
+                this.board.innerHTML = '';
+                for (let row = 0; row < this.rows; row++) {
+                    for (let col = 0; col < this.cols; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell empty';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        this.board.appendChild(cell);
+                    }
+                }
+            }
+            async generateFieldWithAnimation() {
+                this.hideSplashScreen();
+                // Плавная расстановка: столбы → зарядки → столы → роботы (по 30 мс)
+                await this.placeObstaclesWithDelay(30);
+                await this.placeChargingStationsWithDelay(30);
+                await this.placeShelvesWithDelay(30);
+                await this.placeRobotsWithDelay(30);
+            }
+            async placeObstaclesWithDelay(delayMs) {
+                const grid = this.generateGrid(this.gameParams.columnRows, this.gameParams.columnCols);
+                this.shuffleArray(grid);
+                let placed = 0;
+                for (const pos of grid) {
+                    if (placed >= this.gameParams.columnsCount) break;
+                    if (this.isPositionValid(pos, this.state.obstacles, this.gameParams.minDistance.columnToColumn)) {
+                        const cell = this.getCell(pos.row, pos.col);
+                        if (cell && cell.classList.contains('empty')) {
+                            cell.className = 'cell column';
+                            this.state.obstacles.add(`${pos.row},${pos.col}`);
+                            placed++;
+                            await new Promise(resolve => setTimeout(resolve, delayMs));
+                        }
+                    }
+                }
+            }
+            async placeChargingStationsWithDelay(delayMs) {
+                const candidates = [];
+                for (const key of this.state.obstacles) {
+                    const [r, c] = key.split(',').map(Number);
+                    const directions = [
+                        { row: -1, col: 0 }, { row: 0, col: 1 },
+                        { row: 1, col: 0 }, { row: 0, col: -1 }
+                    ];
+                    for (const dir of directions) {
+                        const nr = r + dir.row;
+                        const nc = c + dir.col;
+                        if (nr >= this.gameParams.chargingRows.min && nr <= this.gameParams.chargingRows.max &&
+                            nc >= this.gameParams.chargingCols.min && nc <= this.gameParams.chargingCols.max) {
+                            candidates.push({ row: nr, col: nc });
+                        }
+                    }
+                }
+                this.shuffleArray(candidates);
+                let placed = 0;
+                for (const pos of candidates) {
+                    if (placed >= this.gameParams.chargingStationsCount) break;
+                    if (this.isPositionValid(pos, this.state.chargingStations, this.gameParams.minDistance.chargingToCharging) &&
+                        this.getCell(pos.row, pos.col)?.classList.contains('empty')) {
+                        this.state.chargingStations.add(`${pos.row},${pos.col}`);
+                        this.getCell(pos.row, pos.col).className = 'cell charging-station';
+                        placed++;
+                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                    }
+                }
+            }
+            async placeShelvesWithDelay(delayMs) {
+                const grid = this.generateGrid(this.gameParams.shelfRows, this.gameParams.shelfCols);
+                this.shuffleArray(grid);
+                let placed = 0;
+                for (const pos of grid) {
+                    if (placed >= this.gameParams.shelvesCount) break;
+                    if (this.isPositionValid(pos, this.state.chargingStations, this.gameParams.minDistance.chargingToShelf) &&
+                        this.isPositionValid(pos, this.state.obstacles, 2) &&
+                        this.getCell(pos.row, pos.col)?.classList.contains('empty')) {
+                        this.state.shelves.add(`${pos.row},${pos.col}`);
+                        this.getCell(pos.row, pos.col).className = 'cell shelf';
+                        placed++;
+                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                    }
+                }
+            }
+            async placeRobotsWithDelay(delayMs) {
+                const grid = this.generateGrid(this.gameParams.robotRows, this.gameParams.robotCols);
+                this.shuffleArray(grid);
+                let robotId = 0;
+                let lowChargePlaced = false;
+                for (const pos of grid) {
+                    if (robotId >= this.gameParams.robotsCount) break;
+                    const key = `${pos.row},${pos.col}`;
+                    if (!this.isCellOccupied(key)) {
+                        let charge = !lowChargePlaced ?
+                            Math.floor(Math.random() * 11) + 15 :
+                            Math.floor(Math.random() * 76) + 25;
+                        if (!lowChargePlaced) lowChargePlaced = true;
+                        this.state.robots.set(robotId, {
+                            row: pos.row,
+                            col: pos.col,
+                            charge,
+                            hasShelf: false,
+                            route: null,
+                            isCharging: false
+                        });
+                        const cell = this.getCell(pos.row, pos.col);
+                        cell.className = 'cell';
+                        this.addRobotImage(cell, 'Robot.png');
+                        this.addChargeBar(cell, charge);
+                        robotId++;
+                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                    }
+                }
+            }
+            generateGrid(range, cols) {
+                const grid = [];
+                for (let r = range.min; r <= range.max; r++) {
+                    for (let c = cols.min; c <= cols.max; c++) {
+                        grid.push({ row: r, col: c });
+                    }
+                }
+                return grid;
+            }
+            isPositionValid(pos, set, minDistance) {
+                for (const key of set) {
+                    const [r, c] = key.split(',').map(Number);
+                    const d = Math.abs(pos.row - r) + Math.abs(pos.col - c);
+                    if (d < minDistance) return false;
+                }
+                return true;
+            }
+            isCellOccupied(key) {
+                for (const [id, robot] of this.state.robots) {
+                    if (`${robot.row},${robot.col}` === key) return true;
+                }
+                return false;
+            }
+            getCell(row, col) {
+                return this.board.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            }
+            addRobotImage(cell, imageUrl) {
+                // Удаляем старое изображение робота, если есть
+                const existingImage = cell.querySelector('.robot-image');
+                if (existingImage) cell.removeChild(existingImage);
+                const robotImage = document.createElement('div');
+                robotImage.className = 'robot-image';
+                robotImage.style.backgroundImage = `url('${imageUrl}')`;
+                cell.appendChild(robotImage);
+                return robotImage;
+            }
+            addChargeBar(cell, charge) {
+                // Удаляем старую полосу заряда, если есть
+                const chargeBar = cell.querySelector('.charge-bar');
+                if (chargeBar) cell.removeChild(chargeBar);
+                const newBar = document.createElement('div');
+                newBar.className = 'charge-bar';
+                const level = document.createElement('div');
+                level.className = 'charge-level';
+                if (charge < 25) level.classList.add('low');
+                else if (charge < 50) level.classList.add('medium');
+                else if (charge < 75) level.classList.add('good');
+                else level.classList.add('high');
+                level.style.width = charge + '%';
+                newBar.appendChild(level);
+                cell.appendChild(newBar);
+                return newBar;
+            }
+            updateTimerDisplay() {
+                const minutes = Math.floor(this.remainingTime / 60);
+                const seconds = this.remainingTime % 60;
+                this.timerElement.textContent = `Время: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+            }
+            setupEventListeners() {
+                this.board.addEventListener('click', (e) => {
+                    if (this.gameOver) return; // Игра окончена — ничего не делаем
+                    // 🎯 СТАБИЛЬНЫЙ ВЫБОР РОБОТА: получаем клетку — ВСЕГДА через closest('.cell')
+                    let cell = e.target.closest('.cell');
+                    if (!cell) {
+                        // Поднимаемся по DOM-дереву, пока не найдём .cell
+                        let parent = e.target.parentElement;
+                        while (parent && !cell) {
+                            if (parent.classList && parent.classList.contains('cell')) {
+                                cell = parent;
+                            } else {
+                                parent = parent.parentElement;
+                            }
+                        }
+                    }
+                    if (!cell) return;
+                    const row = parseInt(cell.dataset.row);
+                    const col = parseInt(cell.dataset.col);
+                    const key = `${row},${col}`;
+                    // Если клик по столбу — игнорируем
+                    if (this.state.obstacles.has(key)) return;
+                    // Проверяем, есть ли робот в этой клетке — ВСЕГДА выбираем его при клике на клетку
+                    let clickedRobotId = null;
+                    for (const [id, robot] of this.state.robots) {
+                        if (robot.row === row && robot.col === col) {
+                            clickedRobotId = id;
+                            break;
+                        }
+                    }
+                    if (clickedRobotId !== null) {
+                        const robot = this.state.robots.get(clickedRobotId);
+                        // Сбрасываем постоянное мигание при смене робота
+                        if (this.selectedRobot !== clickedRobotId && this.constantBlinkInterval) {
+                            clearInterval(this.constantBlinkInterval);
+                            this.constantBlinkInterval = null;
+                            this.movesElement.style.backgroundColor = '';
+                        }
+                        // Если клик по уже выбранному роботу — просто обновляем цели
+                        if (this.selectedRobot === clickedRobotId) {
+                            this.startTargetBlinking(robot);
+                            this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
+                            return;
+                        }
+                        // Снимаем выделение с предыдущего робота
+                        if (this.selectedRobot !== null) {
+                            const prevRobot = this.state.robots.get(this.selectedRobot);
+                            const prevCell = this.getCell(prevRobot.row, prevRobot.col);
+                            if (prevCell) prevCell.classList.remove('selected');
+                        }
+                        this.selectedRobot = clickedRobotId;
+                        this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
+                        const robotCell = this.getCell(robot.row, robot.col);
+                        if (robotCell) {
+                            robotCell.classList.add('selected');
+                        }
+                        if (!this.gameStarted) {
+                            this.gameStarted = true;
+                            this.timerInterval = setInterval(() => {
+                                this.remainingTime--;
+                                this.updateTimerDisplay();
+                                if (this.remainingTime <= 0) {
+                                    clearInterval(this.timerInterval);
+                                }
+                            }, 1000);
+                        }
+                        this.startTargetBlinking(robot);
+                    }
+                    // Клик по клетке — назначение маршрута (даже если там робот — сначала выберется робот, но если он уже выбран — строим маршрут)
+                    else if (this.selectedRobot !== null) {
+                        this.setRobotTarget(this.selectedRobot, row, col);
+                    }
+                });
+            }
+            startTargetBlinking(robot) {
+                this.stopAllBlinking();
+                let targets;
+                if (robot.hasShelf) {
+                    targets = robot.charge < 25 ? this.state.chargingStations : this.state.parkingCells;
+                } else {
+                    // Для пустого робота: зарядка (если мало заряда) или столы (shelf)
+                    targets = robot.charge < 25 ? this.state.chargingStations : this.state.shelves;
+                }
+                for (const key of targets) {
+                    const [r, c] = key.split(',').map(Number);
+                    const cell = this.getCell(r, c);
+                    if (cell && this.isCellAvailableForTarget(key)) {
+                        cell.classList.add('target-cell');
+                        this.addBlinkingAnimation(cell);
+                    }
+                }
+            }
+            isCellAvailableForTarget(key) {
+                // Занята роботом?
+                if (this.isCellOccupied(key)) return false;
+                // Занята чужим маршрутом?
+                for (const [otherId, route] of this.state.activeRoutes) {
+                    if (otherId === this.selectedRobot) continue; // свой маршрут — можно
+                    if (route && route.some(step => `${step.row},${step.col}` === key)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            addBlinkingAnimation(cell) {
+                if (cell.classList.contains('blinking-cell')) return;
+                cell.classList.add('blinking-cell');
+                const parts = ['top', 'right', 'bottom', 'left'].map((side, i) => {
+                    const part = document.createElement('div');
+                    part.className = 'moving-part';
+                    part.style[side] = '0';
+                    part.style.width = ['top', 'bottom'].includes(side) ? '20%' : '2px';
+                    part.style.height = ['left', 'right'].includes(side) ? '20%' : '2px';
+                    cell.appendChild(part);
+                    return part;
+                });
+                let step = 0;
+                const interval = setInterval(() => {
+                    parts.forEach((part, i) => {
+                        const pos = (step * 25) + '%';
+                        if (i === 0) part.style.left = pos;
+                        if (i === 1) part.style.top = pos;
+                        if (i === 2) part.style.right = pos;
+                        if (i === 3) part.style.bottom = pos;
+                    });
+                    step = (step + 1) % 4;
+                }, 150);
+                this.state.activeAnimations = this.state.activeAnimations || new Set();
+                this.state.activeAnimations.add({ cell, interval, type: 'blink' });
+            }
+            stopAllBlinking() {
+                if (!this.state.activeAnimations) return;
+                this.state.activeAnimations.forEach(data => {
+                    if (data.type === 'blink') {
+                        clearInterval(data.interval);
+                        data.cell.classList.remove('blinking-cell');
+                        data.cell.querySelectorAll('.moving-part').forEach(el => el.remove());
+                    }
+                });
+                this.state.activeAnimations.clear();
+                const cells = this.board.querySelectorAll('.cell');
+                cells.forEach(cell => {
+                    cell.classList.remove('target-cell');
+                    cell.querySelectorAll('.moving-part').forEach(el => el.remove());
+                });
+            }
+            shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+            // === ОСНОВНАЯ ЛОГИКА МАРШРУТА ===
+            async blinkElement(element, color = '#ff0000', times = 3) {
+                for (let i = 0; i < times; i++) {
+                    element.style.backgroundColor = color;
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    element.style.backgroundColor = '';
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                }
+            }
+            setRobotTarget(robotId, targetRow, targetCol) {
+                if (this.gameOver) return;
+                const robot = this.state.robots.get(robotId);
+                if (!robot) return;
+                const targetKey = `${targetRow},${targetCol}`;
+                const currentClickTarget = `${robotId}:${targetKey}`;
+                // Получаем текущее количество предупреждений для этой пары
+                let count = this.warningCount.get(currentClickTarget) || 0;
+                // Прерываем текущее движение
+                if (this.state.movingRobots.has(robotId)) {
+                    if (this.abortControllers.has(robotId)) {
+                        this.abortControllers.get(robotId).abort();
+                    }
+                    this.state.movingRobots.delete(robotId);
+                }
+                // Очищаем старый маршрут и линии
+                this.clearRobotRoute(robotId);
+                this.stopAllBlinking();
+                const targetCell = this.getCell(targetRow, targetCol);
+                if (!targetCell) return;
+                // Столбы — нельзя
+                if (this.state.obstacles.has(targetKey)) {
+                    this.blinkElement(this.movesElement, '#ff0000', 3);
+                    return;
+                }
+                // 🔥🔥🔥 ГЛАВНОЕ ИСПРАВЛЕНИЕ: если цель — зарядка — строим маршрут ВСЕГДА, без проверок заряда
+                if (this.state.chargingStations.has(targetKey)) {
+                    console.log(`[DEBUG] Цель — зарядка (${targetRow}, ${targetCol}). Строим маршрут.`);
+                    this.warningCount.set(currentClickTarget, 0);
+                    if (this.constantBlinkInterval) {
+                        clearInterval(this.constantBlinkInterval);
+                        this.constantBlinkInterval = null;
+                        this.movesElement.style.backgroundColor = '';
+                    }
+                    // Проверяем, что зарядка доступна как цель
+                    if (!this.isCellPassable(targetRow, targetCol, robot.hasShelf, true, true, robotId)) {
+                        console.log(`[DEBUG] Зарядка недоступна как цель.`);
+                        return;
+                    }
+                    // 🔥🔥🔥 ВРЕМЕННО УДАЛЯЕМ ДРУГИЕ ЗАРЯДКИ
+                    const tempChargingStations = new Set(this.state.chargingStations);
+                    // Оставляем в реестре ТОЛЬКО целевую зарядку
+                    this.state.chargingStations.clear();
+                    this.state.chargingStations.add(targetKey);
+                    // Строим путь
+                    const result = this.findPath(
+                        robot.row, robot.col,
+                        targetRow, targetCol,
+                        robot.hasShelf,
+                        robotId
+                    );
+                    // 🔥🔥🔥 ВОССТАНАВЛИВАЕМ ЗАРЯДКИ ПОСЛЕ ПОСТРОЕНИЯ МАРШРУТА, НО ПЕРЕД ЕГО ЗАПУСКОМ
+                    if (!result.route || result.route.length === 0) {
+                        // Восстанавливаем зарядки ДО выхода, если маршрут не найден
+                        this.state.chargingStations = tempChargingStations;
+                        console.log(`[DEBUG] Маршрут на зарядку НЕ построен.`);
+                        this.blinkObstacleCells(result.obstacles.map(key => {
+                            const [r, c] = key.split(',').map(Number);
+                            return { row: r, col: c };
+                        }));
+                        return;
+                    }
+                    console.log(`[DEBUG] Маршрут на зарядку УСПЕШНО построен. Длина: ${result.route.length}`);
+                    // Передаем временный реестр зарядок в buildAndStartRoute
+                    this.buildAndStartRoute(robotId, result.route, tempChargingStations);
+                    return;
+                }
+                // Для всех остальных целей — проверка заряда
+                const result = this.findPath(
+                    robot.row, robot.col,
+                    targetRow, targetCol,
+                    robot.hasShelf,
+                    robotId
+                );
+                if (!result.route || result.route.length === 0) {
+                    console.log("[DEBUG] Маршрут не найден (основной алгоритм)");
+                    this.blinkObstacleCells(result.obstacles.map(key => {
+                        const [r, c] = key.split(',').map(Number);
+                        return { row: r, col: c };
+                    }));
+                    return;
+                }
+                const route = result.route;
+                const routeLength = route.length - 1;
+                const requiredCharge = routeLength * 2;
+                const finalCharge = robot.charge - requiredCharge;
+                if (finalCharge < 25) {
+                    count++;
+                    this.warningCount.set(currentClickTarget, count);
+                    if (count === 1) {
+                        this.blinkElement(this.movesElement, '#ff0000', 3);
+                        const emptyChargers = [];
+                        for (const key of this.state.chargingStations) {
+                            if (!this.isCellOccupied(key)) {
+                                const [r, c] = key.split(',').map(Number);
+                                emptyChargers.push({ row: r, col: c });
+                            }
+                        }
+                        this.blinkObstacleCells(emptyChargers, '#00ff00');
+                        return;
+                    } else if (count === 2) {
+                        this.blinkElement(this.movesElement, '#ff0000', 3);
+                        return;
+                    } else if (count === 3) {
+                        this.blinkElement(this.movesElement, '#ff0000', 3);
+                        return;
+                    } else {
+                        this.startConstantBlinking(this.movesElement, '#ff0000');
+                    }
+                } else {
+                    this.warningCount.set(currentClickTarget, 0);
+                    if (this.constantBlinkInterval) {
+                        clearInterval(this.constantBlinkInterval);
+                        this.constantBlinkInterval = null;
+                        this.movesElement.style.backgroundColor = '';
+                    }
+                }
+                this.buildAndStartRoute(robotId, route);
+            }
+            // 🔥🔥🔥 ИЗМЕНЕНО: Добавлен необязательный параметр tempChargingStations
+            buildAndStartRoute(robotId, route, tempChargingStations = null) {
+                const robot = this.state.robots.get(robotId);
+                if (!robot) return;
+                // Сохраняем маршрут
+                robot.route = route;
+                this.state.activeRoutes.set(robotId, route);
+                // Визуализируем маршрут
+                this.drawRoute(robotId, route);
+                // 🔥🔥🔥 ВОССТАНАВЛИВАЕМ ЗАРЯДКИ ПЕРЕД ЗАПУСКОМ ДВИЖЕНИЯ
+                if (tempChargingStations) {
+                    this.state.chargingStations = tempChargingStations;
+                }
+                // Запускаем движение
+                this.startRobotMovement(robotId);
+            }
+            startConstantBlinking(element, color = '#ff0000') {
+                if (this.constantBlinkInterval) {
+                    clearInterval(this.constantBlinkInterval);
+                }
+                let isOn = true;
+                this.constantBlinkInterval = setInterval(() => {
+                    if (isOn) {
+                        element.style.backgroundColor = color;
+                    } else {
+                        element.style.backgroundColor = '';
+                    }
+                    isOn = !isOn;
+                }, 250);
+            }
+            async blinkObstacleCells(cells, color = '#ff0000') {
+                if (!cells || cells.length === 0) return;
+                const uniqueCells = Array.from(new Set(cells.map(c => `${c.row},${c.col}`)))
+                    .map(key => {
+                        const [r, c] = key.split(',').map(Number);
+                        return { row: r, col: c };
+                    });
+                const blinkPromises = uniqueCells.map(({ row, col }) => {
+                    return new Promise(resolve => {
+                        const cell = this.getCell(row, col);
+                        if (!cell) {
+                            resolve();
+                            return;
+                        }
+                        let count = 0;
+                        const blink = () => {
+                            if (count >= 3) {
+                                resolve();
+                                return;
+                            }
+                            cell.style.backgroundColor = color;
+                            setTimeout(() => {
+                                cell.style.backgroundColor = '';
+                                setTimeout(blink, 150);
+                                count++;
+                            }, 150);
+                        };
+                        blink();
+                    });
+                });
+                await Promise.all(blinkPromises);
+            }
+            // 🔥🔥🔥 ИСПРАВЛЕННЫЙ МЕТОД: Добавлен параметр isFinalDestination
+            isCellPassable(row, col, isRobotCarryingShelf, ignoreRoute = false, isFinalDestination = false, forRobotId = null) {
+                const key = `${row},${col}`;
+                const cell = this.getCell(row, col);
+                if (!cell) {
+                    console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) не существует в DOM.`);
+                    return false;
+                }
+                // Столбы — никогда
+                if (this.state.obstacles.has(key)) {
+                    console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — столб. Непроходима.`);
+                    return false;
+                }
+                // Другие роботы — нельзя
+                if (this.isCellOccupied(key)) {
+                    console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) занята другим роботом. Непроходима.`);
+                    return false;
+                }
+                // Если клетка занята чужим маршрутом — нельзя (если не игнорируем)
+                if (!ignoreRoute) {
+                    for (const [otherId, route] of this.state.activeRoutes) {
+                        if (otherId === forRobotId) continue;
+                        if (route && route.some(step => step.row === row && step.col === col)) {
+                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) занята чужим маршрутом (робот ${otherId}). Непроходима.`);
+                            return false;
+                        }
+                    }
+                }
+                // 🔥🔥🔥 ОСНОВНАЯ ЛОГИКА: Разделяем проверку для "проезда" и "остановки"
+                if (isFinalDestination) {
+                    // Это КОНЕЧНАЯ ЦЕЛЬ — проверяем, можно ли здесь ОСТАНОВИТЬСЯ
+                    if (this.state.chargingStations.has(key)) {
+                        // На зарядку можно встать всегда (робот скинет груз, если нужно)
+                        console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — зарядка. Доступна как ЦЕЛЬ.`);
+                        return true;
+                    }
+                    if (this.state.shelves.has(key)) {
+                        // На стол можно встать ТОЛЬКО если робот БЕЗ груза
+                        if (!isRobotCarryingShelf) {
+                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — стол. Доступна как ЦЕЛЬ (робот без груза).`);
+                            return true;
+                        } else {
+                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — стол. Недоступна как ЦЕЛЬ (робот с грузом).`);
+                            return false;
+                        }
+                    }
+                    if (this.state.parkingCells.has(key)) {
+                        // На парковку можно встать ТОЛЬКО если робот С грузом
+                        if (isRobotCarryingShelf) {
+                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — парковка. Доступна как ЦЕЛЬ (робот с грузом).`);
+                            return true;
+                        } else {
+                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — парковка. Недоступна как ЦЕЛЬ (робот без груза).`);
+                            return false;
+                        }
+                    }
+                    // Любая другая клетка (пустая) — можно встать
+                    console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — пустая. Доступна как ЦЕЛЬ.`);
+                    return true;
+                } else {
+                    // Это ПРОМЕЖУТОЧНАЯ клетка — проверяем, можно ли через неё ПРОЕХАТЬ
+                    if (this.state.chargingStations.has(key)) {
+                        // Через зарядку НЕЛЬЗЯ проезжать, если только она не цель
+                        console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — зарядка. НЕПРОХОДИМА для ПРОЕЗДА.`);
+                        return false;
+                    }
+                    if (this.state.shelves.has(key)) {
+                        // Через стол МОЖНО проезжать ТОЛЬКО если робот БЕЗ груза
+                        if (!isRobotCarryingShelf) {
+                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — стол. Доступна для ПРОЕЗДА (пустой робот).`);
+                            return true;
+                        } else {
+                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — стол. Недоступна для ПРОЕЗДА (робот с грузом).`);
+                            return false;
+                        }
+                    }
+                    // Парковка и пустые клетки — всегда можно проезжать
+                    console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — пустая или парковка. Доступна для ПРОЕЗДА.`);
+                    return true;
+                }
+            }
+            findPath(startRow, startCol, endRow, endCol, isRobotCarryingShelf, forRobotId) {
+                const queue = [];
+                const visited = new Set();
+                const parent = {};
+                const localObstacleCells = new Set();
+                const endKey = `${endRow},${endCol}`;
+                queue.push({ row: startRow, col: startCol });
+                visited.add(`${startRow},${startCol}`);
+                const directions = [
+                    { row: 0, col: 1 },   // вправо
+                    { row: 1, col: 0 },   // вниз
+                    { row: 0, col: -1 },  // влево
+                    { row: -1, col: 0 }   // вверх
+                ];
+                while (queue.length > 0) {
+                    const current = queue.shift();
+                    const currentKey = `${current.row},${current.col}`;
+                    // --- ИЗМЕНЕНИЕ НАЧАЛО ---
+                    // Проверка: если текущая клетка - это цель, путь найден.
+                    // Это может произойти, если стартовая клетка совпадает с конечной.
+                    if (current.row === endRow && current.col === endCol) {
+                         // Проверяем, что конечная клетка доступна как цель
+                        if (!this.isCellPassable(endRow, endCol, isRobotCarryingShelf, true, true, forRobotId)) {
+                            localObstacleCells.add(endKey);
+                            return { route: null, obstacles: Array.from(localObstacleCells) };
+                        }
+                        // Восстанавливаем путь
+                        const path = [];
+                        let step = current;
+                        while (step) {
+                            path.unshift(step);
+                            const stepKey = `${step.row},${step.col}`;
+                            step = parent[stepKey];
+                        }
+                        return { route: path, obstacles: [] };
+                    }
+                    // --- ИЗМЕНЕНИЕ КОНЕЦ ---
+                    for (const dir of directions) {
+                        const newRow = current.row + dir.row;
+                        const newCol = current.col + dir.col;
+                        if (newRow < 0 || newRow >= this.rows || newCol < 0 || newCol >= this.cols) continue;
+                        const newKey = `${newRow},${newCol}`;
+                        if (visited.has(newKey)) continue;
+                        // --- ИЗМЕНЕНИЕ НАЧАЛО ---
+                        // Проверка: если соседняя клетка - это цель
+                        if (newRow === endRow && newCol === endCol) {
+                            // Проверяем, что конечная клетка доступна как цель
+                            if (this.isCellPassable(endRow, endCol, isRobotCarryingShelf, true, true, forRobotId)) {
+                                // Если доступна, строим путь
+                                const path = [];
+                                const finalStep = { row: newRow, col: newCol };
+                                let step = current; // Начинаем с текущей клетки (предшественника цели)
+                                while (step) {
+                                    path.unshift(step);
+                                    const stepKey = `${step.row},${step.col}`;
+                                    step = parent[stepKey];
+                                }
+                                path.push(finalStep); // Добавляем саму цель в конец пути
+                                return { route: path, obstacles: [] };
+                            } else {
+                                // Если недоступна как цель, считаем препятствием
+                                localObstacleCells.add(newKey);
+                                // И не добавляем в очередь
+                                continue;
+                            }
+                        }
+                        // --- ИЗМЕНЕНИЕ КОНЕЦ ---
+                        // 🔥 При построении пути для ПРОМЕЖУТОЧНЫХ клеток используем isFinalDestination = false
+                        if (this.isCellPassable(newRow, newCol, isRobotCarryingShelf, false, false, forRobotId)) {
+                            visited.add(newKey);
+                            parent[newKey] = current;
+                            queue.push({ row: newRow, col: newCol });
+                        } else {
+                            localObstacleCells.add(newKey);
+                        }
+                    }
+                }
+                return { route: null, obstacles: Array.from(localObstacleCells) };
+            }
+            // 🔥 УДАЛЕН МЕТОД findPathSimple — он больше не нужен.
+            // Все маршруты строятся через BFS (findPath).
+            drawRoute(robotId, route) {
+                this.clearRobotRouteLines(robotId);
+                const lines = [];
+                for (let i = 0; i < route.length - 1; i++) {
+                    const from = route[i];
+                    const to = route[i + 1];
+                    const line = this.drawLineBetweenCells(from.row, from.col, to.row, to.col);
+                    if (line) {
+                        lines.push(line);
+                        this.board.appendChild(line);
+                    }
+                }
+                this.state.routeLines.set(robotId, lines);
+            }
+            drawLineBetweenCells(row1, col1, row2, col2) {
+                const cell1 = this.getCell(row1, col1);
+                const cell2 = this.getCell(row2, col2);
+                if (!cell1 || !cell2) return null;
+                const rect1 = cell1.getBoundingClientRect();
+                const rect2 = cell2.getBoundingClientRect();
+                const boardRect = this.board.getBoundingClientRect();
+                const x1 = rect1.left + rect1.width / 2 - boardRect.left;
+                const y1 = rect1.top + rect1.height / 2 - boardRect.top;
+                const x2 = rect2.left + rect2.width / 2 - boardRect.left;
+                const y2 = rect2.top + rect2.height / 2 - boardRect.top;
+                const line = document.createElement('div');
+                line.className = 'route-line';
+                const length = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+                const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+                line.style.width = `${length}px`;
+                line.style.height = '2px';
+                line.style.left = `${x1}px`;
+                line.style.top = `${y1}px`;
+                line.style.transformOrigin = '0 0';
+                line.style.transform = `rotate(${angle}deg)`;
+                return line;
+            }
+            clearRobotRoute(robotId) {
+                this.clearRobotRouteLines(robotId);
+                this.state.activeRoutes.delete(robotId);
+                const robot = this.state.robots.get(robotId);
+                if (robot) robot.route = null;
+            }
+            clearRobotRouteLines(robotId) {
+                const lines = this.state.routeLines.get(robotId);
+                if (lines) {
+                    lines.forEach(line => {
+                        if (line && line.parentNode) {
+                            line.remove();
+                        }
+                    });
+                }
+                this.state.routeLines.delete(robotId);
+            }
+            async startRobotMovement(robotId) {
+                const robot = this.state.robots.get(robotId);
+                if (!robot || !robot.route || robot.route.length <= 1) return;
+                if (this.abortControllers.has(robotId)) {
+                    this.abortControllers.get(robotId).abort();
+                }
+                const abortController = new AbortController();
+                this.abortControllers.set(robotId, abortController);
+                const signal = abortController.signal;
+                this.state.movingRobots.add(robotId);
+                const route = [...robot.route];
+                const lines = this.state.routeLines.get(robotId) || [];
+                try {
+                    for (let i = 1; i < route.length; i++) {
+                        if (signal.aborted) {
+                            console.log(`Движение робота ${robotId} прервано.`);
+                            if (this.selectedRobot === robotId) {
+                                this.stopAllBlinking();
+                            }
+                            // 🔥🔥🔥 ИСПРАВЛЕНИЕ: Полная очистка всех клеток маршрута при прерывании
+                            const currentRoute = this.state.activeRoutes.get(robotId);
+                            if (currentRoute) {
+                                for (const step of currentRoute) {
+                                    const stepCell = this.getCell(step.row, step.col);
+                                    if (stepCell) {
+                                        this.restoreCellState(stepCell, step.row, step.col);
+                                    }
+                                }
+                            }
+                            // Восстанавливаем состояние робота в его текущей позиции
+                            const currentCell = this.getCell(robot.row, robot.col);
+                            if (currentCell) {
+                                // Полная очистка клетки
+                                while (currentCell.firstChild) {
+                                    currentCell.removeChild(currentCell.firstChild);
+                                }
+                                currentCell.className = 'cell';
+                                // Восстанавливаем фон клетки
+                                const currentKey = `${robot.row},${robot.col}`;
+                                if (this.state.parkingCells.has(currentKey)) currentCell.classList.add('parking');
+                                else if (this.state.obstacles.has(currentKey)) currentCell.classList.add('column');
+                                else if (this.state.chargingStations.has(currentKey)) currentCell.classList.add('charging-station');
+                                else if (this.state.shelves.has(currentKey)) currentCell.classList.add('shelf');
+                                // Добавляем робота обратно
+                                this.addRobotImage(currentCell, 'Robot.png');
+                                this.addChargeBar(currentCell, robot.charge);
+                                // Если робот выбран, добавляем выделение
+                                if (this.selectedRobot === robotId) {
+                                    currentCell.classList.add('selected');
+                                }
+                            }
+                            break;
+                        }
+                        const prevStep = route[i - 1];
+                        const nextStep = route[i];
+                        const currentCell = this.getCell(prevStep.row, prevStep.col);
+                        const nextCell = this.getCell(nextStep.row, nextStep.col);
+                        if (!nextCell) break;
+
+                        // Проверка: если следующая клетка — зарядка и робот везёт груз — оставляем груз здесь
+                        if (this.state.chargingStations.has(`${nextStep.row},${nextStep.col}`) && robot.hasShelf) {
+                            // Оставляем груз в ТЕКУЩЕЙ клетке (перед заездом на зарядку)
+                            if (currentCell) {
+                                this.dropShelfHere(robot, currentCell, prevStep.row, prevStep.col);
+                            }
+                        }
+
+                        // Подготавливаем следующую клетку (робот пока невидим)
+                        while (nextCell.firstChild) {
+                            nextCell.removeChild(nextCell.firstChild);
+                        }
+                        nextCell.className = 'cell';
+                        const nextKey = `${nextStep.row},${nextStep.col}`;
+                        if (this.state.parkingCells.has(nextKey)) nextCell.classList.add('parking');
+                        else if (this.state.obstacles.has(nextKey)) nextCell.classList.add('column');
+                        else if (this.state.chargingStations.has(nextKey)) nextCell.classList.add('charging-station');
+                        else if (this.state.shelves.has(nextKey)) nextCell.classList.add('shelf');
+
+                        this.addRobotImage(nextCell, 'Robot.png');
+                        this.addChargeBar(nextCell, robot.charge);
+                        const nextRobotImg = nextCell.querySelector('.robot-image');
+                        const nextChargeBar = nextCell.querySelector('.charge-bar');
+                        if (nextRobotImg) nextRobotImg.style.opacity = '0';
+                        if (nextChargeBar) nextChargeBar.style.opacity = '0';
+
+                        // Скрываем робота в текущей клетке
+                        if (currentCell) {
+                            const currentRobotImg = currentCell.querySelector('.robot-image');
+                            const currentChargeBar = currentCell.querySelector('.charge-bar');
+                            if (currentRobotImg) currentRobotImg.style.opacity = '0';
+                            if (currentChargeBar) currentChargeBar.style.opacity = '0';
+                        }
+
+                        // Ждём 100 мс — анимация исчезновения
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        // Удаляем содержимое текущей клетки
+                        if (currentCell) {
+                            while (currentCell.firstChild) {
+                                currentCell.removeChild(currentCell.firstChild);
+                            }
+                            // Восстанавливаем фон текущей клетки
+                            currentCell.className = 'cell';
+                            const currentKey = `${prevStep.row},${prevStep.col}`;
+                            if (this.state.parkingCells.has(currentKey)) currentCell.classList.add('parking');
+                            else if (this.state.obstacles.has(currentKey)) currentCell.classList.add('column');
+                            else if (this.state.chargingStations.has(currentKey)) currentCell.classList.add('charging-station');
+                            else if (this.state.shelves.has(currentKey)) currentCell.classList.add('shelf');
+                        }
+
+                        // Показываем робота в следующей клетке
+                        if (nextRobotImg) nextRobotImg.style.opacity = '1';
+                        if (nextChargeBar) nextChargeBar.style.opacity = '1';
+
+                        // Удаление линии шага
+                        if (lines.length > 0) {
+                            const lineToRemove = lines.shift();
+                            if (lineToRemove && lineToRemove.parentNode) lineToRemove.remove();
+                        }
+
+                        // Обновляем позицию робота в данных
+                        robot.row = nextStep.row;
+                        robot.col = nextStep.col;
+                        // Расход заряда: 1% за клетку
+                        robot.charge = Math.max(0, robot.charge - 1);
+                        // Проверка на game over
+                        if (robot.charge <= 0) {
+                            this.triggerGameOver();
+                            return;
+                        }
+                        // Обновляем активный маршрут в реестре
+                        if (robot.route && robot.route.length > i) {
+                            robot.route = robot.route.slice(i - 1);
+                            this.state.activeRoutes.set(robotId, robot.route);
+                        }
+                        // Обновляем интерфейс заряда
+                        if (this.selectedRobot === robotId) {
+                            this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
+                        }
+                        // Ждём 150 мс — основная анимация
+                        await new Promise(resolve => setTimeout(resolve, 150));
+                    }
+                    if (!signal.aborted) {
+                        // Финальная очистка
+                        this.clearRobotRouteLines(robotId);
+                        this.state.activeRoutes.delete(robotId);
+                        robot.route = null;
+                        const finalCell = this.getCell(robot.row, robot.col);
+                        if (finalCell) {
+                            this.restoreCellState(finalCell, robot.row, robot.col);
+                            // Добавляем робота в финальную клетку
+                            this.addRobotImage(finalCell, 'Robot.png');
+                            this.addChargeBar(finalCell, robot.charge);
+                            // Если прибыл на зарядку — начинаем заряжаться
+                            if (this.state.chargingStations.has(`${robot.row},${robot.col}`)) {
+                                this.startCharging(robotId);
+                            }
+                            // Если робот выбран, добавляем выделение
+                            if (this.selectedRobot === robotId) {
+                                finalCell.classList.add('selected');
+                            }
+                        }
+                        // Обновляем интерфейс заряда
+                        if (this.selectedRobot === robotId) {
+                            this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
+                        }
+                        // 🔥🔥🔥 Автоматически показываем цели после завершения движения
+                        if (this.selectedRobot === robotId) {
+                             this.startTargetBlinking(robot);
+                        }
+                    }
+                } catch (error) {
+                    if (error.message !== 'aborted') throw error;
+                } finally {
+                    this.state.movingRobots.delete(robotId);
+                    if (this.abortControllers.get(robotId) === abortController) {
+                        this.abortControllers.delete(robotId);
+                    }
+                }
+            }
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Восстановление состояния клетки
+            restoreCellState(cell, row, col) {
+                const key = `${row},${col}`;
+                // Полная очистка клетки
+                while (cell.firstChild) {
+                    cell.removeChild(cell.firstChild);
+                }
+                // Восстанавливаем класс клетки
+                cell.className = 'cell';
+                if (this.state.parkingCells.has(key)) cell.classList.add('parking');
+                else if (this.state.obstacles.has(key)) cell.classList.add('column');
+                else if (this.state.chargingStations.has(key)) cell.classList.add('charging-station');
+                else if (this.state.shelves.has(key)) cell.classList.add('shelf');
+                // Проверяем, есть ли робот в этой клетке
+                let robotHere = null;
+                for (const [id, robot] of this.state.robots) {
+                    if (robot.row === row && robot.col === col) {
+                        robotHere = robot;
+                        break;
+                    }
+                }
+                // Если робот есть, добавляем его изображение
+                if (robotHere) {
+                    // Определяем, какой тип изображения робота показывать
+                    let robotImage = 'Robot.png';
+                    if (this.state.chargingStations.has(key) && robotHere.isCharging) {
+                        robotImage = 'Robot_Charg.png';
+                    }
+                    this.addRobotImage(cell, robotImage);
+                    this.addChargeBar(cell, robotHere.charge);
+                }
+            }
+            dropShelfHere(robot, cell, row, col) {
+                if (!robot.hasShelf) return;
+                robot.hasShelf = false;
+                const key = `${row},${col}`;
+                // Добавляем стол в реестр, если его там ещё нет
+                if (!this.state.shelves.has(key)) {
+                    this.state.shelves.add(key);
+                }
+                // Обновляем визуальное состояние клетки
+                if (cell) {
+                    while (cell.firstChild) {
+                        cell.removeChild(cell.firstChild);
+                    }
+                    cell.className = 'cell shelf';
+                    this.addRobotImage(cell, 'Robot.png');
+                    this.addChargeBar(cell, robot.charge);
+                }
+                console.log(`Робот оставил стол на (${row}, ${col})`);
+            }
+            startCharging(robotId) {
+                const robot = this.state.robots.get(robotId);
+                if (!robot) return;
+                // Отмечаем, что робот начал зарядку
+                robot.isCharging = true;
+                // Останавливаем предыдущий интервал зарядки, если он есть
+                if (this.state.chargingIntervals.has(robotId)) {
+                    clearInterval(this.state.chargingIntervals.get(robotId));
+                }
+                // Обновляем визуальное состояние клетки с зарядкой
+                const cell = this.getCell(robot.row, robot.col);
+                if (cell) {
+                    // Очищаем содержимое клетки
+                    while (cell.firstChild) {
+                        cell.removeChild(cell.firstChild);
+                    }
+                    // Устанавливаем белый фон
+                    cell.className = 'cell';
+                    // Добавляем изображение робота на зарядке
+                    this.addRobotImage(cell, 'Robot_Charg.png');
+                    // Добавляем полосу заряда
+                    this.addChargeBar(cell, robot.charge);
+                    // Если робот выбран, добавляем градиентный фон
+                    if (this.selectedRobot === robotId) {
+                        cell.classList.add('selected');
+                    }
+                }
+                // Заряжаем по 10% в секунду
+                const chargeInterval = setInterval(() => {
+                    // Проверяем, что робот все еще на зарядке и не в движении
+                    if (!robot.isCharging || this.state.movingRobots.has(robotId)) {
+                        clearInterval(chargeInterval);
+                        this.state.chargingIntervals.delete(robotId);
+                        return;
+                    }
+                    if (robot.charge >= 100) {
+                        robot.charge = 100;
+                        robot.isCharging = false; // Зарядка завершена
+                        clearInterval(chargeInterval);
+                        this.state.chargingIntervals.delete(robotId);
+                        // Обновляем визуальное состояние клетки после полной зарядки
+                        const finalCell = this.getCell(robot.row, robot.col);
+                        if (finalCell) {
+                            // Очищаем содержимое клетки
+                            while (finalCell.firstChild) {
+                                finalCell.removeChild(finalCell.firstChild);
+                            }
+                            // Устанавливаем белый фон
+                            finalCell.className = 'cell';
+                            // Добавляем обычное изображение робота
+                            this.addRobotImage(finalCell, 'Robot.png');
+                            // Добавляем полосу заряда
+                            this.addChargeBar(finalCell, robot.charge);
+                            // Если робот выбран, добавляем градиентный фон и мигающие цели
+                            if (this.selectedRobot === robotId) {
+                                finalCell.classList.add('selected');
+                                this.startTargetBlinking(this.state.robots.get(robotId));
+                            }
+                        }
+                        return;
+                    }
+                    robot.charge = Math.min(100, robot.charge + 10);
+                    const chargeCell = this.getCell(robot.row, robot.col);
+                    if (chargeCell) {
+                        this.addChargeBar(chargeCell, robot.charge);
+                    }
+                    if (this.selectedRobot === robotId) {
+                        this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
+                    }
+                }, 1000);
+                this.state.chargingIntervals.set(robotId, chargeInterval);
+            }
+            triggerGameOver() {
+                this.gameOver = true;
+                // Останавливаем таймер
+                if (this.timerInterval) {
+                    clearInterval(this.timerInterval);
+                }
+                // Останавливаем всех роботов
+                for (const [id, controller] of this.abortControllers) {
+                    controller.abort();
+                }
+                this.abortControllers.clear();
+                // Останавливаем все процессы зарядки
+                for (const [id, interval] of this.state.chargingIntervals) {
+                    clearInterval(interval);
+                }
+                this.state.chargingIntervals.clear();
+                // Блокируем доску
+                this.board.style.pointerEvents = 'none';
+                // Показываем GAME OVER
+                const overlay = document.createElement('div');
+                overlay.className = 'game-over-overlay';
+                overlay.textContent = 'GAME OVER';
+                this.board.appendChild(overlay);
+                // Обновляем статус
+                this.movesElement.textContent = 'GAME OVER';
+                this.timerElement.textContent = 'GAME OVER';
+                // Останавливаем постоянное мигание
+                if (this.constantBlinkInterval) {
+                    clearInterval(this.constantBlinkInterval);
+                    this.constantBlinkInterval = null;
+                }
+            }
+        }
+        document.addEventListener('DOMContentLoaded', () => {
+            new LogisticsGame();
+        });
+    </script>
+</body>
+</html>
