@@ -251,8 +251,8 @@
 <body>
     <div class="container">
         <div class="stats-container">
-            <div id="moves" class="stat-item">Заряд робота: 100%</div>
-            <div id="timer" class="stat-item">Время: 20:00</div>
+            <div id="moves" class="stat-item">Заряд робота</div>
+            <div id="timer" class="stat-item">Время</div>
         </div>
         <div class="game-wrapper">
             <div class="game-board" id="game-board">
@@ -270,7 +270,7 @@
                 this.resetBtn = document.getElementById('reset-btn');
                 this.rows = 13;
                 this.cols = 10;
-                this.totalTime = 20 * 60;
+                this.totalTime = 3 * 60;
                 this.remainingTime = this.totalTime;
                 this.timerInterval = null;
                 this.gameStarted = false;
@@ -311,7 +311,10 @@
                     activeRoutes: new Map(), // robotId -> массив клеток маршрута (включая цель)
                     movingRobots: new Set(), // robotId, которые сейчас в движении
                     routeLines: new Map(), // robotId -> массив DOM-элементов линий
-                    chargingIntervals: new Map() // robotId -> intervalId
+                    chargingIntervals: new Map(), // robotId -> intervalId
+                    // 🔥🔥🔥 НОВЫЙ РЕЕСТР: Состояние каждой клетки парковки
+                    // { "0,5": { hasShelf: true, robotId: 1 }, "0,6": { hasShelf: false, robotId: null } }
+                    parkingCellStates: new Map()
                 };
                 this.init();
             }
@@ -352,6 +355,7 @@
                 this.state.movingRobots.clear();
                 this.state.routeLines.clear();
                 this.state.chargingIntervals.clear();
+                this.state.parkingCellStates.clear(); // 🔥 Очищаем новый реестр
                 this.warningCount.clear();
                 this.gameOver = false;
                 // Убираем overlay GAME OVER, если есть
@@ -369,9 +373,10 @@
                 this.movesElement.style.backgroundColor = ''; // Сбрасываем мигание
                 // Парковка
                 for (let col = 0; col < this.cols; col++) {
-                    const cell = this.getCell(0, col);
-                    cell.className = 'cell parking';
-                    this.state.parkingCells.add(`${0},${col}`);
+                    const key = `0,${col}`;
+                    this.state.parkingCells.add(key);
+                    // 🔥 Инициализируем состояние каждой клетки парковки
+                    this.state.parkingCellStates.set(key, { hasShelf: false, robotId: null });
                 }
                 // Ждём 200 мс перед генерацией поля
                 await new Promise(resolve => setTimeout(resolve, 200));
@@ -392,31 +397,52 @@
             }
             async generateFieldWithAnimation() {
                 this.hideSplashScreen();
-                // Плавная расстановка: столбы → зарядки → столы → роботы (по 30 мс)
-                await this.placeObstaclesWithDelay(30);
-                await this.placeChargingStationsWithDelay(30);
-                await this.placeShelvesWithDelay(30);
-                await this.placeRobotsWithDelay(30);
-            }
-            async placeObstaclesWithDelay(delayMs) {
-                const grid = this.generateGrid(this.gameParams.columnRows, this.gameParams.columnCols);
-                this.shuffleArray(grid);
-                let placed = 0;
-                for (const pos of grid) {
-                    if (placed >= this.gameParams.columnsCount) break;
-                    if (this.isPositionValid(pos, this.state.obstacles, this.gameParams.minDistance.columnToColumn)) {
-                        const cell = this.getCell(pos.row, pos.col);
-                        if (cell && cell.classList.contains('empty')) {
-                            cell.className = 'cell column';
-                            this.state.obstacles.add(`${pos.row},${pos.col}`);
-                            placed++;
-                            await new Promise(resolve => setTimeout(resolve, delayMs));
-                        }
+                let isValidField = false;
+                let attempt = 0;
+                const maxAttempts = 50; // Увеличиваем количество попыток
+                while (!isValidField && attempt < maxAttempts) {
+                    attempt++;
+                    // Очищаем реестры перед каждой попыткой
+                    this.state.obstacles.clear();
+                    this.state.chargingStations.clear();
+                    this.state.shelves.clear();
+                    this.state.robots.clear();
+                    this.state.parkingCellStates.clear(); // 🔥 Очищаем новый реестр
+                    // Генерируем объекты "в уме"
+                    isValidField = await this.generateObjectsInMemory();
+                    if (!isValidField) {
+                        console.log(`[DEBUG] Попытка ${attempt}: Найдено наложение объектов. Перегенерация...`);
                     }
                 }
+                if (!isValidField) {
+                    console.error(`[ERROR] Не удалось сгенерировать поле без наложений после ${maxAttempts} попыток.`);
+                    // Можно добавить fallback-логику, но для простоты оставим как есть
+                }
+                // 🔥🔥🔥 ГЛАВНОЕ ИСПРАВЛЕНИЕ: Отрисовываем ВСЕ объекты на доске ОДНОВРЕМЕННО
+                this.renderAllObjects();
             }
-            async placeChargingStationsWithDelay(delayMs) {
-                const candidates = [];
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Генерация объектов в памяти (без отрисовки)
+            async generateObjectsInMemory() {
+                // Парковка (неизменна)
+                for (let col = 0; col < this.cols; col++) {
+                    const key = `0,${col}`;
+                    this.state.parkingCells.add(key);
+                    // 🔥 Инициализируем состояние каждой клетки парковки
+                    this.state.parkingCellStates.set(key, { hasShelf: false, robotId: null });
+                }
+                // Генерируем столбы
+                const obstaclesGrid = this.generateGrid(this.gameParams.columnRows, this.gameParams.columnCols);
+                this.shuffleArray(obstaclesGrid);
+                let obstaclesPlaced = 0;
+                for (const pos of obstaclesGrid) {
+                    if (obstaclesPlaced >= this.gameParams.columnsCount) break;
+                    if (this.isPositionValid(pos, this.state.obstacles, this.gameParams.minDistance.columnToColumn)) {
+                        this.state.obstacles.add(`${pos.row},${pos.col}`);
+                        obstaclesPlaced++;
+                    }
+                }
+                // Генерируем зарядки
+                const chargingCandidates = [];
                 for (const key of this.state.obstacles) {
                     const [r, c] = key.split(',').map(Number);
                     const directions = [
@@ -428,48 +454,43 @@
                         const nc = c + dir.col;
                         if (nr >= this.gameParams.chargingRows.min && nr <= this.gameParams.chargingRows.max &&
                             nc >= this.gameParams.chargingCols.min && nc <= this.gameParams.chargingCols.max) {
-                            candidates.push({ row: nr, col: nc });
+                            chargingCandidates.push({ row: nr, col: nc });
                         }
                     }
                 }
-                this.shuffleArray(candidates);
-                let placed = 0;
-                for (const pos of candidates) {
-                    if (placed >= this.gameParams.chargingStationsCount) break;
+                this.shuffleArray(chargingCandidates);
+                let chargingPlaced = 0;
+                for (const pos of chargingCandidates) {
+                    if (chargingPlaced >= this.gameParams.chargingStationsCount) break;
                     if (this.isPositionValid(pos, this.state.chargingStations, this.gameParams.minDistance.chargingToCharging) &&
-                        this.getCell(pos.row, pos.col)?.classList.contains('empty')) {
+                        !this.state.obstacles.has(`${pos.row},${pos.col}`)) {
                         this.state.chargingStations.add(`${pos.row},${pos.col}`);
-                        this.getCell(pos.row, pos.col).className = 'cell charging-station';
-                        placed++;
-                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                        chargingPlaced++;
                     }
                 }
-            }
-            async placeShelvesWithDelay(delayMs) {
-                const grid = this.generateGrid(this.gameParams.shelfRows, this.gameParams.shelfCols);
-                this.shuffleArray(grid);
-                let placed = 0;
-                for (const pos of grid) {
-                    if (placed >= this.gameParams.shelvesCount) break;
+                // Генерируем столы
+                const shelvesGrid = this.generateGrid(this.gameParams.shelfRows, this.gameParams.shelfCols);
+                this.shuffleArray(shelvesGrid);
+                let shelvesPlaced = 0;
+                for (const pos of shelvesGrid) {
+                    if (shelvesPlaced >= this.gameParams.shelvesCount) break;
                     if (this.isPositionValid(pos, this.state.chargingStations, this.gameParams.minDistance.chargingToShelf) &&
                         this.isPositionValid(pos, this.state.obstacles, 2) &&
-                        this.getCell(pos.row, pos.col)?.classList.contains('empty')) {
+                        !this.state.chargingStations.has(`${pos.row},${pos.col}`) &&
+                        !this.state.obstacles.has(`${pos.row},${pos.col}`)) {
                         this.state.shelves.add(`${pos.row},${pos.col}`);
-                        this.getCell(pos.row, pos.col).className = 'cell shelf';
-                        placed++;
-                        await new Promise(resolve => setTimeout(resolve, delayMs));
+                        shelvesPlaced++;
                     }
                 }
-            }
-            async placeRobotsWithDelay(delayMs) {
-                const grid = this.generateGrid(this.gameParams.robotRows, this.gameParams.robotCols);
-                this.shuffleArray(grid);
+                // Генерируем роботов
+                const robotsGrid = this.generateGrid(this.gameParams.robotRows, this.gameParams.robotCols);
+                this.shuffleArray(robotsGrid);
                 let robotId = 0;
                 let lowChargePlaced = false;
-                for (const pos of grid) {
+                for (const pos of robotsGrid) {
                     if (robotId >= this.gameParams.robotsCount) break;
                     const key = `${pos.row},${pos.col}`;
-                    if (!this.isCellOccupied(key)) {
+                    if (!this.isCellOccupiedInMemory(key)) {
                         let charge = !lowChargePlaced ?
                             Math.floor(Math.random() * 11) + 15 :
                             Math.floor(Math.random() * 76) + 25;
@@ -482,14 +503,113 @@
                             route: null,
                             isCharging: false
                         });
-                        const cell = this.getCell(pos.row, pos.col);
-                        cell.className = 'cell';
-                        this.addRobotImage(cell, 'Robot.png');
-                        this.addChargeBar(cell, charge);
                         robotId++;
-                        await new Promise(resolve => setTimeout(resolve, delayMs));
                     }
                 }
+                // Проверка: все ли объекты успешно размещены?
+                if (obstaclesPlaced < this.gameParams.columnsCount ||
+                    chargingPlaced < this.gameParams.chargingStationsCount ||
+                    shelvesPlaced < this.gameParams.shelvesCount ||
+                    robotId < this.gameParams.robotsCount) {
+                    return false;
+                }
+                // Проверка уникальности позиций
+                return this.validateFieldUniqueness();
+            }
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Проверка занятости клетки "в уме"
+            isCellOccupiedInMemory(key) {
+                // Проверяем столбы
+                if (this.state.obstacles.has(key)) return true;
+                // Проверяем зарядки
+                if (this.state.chargingStations.has(key)) return true;
+                // Проверяем столы
+                if (this.state.shelves.has(key)) return true;
+                // Проверяем роботов
+                for (const [id, robot] of this.state.robots) {
+                    if (`${robot.row},${robot.col}` === key) return true;
+                }
+                return false;
+            }
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Отрисовка всех объектов на доске
+            renderAllObjects() {
+                // Сначала очищаем доску
+                this.createBoard();
+                // Отрисовываем парковку
+                for (let col = 0; col < this.cols; col++) {
+                    const cell = this.getCell(0, col);
+                    if (cell) {
+                        cell.className = 'cell parking';
+                    }
+                }
+                // Отрисовываем столбы
+                for (const key of this.state.obstacles) {
+                    const [row, col] = key.split(',').map(Number);
+                    const cell = this.getCell(row, col);
+                    if (cell) {
+                        cell.className = 'cell column';
+                    }
+                }
+                // Отрисовываем зарядки
+                for (const key of this.state.chargingStations) {
+                    const [row, col] = key.split(',').map(Number);
+                    const cell = this.getCell(row, col);
+                    if (cell) {
+                        cell.className = 'cell charging-station';
+                    }
+                }
+                // Отрисовываем столы
+                for (const key of this.state.shelves) {
+                    const [row, col] = key.split(',').map(Number);
+                    const cell = this.getCell(row, col);
+                    if (cell) {
+                        cell.className = 'cell shelf';
+                    }
+                }
+                // Отрисовываем роботов
+                for (const [id, robot] of this.state.robots) {
+                    const cell = this.getCell(robot.row, robot.col);
+                    if (cell) {
+                        cell.className = 'cell';
+                        this.addRobotImage(cell, 'Robot.png');
+                        this.addChargeBar(cell, robot.charge);
+                        // 🔥 Обновляем состояние клетки парковки, если робот там стоит
+                        const key = `${robot.row},${robot.col}`;
+                        if (this.state.parkingCells.has(key)) {
+                            const state = this.state.parkingCellStates.get(key) || { hasShelf: false, robotId: null };
+                            this.state.parkingCellStates.set(key, {
+                                hasShelf: state.hasShelf,
+                                robotId: id
+                            });
+                        }
+                    }
+                }
+            }
+            // 🔥🔥🔥 НОВЫЙ МЕТОД: Проверка уникальности позиций всех объектов
+            validateFieldUniqueness() {
+                const allPositions = new Set();
+                // Проверяем столбы
+                for (const key of this.state.obstacles) {
+                    if (allPositions.has(key)) return false;
+                    allPositions.add(key);
+                }
+                // Проверяем зарядки
+                for (const key of this.state.chargingStations) {
+                    if (allPositions.has(key)) return false;
+                    allPositions.add(key);
+                }
+                // Проверяем столы
+                for (const key of this.state.shelves) {
+                    if (allPositions.has(key)) return false;
+                    allPositions.add(key);
+                }
+                // Проверяем роботов
+                for (const [id, robot] of this.state.robots) {
+                    const key = `${robot.row},${robot.col}`;
+                    if (allPositions.has(key)) return false;
+                    allPositions.add(key);
+                }
+                // Если дошли сюда — все позиции уникальны
+                return true;
             }
             generateGrid(range, cols) {
                 const grid = [];
@@ -571,7 +691,7 @@
                     const key = `${row},${col}`;
                     // Если клик по столбу — игнорируем
                     if (this.state.obstacles.has(key)) return;
-                    // Проверяем, есть ли робот в этой клетке — ВСЕГДА выбираем его при клике на клетку
+                    // 🔥🔥🔥 ГАРАНТИРОВАННЫЙ ВЫБОР РОБОТА: Проверяем, есть ли робот в этой клетке — ВСЕГДА выбираем его при клике на клетку
                     let clickedRobotId = null;
                     for (const [id, robot] of this.state.robots) {
                         if (robot.row === row && robot.col === col) {
@@ -636,6 +756,14 @@
                         robot.hasShelf = false;
                         // Добавляем стол в реестр
                         this.state.shelves.add(key);
+                        // 🔥 Обновляем состояние клетки парковки
+                        if (this.state.parkingCells.has(key)) {
+                            const state = this.state.parkingCellStates.get(key) || { hasShelf: false, robotId: null };
+                            this.state.parkingCellStates.set(key, {
+                                hasShelf: true,
+                                robotId: state.robotId
+                            });
+                        }
                         // Обновляем визуальное состояние клетки
                         this.restoreCellState(cell, row, col);
                         console.log(`Робот вручную оставил стол на (${row}, ${col})`);
@@ -647,6 +775,14 @@
                         robot.hasShelf = true;
                         // Удаляем стол из реестра
                         this.state.shelves.delete(key);
+                        // 🔥 Обновляем состояние клетки парковки
+                        if (this.state.parkingCells.has(key)) {
+                            const state = this.state.parkingCellStates.get(key) || { hasShelf: false, robotId: null };
+                            this.state.parkingCellStates.set(key, {
+                                hasShelf: false,
+                                robotId: state.robotId
+                            });
+                        }
                         // Обновляем визуальное состояние клетки
                         this.restoreCellState(cell, row, col);
                         console.log(`Робот вручную поднял стол на (${row}, ${col})`);
@@ -672,6 +808,10 @@
                 }
             }
             isCellAvailableForTarget(key) {
+                // 🔥🔥🔥 НОВОЕ: Если клетка на парковке и в ней уже есть стол — она занята навсегда
+                if (this.state.parkingCells.has(key) && this.state.shelves.has(key)) {
+                    return false;
+                }
                 // Занята роботом?
                 if (this.isCellOccupied(key)) return false;
                 // Занята чужим маршрутом?
@@ -969,14 +1109,10 @@
                         }
                     }
                     if (this.state.parkingCells.has(key)) {
-                        // На парковку можно встать ТОЛЬКО если робот С грузом
-                        if (isRobotCarryingShelf) {
-                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — парковка. Доступна как ЦЕЛЬ (робот с грузом).`);
-                            return true;
-                        } else {
-                            console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — парковка. Недоступна как ЦЕЛЬ (робот без груза).`);
-                            return false;
-                        }
+                        // 🔥🔥🔥 ИСПРАВЛЕНИЕ: На парковку можно встать ВСЕГДА, независимо от груза.
+                        // Робот с грузом оставит его, пустой просто припаркуется.
+                        console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — парковка. Доступна как ЦЕЛЬ (для любого робота).`);
+                        return true;
                     }
                     // Любая другая клетка (пустая) — можно встать
                     console.log(`[DEBUG] isCellPassable: Клетка (${row}, ${col}) — пустая. Доступна как ЦЕЛЬ.`);
@@ -1142,6 +1278,10 @@
             async startRobotMovement(robotId) {
                 const robot = this.state.robots.get(robotId);
                 if (!robot || !robot.route || robot.route.length <= 1) return;
+
+                // Сохраняем копию маршрута на момент начала движения для последующей очистки
+                const initialRoute = [...robot.route];
+
                 if (this.abortControllers.has(robotId)) {
                     this.abortControllers.get(robotId).abort();
                 }
@@ -1149,8 +1289,10 @@
                 this.abortControllers.set(robotId, abortController);
                 const signal = abortController.signal;
                 this.state.movingRobots.add(robotId);
+
                 const route = [...robot.route];
                 const lines = this.state.routeLines.get(robotId) || [];
+
                 try {
                     for (let i = 1; i < route.length; i++) {
                         if (signal.aborted) {
@@ -1158,18 +1300,49 @@
                             if (this.selectedRobot === robotId) {
                                 this.stopAllBlinking();
                             }
-                            // 🔥🔥🔥 ИСПРАВЛЕНИЕ: Восстанавливаем состояние ТОЛЬКО текущей клетки робота
+
+                            // 🔥🔥🔥 ГАРАНТИРОВАННАЯ ОЧИСТКА: Синхронизируем ВСЕ затронутые клетки с реестром
+                            // 1. Восстанавливаем состояние ТЕКУЩЕЙ клетки робота
                             const currentCell = this.getCell(robot.row, robot.col);
                             if (currentCell) {
                                 this.restoreCellState(currentCell, robot.row, robot.col);
                             }
-                            break;
+
+                            // 2. 🔥🔥🔥 ОЧИСТКА ФАНТОМА: Очищаем СЛЕДУЮЩУЮ клетку, если робот начал в нее движение
+                            // Мы находимся в цикле на шаге `i`, что означает, что робот *начал* движение из `route[i-1]` в `route[i]`
+                            // Следовательно, следующая клетка — это `route[i]`
+                            const nextStep = route[i]; // клетка, в которую робот начал заезжать
+                            const nextCell = this.getCell(nextStep.row, nextStep.col);
+                            if (nextCell) {
+                                // Полностью очищаем клетку и восстанавливаем ее фоновое состояние
+                                while (nextCell.firstChild) {
+                                    nextCell.removeChild(nextCell.firstChild);
+                                }
+                                this.restoreCellBackground(nextCell, nextStep.row, nextStep.col);
+                            }
+
+                            // 3. 🔥🔥🔥 ДОПОЛНИТЕЛЬНАЯ ОЧИСТКА: Очищаем ПРЕДЫДУЩУЮ клетку, если робот ее покинул
+                            // Если это не первый шаг (i > 1), то предыдущая клетка — это `route[i-2]`
+                            if (i > 1) {
+                                const prevStep = route[i - 2]; // клетка, которую робот уже покинул
+                                const prevCell = this.getCell(prevStep.row, prevStep.col);
+                                if (prevCell) {
+                                    while (prevCell.firstChild) {
+                                        prevCell.removeChild(prevCell.firstChild);
+                                    }
+                                    this.restoreCellBackground(prevCell, prevStep.row, prevStep.col);
+                                }
+                            }
+
+                            break; // Выходим из цикла
                         }
+
                         const prevStep = route[i - 1];
                         const nextStep = route[i];
                         const currentCell = this.getCell(prevStep.row, prevStep.col);
                         const nextCell = this.getCell(nextStep.row, nextStep.col);
                         if (!nextCell) break;
+
                         // Проверка: если следующая клетка — зарядка и робот везёт груз — оставляем груз здесь
                         if (this.state.chargingStations.has(`${nextStep.row},${nextStep.col}`) && robot.hasShelf) {
                             // Оставляем груз в ТЕКУЩЕЙ клетке (перед заездом на зарядку)
@@ -1177,6 +1350,7 @@
                                 this.dropShelfHere(robot, currentCell, prevStep.row, prevStep.col);
                             }
                         }
+
                         // Плавно скрываем робота в текущей клетке
                         if (currentCell) {
                             const currentRobotImg = currentCell.querySelector('.robot-image');
@@ -1184,15 +1358,19 @@
                             if (currentRobotImg) currentRobotImg.style.opacity = '0';
                             if (currentChargeBar) currentChargeBar.style.opacity = '0';
                         }
+
                         // Ждём 150 мс — начало анимации исчезновения
                         await new Promise(resolve => setTimeout(resolve, 150));
-                        // Полностью очищаем старую клетку (убираем фон и всё содержимое)
+
+                        // Полностью очищаем старую клетку
                         if (currentCell) {
                             while (currentCell.firstChild) {
                                 currentCell.removeChild(currentCell.firstChild);
                             }
-                            currentCell.className = 'cell'; // Убираем весь фон
+                            // 🔥🔥🔥 ГЛАВНОЕ ИСПРАВЛЕНИЕ: Восстанавливаем ТОЛЬКО ФОН клетки при уезде робота
+                            this.restoreCellBackground(currentCell, prevStep.row, prevStep.col);
                         }
+
                         // Подготавливаем следующую клетку (робот пока невидим)
                         while (nextCell.firstChild) {
                             nextCell.removeChild(nextCell.firstChild);
@@ -1204,38 +1382,49 @@
                         const nextChargeBar = nextCell.querySelector('.charge-bar');
                         if (nextRobotImg) nextRobotImg.style.opacity = '0';
                         if (nextChargeBar) nextChargeBar.style.opacity = '0';
+
                         // Удаление линии шага
                         if (lines.length > 0) {
                             const lineToRemove = lines.shift();
                             if (lineToRemove && lineToRemove.parentNode) lineToRemove.remove();
                         }
+
                         // Обновляем позицию робота в данных
                         robot.row = nextStep.row;
                         robot.col = nextStep.col;
+
                         // Расход заряда: 1% за клетку
                         robot.charge = Math.max(0, robot.charge - 1);
+
                         // Проверка на game over
                         if (robot.charge <= 0) {
                             this.triggerGameOver();
                             return;
                         }
+
                         // Обновляем активный маршрут в реестре
                         if (robot.route && robot.route.length > i) {
                             robot.route = robot.route.slice(i - 1);
                             this.state.activeRoutes.set(robotId, robot.route);
                         }
+
                         // Плавно показываем робота в новой клетке
                         if (nextRobotImg) nextRobotImg.style.opacity = '1';
                         if (nextChargeBar) nextChargeBar.style.opacity = '1';
+
                         // Обновляем интерфейс заряда
                         if (this.selectedRobot === robotId) {
                             this.movesElement.textContent = `Заряд робота: ${robot.charge}%`;
                         }
+
                         // Ждём 250 мс — основная анимация
                         await new Promise(resolve => setTimeout(resolve, 250));
-                        // Теперь восстанавливаем фон клетки
+
+                        // Теперь восстанавливаем фон следующей клетки (если нужно)
                         this.restoreCellBackground(nextCell, nextStep.row, nextStep.col);
-                    }
+
+                    } // Конец цикла for
+
                     if (!signal.aborted) {
                         // Финальная очистка
                         this.clearRobotRouteLines(robotId);
@@ -1250,13 +1439,27 @@
                             if (!robot.hasShelf && this.state.shelves.has(finalKey)) {
                                 robot.hasShelf = true;
                                 this.state.shelves.delete(finalKey);
+                                // 🔥 Обновляем состояние клетки парковки
+                                if (this.state.parkingCells.has(finalKey)) {
+                                    const state = this.state.parkingCellStates.get(finalKey) || { hasShelf: false, robotId: null };
+                                    this.state.parkingCellStates.set(finalKey, {
+                                        hasShelf: false,
+                                        robotId: robot.id
+                                    });
+                                }
                                 console.log(`Робот автоматически поднял стол на (${robot.row}, ${robot.col})`);
                                 shouldUpdateVisual = true;
                             }
-                            // Автоматическое оставление стола, если робот прибыл на парковку с грузом
+                            // 🔥🔥🔥 ИСПРАВЛЕНИЕ: Автоматическое оставление стола на парковке — ГАРАНТИРУЕМ наличие в реестре
                             else if (robot.hasShelf && this.state.parkingCells.has(finalKey)) {
                                 robot.hasShelf = false;
-                                // Стол остается на парковке
+                                // 🔥 ВСЕГДА добавляем стол в реестр при оставлении на парковке
+                                this.state.shelves.add(finalKey);
+                                // 🔥 Обновляем состояние клетки парковки
+                                this.state.parkingCellStates.set(finalKey, {
+                                    hasShelf: true,
+                                    robotId: robot.id
+                                });
                                 console.log(`Робот автоматически оставил стол на парковке (${robot.row}, ${robot.col})`);
                                 shouldUpdateVisual = true;
                             }
@@ -1290,8 +1493,9 @@
                         // 🔥🔥🔥 ПРОВЕРКА УСЛОВИЯ ПОБЕДЫ
                         this.checkVictoryCondition();
                     }
+
                 } catch (error) {
-                    if (error.message !== 'aborted') throw error;
+                    if (error.name !== 'AbortError') throw error; // Более точная проверка на отмену
                 } finally {
                     this.state.movingRobots.delete(robotId);
                     if (this.abortControllers.get(robotId) === abortController) {
@@ -1316,11 +1520,24 @@
                 }
             }
             // 🔥🔥🔥 НОВЫЙ МЕТОД: Восстановление только фона клетки (без робота)
+            // 🔥🔥🔥 ИСПРАВЛЕННЫЙ МЕТОД: Восстановление только фона клетки (без робота), но с учётом стола на парковке
             restoreCellBackground(cell, row, col) {
                 const key = `${row},${col}`;
                 // Восстанавливаем класс клетки и фон
                 cell.className = 'cell';
-                if (this.state.parkingCells.has(key)) cell.classList.add('parking');
+                if (this.state.parkingCells.has(key)) {
+                    cell.classList.add('parking');
+                    // 🔥🔥🔥 ДОБАВЛЕНО: Проверяем, есть ли стол на этой клетке парковки
+                    const parkingState = this.state.parkingCellStates.get(key);
+                    if (parkingState && parkingState.hasShelf) {
+                        // Создаем отдельный элемент для изображения стола
+                        const shelfImage = document.createElement('div');
+                        shelfImage.className = 'robot-image'; // Используем тот же класс для стилей
+                        shelfImage.style.backgroundImage = `url('Shelf.png')`;
+                        shelfImage.style.zIndex = 6; // Стол поверх фона парковки
+                        cell.appendChild(shelfImage);
+                    }
+                }
                 else if (this.state.obstacles.has(key)) cell.classList.add('column');
                 else if (this.state.chargingStations.has(key)) cell.classList.add('charging-station');
                 else if (this.state.shelves.has(key)) cell.classList.add('shelf');
@@ -1334,11 +1551,7 @@
                 }
                 // Восстанавливаем класс клетки и фон
                 cell.className = 'cell';
-                if (this.state.parkingCells.has(key)) cell.classList.add('parking');
-                else if (this.state.obstacles.has(key)) cell.classList.add('column');
-                else if (this.state.chargingStations.has(key)) cell.classList.add('charging-station');
-                else if (this.state.shelves.has(key)) cell.classList.add('shelf');
-                // Проверяем, есть ли робот в этой клетке
+                // 🔥🔥🔥 ГЛАВНОЕ ИСПРАВЛЕНИЕ: Не добавляем фон зарядной станции, если робот там заряжается
                 let robotHere = null;
                 for (const [id, robot] of this.state.robots) {
                     if (robot.row === row && robot.col === col) {
@@ -1346,26 +1559,54 @@
                         break;
                     }
                 }
-                // Если робот есть, добавляем его изображение
+                // Если робот заряжается, НЕ добавляем фон charging-station
+                if (robotHere && this.state.chargingStations.has(key) && robotHere.isCharging) {
+                    // Ничего не делаем, оставляем cell.className = 'cell'
+                } else {
+                    // Для всех остальных случаев — добавляем фон
+                    if (this.state.parkingCells.has(key)) cell.classList.add('parking');
+                    else if (this.state.obstacles.has(key)) cell.classList.add('column');
+                    else if (this.state.chargingStations.has(key)) cell.classList.add('charging-station');
+                    else if (this.state.shelves.has(key)) cell.classList.add('shelf');
+                }
+                // 🔥🔥🔥 ГЛАВНОЕ ИСПРАВЛЕНИЕ: ВСЕГДА отображаем стол на парковке, если он есть в реестре
+                if (this.state.parkingCells.has(key)) {
+                    const parkingState = this.state.parkingCellStates.get(key);
+                    if (parkingState && parkingState.hasShelf) {
+                        // Создаем отдельный элемент для изображения стола
+                        const shelfImage = document.createElement('div');
+                        shelfImage.className = 'robot-image'; // Используем тот же класс для стилей
+                        shelfImage.style.backgroundImage = `url('Shelf.png')`;
+                        shelfImage.style.zIndex = 6; // Стол поверх всего
+                        cell.appendChild(shelfImage);
+                    }
+                }
+                // Если робот есть, добавляем его изображение ПОВЕРХ всего
                 if (robotHere) {
                     // 🔥🔥🔥 Добавляем изображение робота
                     this.addRobotImage(cell, this.getRobotImageType(robotHere, row, col));
                     // 🔥🔥🔥 Добавляем полосу заряда
                     this.addChargeBar(cell, robotHere.charge);
-                    // 🔥🔥🔥 СПЕЦИАЛЬНАЯ ЛОГИКА ДЛЯ СТОЛА В ТОЙ ЖЕ КЛЕТКЕ
-                    // Если стол есть в реестре (значит, стол в той же клетке)
-                    if (this.state.shelves.has(key)) {
-                        // Создаем отдельный элемент для изображения стола
-                        const shelfImage = document.createElement('div');
-                        shelfImage.className = 'robot-image'; // Используем тот же класс для стилей
-                        shelfImage.style.backgroundImage = `url('Shelf.png')`;
-                        shelfImage.style.zIndex = 6; // Стол поверх робота
-                        cell.appendChild(shelfImage);
-                        // 🔥🔥🔥 МЕНЯЕМ ПОРЯДОК В ЗАВИСИМОСТИ ОТ ФОКУСА
-                        // Если этот робот НЕ выбран, то стол должен быть ПОД роботом
-                        if (this.selectedRobot !== robotHere.id) {
-                            shelfImage.style.zIndex = 4; // Стол под роботом
-                        }
+                    // 🔥🔥🔥 Если робот выбран, добавляем градиентный фон под всеми элементами
+                    if (this.selectedRobot === robotHere.id) {
+                        cell.classList.add('selected');
+                    }
+                    // 🔥🔥🔥 Обновляем состояние клетки парковки, если робот там стоит
+                    if (this.state.parkingCells.has(key)) {
+                        const state = this.state.parkingCellStates.get(key) || { hasShelf: false, robotId: null };
+                        this.state.parkingCellStates.set(key, {
+                            hasShelf: state.hasShelf,
+                            robotId: robotHere.id
+                        });
+                    }
+                } else {
+                    // 🔥🔥🔥 Если робота нет, обновляем состояние клетки парковки (robotId: null)
+                    if (this.state.parkingCells.has(key)) {
+                        const state = this.state.parkingCellStates.get(key) || { hasShelf: false, robotId: null };
+                        this.state.parkingCellStates.set(key, {
+                            hasShelf: state.hasShelf,
+                            robotId: null
+                        });
                     }
                 }
             }
@@ -1376,6 +1617,14 @@
                 // Добавляем стол в реестр, если его там ещё нет
                 if (!this.state.shelves.has(key)) {
                     this.state.shelves.add(key);
+                }
+                // 🔥 Обновляем состояние клетки парковки
+                if (this.state.parkingCells.has(key)) {
+                    const state = this.state.parkingCellStates.get(key) || { hasShelf: false, robotId: null };
+                    this.state.parkingCellStates.set(key, {
+                        hasShelf: true,
+                        robotId: state.robotId
+                    });
                 }
                 // Обновляем визуальное состояние клетки
                 if (cell) {
@@ -1480,15 +1729,15 @@
                 this.state.chargingIntervals.clear();
                 // Блокируем доску
                 this.board.style.pointerEvents = 'none';
-                // Показываем VICTORY
+                // Показываем ПОБЕДА
                 const overlay = document.createElement('div');
                 overlay.className = 'game-over-overlay';
                 overlay.style.color = 'yellow';
-                overlay.textContent = 'VICTORY!';
+                overlay.textContent = 'ПОБЕДА!';
                 this.board.appendChild(overlay);
                 // Обновляем статус
-                this.movesElement.textContent = 'VICTORY!';
-                this.timerElement.textContent = 'VICTORY!';
+                this.movesElement.textContent = 'ПОБЕДА!';
+                this.timerElement.textContent = 'ПОБЕДА!';
                 // Останавливаем постоянное мигание
                 if (this.constantBlinkInterval) {
                     clearInterval(this.constantBlinkInterval);
