@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(30,30,40,0.3) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(20,20,30,0.3) 0%, transparent 40%);
+    }
+
+    #gameContainer {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, #e6e6e6 0%, #d0d0d0 50%, #b8b8b8 100%),
+        radial-gradient(ellipse at center, transparent 65%, rgba(0,0,0,0.25) 100%),
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%);
+      box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.7),
+        inset 0 -2px 8px rgba(255, 255, 255, 0.15),
+        0 12px 24px rgba(0, 0, 0, 0.6),
+        0 8px 10px rgba(0, 0, 0, 0.4),
+        0 16px 0 rgba(80, 80, 80, 0.3),
+        inset 0 -1px 0 rgba(255,255,255,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+      border: 2px solid #999;
+    }
+
+    #gameContainer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 8px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.6),
+        inset 0 -1px 0 rgba(0,0,0,0.2),
+        inset 1px 0 0 rgba(255,255,255,0.3),
+        inset -1px 0 0 rgba(0,0,0,0.1);
+      pointer-events: none;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      background: #111;
+      border-radius: 6px;
+      box-shadow:
+        inset 0 0 20px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(0, 0, 0, 0.9),
+        0 0 8px rgba(0, 0, 0, 0.5),
+        0 0 0 1px #000,
+        0 0 0 2px rgba(255,255,255,0.05);
+    }
+
+    .control-btn {
+      position: absolute;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 40% 40%, #ff8c8c, #e00000 60%, #a00000 100%);
+      border: 2px solid #700000;
+      box-shadow:
+        0 6px 14px rgba(0, 0, 0, 0.6),
+        0 4px 6px rgba(0, 0, 0, 0.5),
+        0 8px 0 #500000,
+        inset 0 -2px 6px rgba(0,0,0,0.4),
+        inset 0 2px 4px rgba(255,255,255,0.2);
+      outline: none;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.12s cubic-bezier(0.3, 0, 0.3, 1.3);
+    }
+
+    .control-btn:active {
+      transform: translateY(4px);
+      box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.5),
+        0 1px 3px rgba(0, 0, 0, 0.4),
+        0 3px 0 #500000,
+        inset 0 -1px 4px rgba(0,0,0,0.3),
+        inset 0 2px 3px rgba(255,255,255,0.15);
+    }
+
+    .control-btn::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      right: 6px;
+      bottom: 6px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6), transparent 70%);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+
+    <button class="control-btn" id="btnLeft"></button>
+    <button class="control-btn" id="btnLeft2"></button>
+    <button class="control-btn" id="btnDown"></button>
+    <button class="control-btn" id="btnUp"></button>
+    <button class="control-btn" id="btnRight"></button>
+    <button class="control-btn" id="btnRight2"></button>
+  </div>
+
+  <script>
+    const UI_CONFIG = {
+      buttonSize: 1.2,
+      padX: 0.4,
+      padYLow: 0.4,
+      verticalGap: 2.0,
+      extraVerticalGap: 2.0,
+      showTopButtons: false,
+
+      canvasWidth: 12,
+      canvasHeight: 6,
+      canvasMargin: 1.0
+    };
+
+    const container = document.getElementById('gameContainer');
+    const gameCanvas = document.getElementById('gameCanvas');
+    const ctx = gameCanvas.getContext('2d');
+
+    const btnLeft = document.getElementById('btnLeft');     // нижняя левая
+    const btnLeft2 = document.getElementById('btnLeft2');   // верхняя левая
+    const btnDown = document.getElementById('btnDown');     // не используется
+    const btnUp = document.getElementById('btnUp');         // нижняя правая
+    const btnRight = document.getElementById('btnRight');   // верхняя правая
+    const btnRight2 = document.getElementById('btnRight2'); // не используется
+
+    let score = 0;
+    let timeLeft = 30;
+    let timerRunning = false;
+    let timerInterval = null;
+    let currentTarget = null;
+    let gameStarted = false;
+    let gameOver = false;
+    let gameOverTime = null;
+
+    const playerSize = 30;
+    const whiteSquareSize = 50;
+    const gapBetweenSquares = 5;
+    const sideSquareSize = 30;
+    const sideSquareGap = 10;
+
+    const buttonMap = new Map([
+      [btnLeft2, 1],
+      [btnLeft, 2],
+      [btnRight, 3],
+      [btnUp, 4]
+    ]);
+
+    function resetGame() {
+      if (timerInterval) clearInterval(timerInterval);
+      score = 0;
+      timeLeft = 30;
+      timerRunning = false;
+      currentTarget = null;
+      gameStarted = false;
+      gameOver = false;
+      gameOverTime = null;
+    }
+
+    function startGame() {
+      if (gameStarted || gameOver) return;
+      gameStarted = true;
+      startTimer();
+      generateNewTarget();
+    }
+
+    function startTimer() {
+      if (timerRunning) return;
+      timerRunning = true;
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft <= 0) {
+          timeLeft = 0;
+          clearInterval(timerInterval);
+          gameOver = true;
+          gameOverTime = Date.now();
+        }
+      }, 1000);
+    }
+
+    function generateNewTarget() {
+      currentTarget = Math.floor(Math.random() * 4) + 1;
+    }
+
+    function handleInput(button) {
+      if (!gameStarted || gameOver || timeLeft <= 0) return;
+      const actual = buttonMap.get(button);
+      if (actual === undefined) return;
+
+      if (actual === currentTarget) {
+        score++;
+      }
+      generateNewTarget();
+    }
+
+    function drawUI() {
+      const displayWidth = gameCanvas.width / window.devicePixelRatio;
+      const displayHeight = gameCanvas.height / window.devicePixelRatio;
+
+      ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+      if (gameOver) {
+        const elapsed = Date.now() - gameOverTime;
+        if (elapsed < 5000) {
+          // Показываем счёт первые 5 сек
+          ctx.fillStyle = '#fff';
+          ctx.font = '24px Arial';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`Ваш счёт: ${score}`, displayWidth / 2, displayHeight / 2);
+        }
+        // После 5 сек — ничего не рисуем (чистый чёрный фон)
+        return;
+      }
+
+      if (!gameStarted) {
+        // Чистый чёрный фон до старта
+        return;
+      }
+
+      // === ИГРОВОЙ ИНТЕРФЕЙС ===
+      ctx.fillStyle = '#666';
+      const topY = (displayHeight - sideSquareSize * 2 - sideSquareGap) / 2;
+      const bottomY = topY + sideSquareSize + sideSquareGap;
+
+      ctx.fillRect(0, topY, sideSquareSize, sideSquareSize);
+      ctx.fillRect(0, bottomY, sideSquareSize, sideSquareSize);
+
+      const rightX = displayWidth - sideSquareSize;
+      ctx.fillRect(rightX, topY, sideSquareSize, sideSquareSize);
+      ctx.fillRect(rightX, bottomY, sideSquareSize, sideSquareSize);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('1', sideSquareSize / 2, topY + sideSquareSize / 2);
+      ctx.fillText('2', sideSquareSize / 2, bottomY + sideSquareSize / 2);
+      ctx.fillText('3', rightX + sideSquareSize / 2, topY + sideSquareSize / 2);
+      ctx.fillText('4', rightX + sideSquareSize / 2, bottomY + sideSquareSize / 2);
+
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 16px Arial';
+      ctx.textAlign = 'left';
+      ctx.fillText(score.toString().padStart(2, '0'), 10, 20);
+      ctx.textAlign = 'right';
+      ctx.fillText(timeLeft.toString(), displayWidth - 10, 20);
+
+      const yellowX = (displayWidth - playerSize) / 2;
+      const yellowY = displayHeight - playerSize;
+      ctx.fillStyle = '#ff0';
+      ctx.fillRect(yellowX, yellowY, playerSize, playerSize);
+
+      const whiteX = (displayWidth - whiteSquareSize) / 2;
+      const whiteY = yellowY - whiteSquareSize - gapBetweenSquares;
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(whiteX, whiteY, whiteSquareSize, whiteSquareSize);
+      ctx.fillStyle = '#000';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(currentTarget.toString(), whiteX + whiteSquareSize / 2, whiteY + whiteSquareSize / 2);
+    }
+
+    function resize() {
+      const maxWidth = 640;
+      const maxHeight = 360;
+
+      const scaleX = window.innerWidth / maxWidth;
+      const scaleY = window.innerHeight / maxHeight;
+      const scale = Math.min(scaleX, scaleY, 1);
+
+      const containerWidth = maxWidth * scale;
+      const containerHeight = maxHeight * scale;
+
+      container.style.width = containerWidth + 'px';
+      container.style.height = containerHeight + 'px';
+
+      const unit = 40 * scale;
+      const canvasWidthPx = UI_CONFIG.canvasWidth * unit;
+      const canvasHeightPx = UI_CONFIG.canvasHeight * unit;
+      const canvasLeft = (containerWidth - canvasWidthPx) / 2;
+      const canvasTop = (containerHeight - canvasHeightPx) / 2;
+
+      gameCanvas.style.width = canvasWidthPx + 'px';
+      gameCanvas.style.height = canvasHeightPx + 'px';
+      gameCanvas.style.left = canvasLeft + 'px';
+      gameCanvas.style.top = canvasTop + 'px';
+
+      gameCanvas.width = canvasWidthPx * window.devicePixelRatio;
+      gameCanvas.height = canvasHeightPx * window.devicePixelRatio;
+
+      const buttonSize = UI_CONFIG.buttonSize * unit;
+      [btnLeft, btnLeft2, btnDown, btnUp, btnRight, btnRight2].forEach(btn => {
+        btn.style.width = buttonSize + 'px';
+        btn.style.height = buttonSize + 'px';
+      });
+
+      const padX = UI_CONFIG.padX * unit;
+      const yLow = UI_CONFIG.padYLow * unit;
+      const yMid = (UI_CONFIG.padYLow + UI_CONFIG.verticalGap) * unit;
+
+      // Кнопки ВСЕГДА видны (кроме неиспользуемых)
+      btnLeft2.style.left = padX + 'px';
+      btnLeft2.style.bottom = yMid + 'px';
+      btnLeft2.style.display = 'block';
+
+      btnLeft.style.left = padX + 'px';
+      btnLeft.style.bottom = yLow + 'px';
+      btnLeft.style.display = 'block';
+
+      btnRight.style.right = padX + 'px';
+      btnRight.style.bottom = yMid + 'px';
+      btnRight.style.display = 'block';
+
+      btnUp.style.right = padX + 'px';
+      btnUp.style.bottom = yLow + 'px';
+      btnUp.style.display = 'block';
+
+      // Скрыть только неиспользуемые
+      btnDown.style.display = 'none';
+      btnRight2.style.display = 'none';
+
+      drawUI();
+    }
+
+    gameCanvas.addEventListener('pointerdown', () => {
+      if (gameOver) {
+        resetGame();
+        resize();
+      } else if (!gameStarted) {
+        startGame();
+        resize();
+      }
+    });
+
+    [btnLeft2, btnLeft, btnRight, btnUp].forEach(btn => {
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        handleInput(btn);
+      });
+    });
+
+    setInterval(drawUI, 100);
+    window.addEventListener('resize', resize);
+    resize();
+  </script>
+</body>
+</html>
