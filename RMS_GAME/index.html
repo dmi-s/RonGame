@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+    }
+    #gameContainer {
+      position: relative;
+      /* Размеры задаются через JS */
+      border-radius: 5px;
+      overflow: hidden;
+      background:
+        linear-gradient(145deg, #e0e0e0, #cfcfcf),
+        radial-gradient(circle at center, transparent 60%, rgba(0,0,0,0.3) 120%);
+      box-shadow:
+        inset 0 2px 6px rgba(0, 0, 0, 0.6),
+        inset 0 -2px 6px rgba(255, 255, 255, 0.2),
+        0 5px 10px rgba(0, 0, 0, 0.5),
+        0 6px 0 #888,
+        0 2px 0 #aaa;
+      border: 2px solid #a0a0a0;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      background: #222;
+      border-radius: 6px;
+      box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,0.3),
+        0 0 0 1px rgba(255,255,255,0.1);
+    }
+
+    .control-btn {
+      position: absolute;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ff6b6b, #cc0000);
+      border: 2px solid #aa0000;
+      box-shadow:
+        inset 0 -3px 6px rgba(0,0,0,0.3),
+        inset 0 3px 4px rgba(255,255,255,0.2),
+        0 6px 12px rgba(0,0,0,0.5),
+        0 4px 0 #800000;
+      outline: none;
+      padding: 0;
+      cursor: pointer;
+      transition: all 0.1s ease;
+    }
+
+    .control-btn:active {
+      transform: translateY(3px);
+      box-shadow:
+        inset 0 -1px 4px rgba(0,0,0,0.2),
+        inset 0 2px 3px rgba(255,255,255,0.1),
+        0 3px 8px rgba(0,0,0,0.4),
+        0 1px 0 #800000;
+    }
+
+    .control-btn::before {
+      content: '';
+      position: absolute;
+      top: 8px;
+      left: 8px;
+      right: 8px;
+      bottom: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,255,255,0.4), transparent 70%);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+
+    <button class="control-btn" id="btnLeft"></button>
+    <button class="control-btn" id="btnLeft2"></button>
+    <button class="control-btn" id="btnDown"></button>
+    <button class="control-btn" id="btnUp"></button>
+    <button class="control-btn" id="btnRight"></button>
+    <button class="control-btn" id="btnRight2"></button>
+  </div>
+
+  <script>
+    const UI_CONFIG = {
+      buttonSize: 1.2,
+      padX: 0.4,
+      padYLow: 0.4,
+      verticalGap: 2.0,
+      extraVerticalGap: 2.0,
+      showTopButtons: false,
+
+      canvasWidth: 10,
+      canvasHeight: 6,
+      canvasMargin: 1.0
+    };
+
+    const container = document.getElementById('gameContainer');
+    const gameCanvas = document.getElementById('gameCanvas');
+    const ctx = gameCanvas.getContext('2d');
+
+    const btnLeft = document.getElementById('btnLeft');
+    const btnLeft2 = document.getElementById('btnLeft2');
+    const btnDown = document.getElementById('btnDown');
+    const btnUp = document.getElementById('btnUp');
+    const btnRight = document.getElementById('btnRight');
+    const btnRight2 = document.getElementById('btnRight2');
+
+    function resize() {
+      const maxWidth = 640;
+      const maxHeight = 360;
+
+      // Определяем, насколько нужно уменьшить
+      const scaleX = window.innerWidth / maxWidth;
+      const scaleY = window.innerHeight / maxHeight;
+      const scale = Math.min(scaleX, scaleY, 1); // не увеличиваем больше 100%
+
+      const containerWidth = maxWidth * scale;
+      const containerHeight = maxHeight * scale;
+
+      // Применяем размер контейнера
+      container.style.width = containerWidth + 'px';
+      container.style.height = containerHeight + 'px';
+
+      // Базовая единица: 40px при scale=1 → 16*40=640, 9*40=360
+      const unit = 40 * scale;
+
+      // === Канвас ===
+      const canvasWidthPx = UI_CONFIG.canvasWidth * unit;   // 10 * unit
+      const canvasHeightPx = UI_CONFIG.canvasHeight * unit; // 6 * unit
+
+      const canvasLeft = (containerWidth - canvasWidthPx) / 2;
+      const canvasTop = (containerHeight - canvasHeightPx) / 2;
+
+      gameCanvas.style.width = canvasWidthPx + 'px';
+      gameCanvas.style.height = canvasHeightPx + 'px';
+      gameCanvas.style.left = canvasLeft + 'px';
+      gameCanvas.style.top = canvasTop + 'px';
+
+      // Настройка канваса под Retina/HiDPI
+      gameCanvas.width = canvasWidthPx * window.devicePixelRatio;
+      gameCanvas.height = canvasHeightPx * window.devicePixelRatio;
+      ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+      ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+      // === Кнопки ===
+      const buttonSize = UI_CONFIG.buttonSize * unit;
+      [btnLeft, btnLeft2, btnDown, btnUp, btnRight, btnRight2].forEach(btn => {
+        btn.style.width = buttonSize + 'px';
+        btn.style.height = buttonSize + 'px';
+      });
+
+      const padX = UI_CONFIG.padX * unit;
+      const yLow = UI_CONFIG.padYLow * unit;
+      const yMid = (UI_CONFIG.padYLow + UI_CONFIG.verticalGap) * unit;
+      const yHigh = (UI_CONFIG.padYLow + UI_CONFIG.verticalGap + UI_CONFIG.extraVerticalGap) * unit;
+
+      btnLeft.style.left = padX + 'px';
+      btnLeft.style.bottom = yMid + 'px';
+      btnLeft.style.display = 'block';
+
+      btnDown.style.left = padX + 'px';
+      btnDown.style.bottom = yLow + 'px';
+      btnDown.style.display = 'block';
+
+      btnUp.style.right = padX + 'px';
+      btnUp.style.bottom = yLow + 'px';
+      btnUp.style.display = 'block';
+
+      btnRight.style.right = padX + 'px';
+      btnRight.style.bottom = yMid + 'px';
+      btnRight.style.display = 'block';
+
+      if (UI_CONFIG.showTopButtons) {
+        btnLeft2.style.left = padX + 'px';
+        btnLeft2.style.bottom = yHigh + 'px';
+        btnLeft2.style.display = 'block';
+
+        btnRight2.style.right = padX + 'px';
+        btnRight2.style.bottom = yHigh + 'px';
+        btnRight2.style.display = 'block';
+      } else {
+        btnLeft2.style.display = 'none';
+        btnRight2.style.display = 'none';
+      }
+    }
+
+    window.addEventListener('resize', resize);
+    resize();
+  </script>
+</body>
+</html>
