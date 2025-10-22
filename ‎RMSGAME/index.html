@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+  <style>
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100vw;
+      height: 100vh;
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(30,30,40,0.3) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(20,20,30,0.3) 0%, transparent 40%);
+    }
+
+    #gameContainer {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      background:
+        linear-gradient(135deg, #e6e6e6 0%, #d0d0d0 50%, #b8b8b8 100%),
+        radial-gradient(ellipse at center, transparent 65%, rgba(0,0,0,0.25) 100%),
+        radial-gradient(circle at 30% 30%, rgba(255,255,255,0.4) 0%, transparent 60%);
+      box-shadow:
+        inset 0 2px 8px rgba(0, 0, 0, 0.7),
+        inset 0 -2px 8px rgba(255, 255, 255, 0.15),
+        0 12px 24px rgba(0, 0, 0, 0.6),
+        0 8px 10px rgba(0, 0, 0, 0.4),
+        0 16px 0 rgba(80, 80, 80, 0.3),
+        inset 0 -1px 0 rgba(255,255,255,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+      border: 2px solid #999;
+    }
+
+    #gameContainer::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 8px;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.6),
+        inset 0 -1px 0 rgba(0,0,0,0.2),
+        inset 1px 0 0 rgba(255,255,255,0.3),
+        inset -1px 0 0 rgba(0,0,0,0.1);
+      pointer-events: none;
+    }
+
+    #gameCanvas {
+      position: absolute;
+      background: #111;
+      border-radius: 6px;
+      box-shadow:
+        inset 0 0 20px rgba(0, 0, 0, 0.8),
+        inset 0 2px 4px rgba(0, 0, 0, 0.9),
+        0 0 8px rgba(0, 0, 0, 0.5),
+        0 0 0 1px #000,
+        0 0 0 2px rgba(255,255,255,0.05);
+    }
+
+    .control-btn {
+      position: absolute;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 40% 40%, #ff8c8c, #e00000 60%, #a00000 100%);
+      border: 2px solid #700000;
+      box-shadow:
+        0 6px 14px rgba(0, 0, 0, 0.6),
+        0 4px 6px rgba(0, 0, 0, 0.5),
+        0 8px 0 #500000,
+        inset 0 -2px 6px rgba(0,0,0,0.4),
+        inset 0 2px 4px rgba(255,255,255,0.2);
+      outline: none;
+      padding: 0;
+      cursor: pointer;
+      transition: transform 0.12s cubic-bezier(0.3, 0, 0.3, 1.3),
+                  box-shadow 0.12s cubic-bezier(0.3, 0, 0.3, 1.3);
+      transform-origin: center;
+    }
+
+    .control-btn.pressed {
+      transform: scale(0.96) translateY(2px);
+      box-shadow:
+        0 3px 6px rgba(0, 0, 0, 0.5),
+        0 1px 3px rgba(0, 0, 0, 0.4),
+        0 2px 0 #500000,
+        inset 0 3px 6px rgba(0, 0, 0, 0.6),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+    }
+
+    .control-btn::before {
+      content: '';
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      right: 6px;
+      bottom: 6px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6), transparent 70%);
+      pointer-events: none;
+      transition: opacity 0.12s;
+    }
+
+    .control-btn.pressed::before {
+      opacity: 0.3;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <canvas id="gameCanvas"></canvas>
+    <button class="control-btn" id="btnLeft2"></button>
+    <button class="control-btn" id="btnLeft"></button>
+    <button class="control-btn" id="btnRight"></button>
+    <button class="control-btn" id="btnUp"></button>
+  </div>
+
+  <script>
+    const CONFIG = {
+      assets: {
+        playerImage: 'RMS.png'
+      },
+      timings: {
+        roundDisplay: 2000,
+        digitFlash: 400,
+        arrowFlash: 400,
+        statsDelay: 1000
+      },
+      rounds: [
+        { totalBoxes: 10, intervalSec: 2.0 },
+        { totalBoxes: 15, intervalSec: 1.6 },
+        { totalBoxes: 20, intervalSec: 1.3 },
+        { totalBoxes: 25, intervalSec: 1.0 }
+      ],
+      texts: {
+        roundPrefix: 'РАУНД ',
+        robotSpeed: 'Скорость робота: ',
+        shipments: 'Отправлений: ',
+        mps: ' м/с',
+        roundCompleted: 'РАУНД ',
+        completedSuffix: ' ЗАВЕРШЁН',
+        gameCompleted: 'ИГРА ЗАВЕРШЕНА',
+        correct: 'Правильно: ',
+        errors: 'Ошибки: ',
+        idle: 'Простой: ',
+        efficiency: 'Эффективность: ',
+        totalCorrect: 'Всего правильно: ',
+        totalErrors: 'Всего ошибок: ',
+        totalIdle: 'Всего простоя: ',
+        totalEfficiency: 'Общая эффективность: ',
+        startGame: 'Начать игру',
+        nextRound: 'Следующий раунд',
+        viewResults: 'Результаты игры',
+        restart: 'Начать заново',
+        controls: {
+          key1: '1',
+          key2: '2',
+          key3: '3',
+          key4: '4'
+        }
+      },
+      ui: {
+        buttonSize: 1.2,
+        padX: 0.4,
+        verticalGap: 1.6,
+        canvasWidth: 12,
+        canvasHeight: 6,
+        canvasMargin: 1.0,
+        playerSize: 120,
+        sideSquareSize: 30,
+        sideSquareGap: 10,
+        // ✅ Увеличенные базовые шрифты (только для масштаба <= 1)
+        fontSize: {
+          small: 30,        // цифры в очереди
+          roundInfo: 40,    // "РАУНД 1"
+          statsTitle: 30,   // заголовок статистики
+          statsValue: 30,   // значения статистики
+          statsButton: 40,  // кнопки: "Начать игру"
+          finalStatsTitle: 30,
+          finalStatsValue: 30
+        }
+      }
+    };
+
+    const container = document.getElementById('gameContainer');
+    const gameCanvas = document.getElementById('gameCanvas');
+    const ctx = gameCanvas.getContext('2d');
+
+    const btnLeft = document.getElementById('btnLeft');
+    const btnLeft2 = document.getElementById('btnLeft2');
+    const btnRight = document.getElementById('btnRight');
+    const btnUp = document.getElementById('btnUp');
+
+    const playerImage = new Image();
+    playerImage.src = CONFIG.assets.playerImage;
+
+    let canvasCSSWidth = 0;
+    let canvasCSSHeight = 0;
+    let baseUnit = 40;
+
+    let currentTimeout = null;
+    let queue = [];
+    let remainingDigits = [];
+    let currentRound = 0;
+    let gameStarted = false;
+    let roundDisplayActive = false;
+    let whiteSquareDigit = null;
+    let boxStartTime = 0;
+    let activeButtons = new Set();
+    let gameState = 'start';
+    let roundStats = { correct: 0, errors: 0, idle: 0 };
+    let allRoundsStats = [];
+
+    const buttonMap = new Map([
+      [btnLeft2, '1'],
+      [btnLeft, '2'],
+      [btnRight, '3'],
+      [btnUp, '4']
+    ]);
+
+    const keyToButton = {
+      '1': btnLeft2,
+      '2': btnLeft,
+      '3': btnRight,
+      '4': btnUp
+    };
+
+    function getRandomDigit() {
+      return Math.floor(Math.random() * 4) + 1;
+    }
+
+    function fillQueueAndRemaining(total) {
+      const allDigits = [];
+      for (let i = 0; i < total; i++) {
+        allDigits.push(getRandomDigit());
+      }
+      queue = allDigits.slice(0, 3);
+      remainingDigits = allDigits.slice(3);
+    }
+
+    function clearCurrentTimeout() {
+      if (currentTimeout) {
+        clearTimeout(currentTimeout);
+        currentTimeout = null;
+      }
+    }
+
+    function advanceQueue() {
+      queue.shift();
+      if (remainingDigits.length > 0) {
+        queue.push(remainingDigits.shift());
+      }
+      whiteSquareDigit = null;
+    }
+
+    function showRoundStats() {
+      const totalBoxes = CONFIG.rounds[currentRound].totalBoxes;
+      const efficiency = totalBoxes > 0 ? Math.round((roundStats.correct / totalBoxes) * 100) : 0;
+      roundStats.efficiency = efficiency;
+      allRoundsStats.push({...roundStats});
+
+      if (currentRound === CONFIG.rounds.length - 1) {
+        gameState = 'finalRoundEnd';
+      } else {
+        gameState = 'roundEnd';
+      }
+      drawUI();
+    }
+
+    function endRound() {
+      clearCurrentTimeout();
+      setTimeout(showRoundStats, CONFIG.timings.statsDelay);
+    }
+
+    function scheduleNextBox() {
+      if (roundDisplayActive || gameState !== 'playing') return;
+
+      if (queue.length === 0) {
+        endRound();
+        return;
+      }
+
+      whiteSquareDigit = queue[0];
+      boxStartTime = Date.now();
+
+      const intervalMs = CONFIG.rounds[currentRound].intervalSec * 1000;
+
+      clearCurrentTimeout();
+      currentTimeout = setTimeout(() => {
+        roundStats.idle++;
+        advanceQueue();
+        if (queue.length > 0) {
+          scheduleNextBox();
+        } else {
+          endRound();
+        }
+      }, intervalMs);
+    }
+
+    function startRound(roundIndex) {
+      clearCurrentTimeout();
+      currentRound = roundIndex;
+      const total = CONFIG.rounds[roundIndex].totalBoxes;
+      fillQueueAndRemaining(total);
+      roundStats = { correct: 0, errors: 0, idle: 0 };
+      roundDisplayActive = true;
+      gameState = 'playing';
+
+      drawUI();
+
+      setTimeout(() => {
+        roundDisplayActive = false;
+        if (!gameStarted) {
+          gameStarted = true;
+        }
+
+        setTimeout(() => {
+          if (gameState === 'playing') {
+            scheduleNextBox();
+          }
+        }, CONFIG.timings.roundDisplay);
+
+      }, CONFIG.timings.roundDisplay);
+    }
+
+    function resetGame() {
+      clearCurrentTimeout();
+      gameStarted = false;
+      currentRound = 0;
+      queue = [];
+      remainingDigits = [];
+      whiteSquareDigit = null;
+      activeButtons.clear();
+      allRoundsStats = [];
+      gameState = 'start';
+      drawUI();
+    }
+
+    function handleInput(button) {
+      if (gameState !== 'playing' || roundDisplayActive || whiteSquareDigit === null) return;
+
+      const actual = parseInt(buttonMap.get(button), 10);
+      if (isNaN(actual)) return;
+
+      const expected = whiteSquareDigit;
+      if (actual === expected) {
+        roundStats.correct++;
+      } else {
+        roundStats.errors++;
+      }
+
+      clearCurrentTimeout();
+      advanceQueue();
+
+      const now = Date.now();
+      const elapsed = now - boxStartTime;
+      const intervalMs = CONFIG.rounds[currentRound].intervalSec * 1000;
+      const remaining = Math.max(10, intervalMs - elapsed);
+
+      if (queue.length > 0) {
+        currentTimeout = setTimeout(() => {
+          if (gameState === 'playing') {
+            scheduleNextBox();
+          }
+        }, remaining);
+      } else {
+        endRound();
+      }
+
+      drawUI();
+    }
+
+    function drawStatsBlock(title, statsLines, buttonText, centerX, centerY, maxWidth, scale) {
+      const titleSize = CONFIG.ui.fontSize.statsTitle * scale;
+      const statSize = CONFIG.ui.fontSize.statsValue * scale;
+      const btnFontSize = CONFIG.ui.fontSize.statsButton * scale;
+      const lineHeight = 1.4;
+      const padding = statSize * 0.6;
+
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${titleSize}px Arial`;
+      const titleWidth = ctx.measureText(title).width;
+      const blockWidth = Math.min(maxWidth, Math.max(titleWidth + padding * 2, 120));
+
+      let y = centerY - (titleSize + statsLines.length * statSize * lineHeight + padding * 2) / 2;
+
+      if (title) {
+        ctx.fillText(title, centerX, y + titleSize / 2);
+        y += titleSize + padding;
+      }
+
+      ctx.font = `${statSize}px Arial`;
+      statsLines.forEach(line => {
+        ctx.fillText(line, centerX, y + statSize / 2);
+        y += statSize * lineHeight;
+      });
+
+      ctx.font = `bold ${btnFontSize}px Arial`;
+      const btnTextWidth = ctx.measureText(buttonText).width;
+      const btnHeight = btnFontSize * 1.6;
+      const btnWidth = btnTextWidth + btnFontSize * 1.4;
+      const btnY = y + btnHeight / 2;
+
+      ctx.fillStyle = '#333';
+      ctx.strokeStyle = '#ff0';
+      ctx.lineWidth = 1;
+      const btnX = centerX - btnWidth / 2;
+      ctx.beginPath();
+      const radius = 6;
+      ctx.moveTo(btnX + radius, btnY - btnHeight / 2);
+      ctx.lineTo(btnX + btnWidth - radius, btnY - btnHeight / 2);
+      ctx.quadraticCurveTo(btnX + btnWidth, btnY - btnHeight / 2, btnX + btnWidth, btnY - btnHeight / 2 + radius);
+      ctx.lineTo(btnX + btnWidth, btnY + btnHeight / 2 - radius);
+      ctx.quadraticCurveTo(btnX + btnWidth, btnY + btnHeight / 2, btnX + btnWidth - radius, btnY + btnHeight / 2);
+      ctx.lineTo(btnX + radius, btnY + btnHeight / 2);
+      ctx.quadraticCurveTo(btnX, btnY + btnHeight / 2, btnX, btnY + btnHeight / 2 - radius);
+      ctx.lineTo(btnX, btnY - btnHeight / 2 + radius);
+      ctx.quadraticCurveTo(btnX, btnY - btnHeight / 2, btnX + radius, btnY - btnHeight / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ff0';
+      ctx.fillText(buttonText, centerX, btnY);
+
+      return {
+        x: btnX,
+        y: btnY - btnHeight / 2,
+        width: btnWidth,
+        height: btnHeight
+      };
+    }
+
+    function drawUI() {
+      const displayWidth = canvasCSSWidth;
+      const displayHeight = canvasCSSHeight;
+
+      const scaleUI = baseUnit / 40;
+      const playerSize = CONFIG.ui.playerSize * scaleUI;
+
+      ctx.clearRect(0, 0, displayWidth, displayHeight);
+
+      // ✅ Масштаб шрифта: только уменьшение, рост запрещён
+      const fontScale = Math.min(1, displayWidth / 640, displayHeight / 360);
+
+      if (gameState === 'start') {
+        const btn = drawStatsBlock(
+          "",
+          [],
+          CONFIG.texts.startGame,
+          displayWidth / 2,
+          displayHeight / 2,
+          displayWidth * 0.9,
+          fontScale
+        );
+        window.startButtonRect = btn;
+        return;
+      }
+
+      if (gameState === 'roundEnd' || gameState === 'finalRoundEnd' || gameState === 'gameEnd') {
+        let title, statsLines, buttonText;
+        if (gameState === 'gameEnd') {
+          const totalCorrect = allRoundsStats.reduce((sum, r) => sum + r.correct, 0);
+          const totalErrors = allRoundsStats.reduce((sum, r) => sum + r.errors, 0);
+          const totalIdle = allRoundsStats.reduce((sum, r) => sum + r.idle, 0);
+          const totalBoxesAll = CONFIG.rounds.reduce((sum, r) => sum + r.totalBoxes, 0);
+          const totalEfficiency = totalBoxesAll > 0 ? Math.round((totalCorrect / totalBoxesAll) * 100) : 0;
+          title = CONFIG.texts.gameCompleted;
+          statsLines = [
+            `${CONFIG.texts.totalCorrect}${totalCorrect}`,
+            `${CONFIG.texts.totalErrors}${totalErrors}`,
+            `${CONFIG.texts.totalIdle}${totalIdle}`,
+            `${CONFIG.texts.totalEfficiency}${totalEfficiency}%`
+          ];
+          buttonText = CONFIG.texts.restart;
+        } else {
+          title = `${CONFIG.texts.roundCompleted}${currentRound + 1}${CONFIG.texts.completedSuffix}`;
+          statsLines = [
+            `${CONFIG.texts.correct}${roundStats.correct}`,
+            `${CONFIG.texts.errors}${roundStats.errors}`,
+            `${CONFIG.texts.idle}${roundStats.idle}`,
+            `${CONFIG.texts.efficiency}${roundStats.efficiency}%`
+          ];
+          buttonText = gameState === 'finalRoundEnd' ? CONFIG.texts.viewResults : CONFIG.texts.nextRound;
+        }
+
+        const btn = drawStatsBlock(
+          title,
+          statsLines,
+          buttonText,
+          displayWidth / 2,
+          displayHeight / 2,
+          displayWidth * 0.9,
+          fontScale
+        );
+        window.actionButtonRect = btn;
+        return;
+      }
+
+      if (roundDisplayActive) {
+        const roundInfo = CONFIG.rounds[currentRound];
+        const speed = roundInfo.intervalSec;
+        const totalBoxes = roundInfo.totalBoxes;
+
+        const fontSize = CONFIG.ui.fontSize.roundInfo * fontScale;
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = `bold ${fontSize}px Arial`;
+        ctx.fillText(`${CONFIG.texts.roundPrefix}${currentRound + 1}`, displayWidth / 2, displayHeight * 0.4);
+
+        const descSize = CONFIG.ui.fontSize.small * fontScale;
+        ctx.font = `${descSize}px Arial`;
+        ctx.fillText(`${CONFIG.texts.robotSpeed}${speed.toFixed(1)}${CONFIG.texts.mps}`, displayWidth / 2, displayHeight * 0.52);
+        ctx.fillText(`${CONFIG.texts.shipments}${totalBoxes}`, displayWidth / 2, displayHeight * 0.64);
+        return;
+      }
+
+      const topRowY = 10;
+      const sideSquareSize = CONFIG.ui.sideSquareSize * scaleUI;
+      const sideSquareGap = CONFIG.ui.sideSquareGap * scaleUI;
+      const totalTopWidth = 3 * sideSquareSize + 2 * sideSquareGap;
+      const startX = (displayWidth - totalTopWidth) / 2;
+
+      ctx.fillStyle = '#666';
+      for (let i = 0; i < 3; i++) {
+        const x = startX + i * (sideSquareSize + sideSquareGap);
+        ctx.fillRect(x, topRowY, sideSquareSize, sideSquareSize);
+      }
+
+      const displayQueue = [];
+      if (whiteSquareDigit !== null) {
+        if (queue.length > 1) displayQueue.push(queue[1]);
+        if (queue.length > 2) displayQueue.push(queue[2]);
+        if (displayQueue.length < 3 && remainingDigits.length > 0) {
+          displayQueue.push(remainingDigits[0]);
+        }
+      } else {
+        for (let i = 0; i < 3 && i < queue.length; i++) {
+          displayQueue.push(queue[i]);
+        }
+      }
+
+      const fontSizeSmall = CONFIG.ui.fontSize.small * fontScale;
+      ctx.font = `bold ${fontSizeSmall}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      const now = Date.now();
+      const phase = (now % CONFIG.timings.digitFlash) / CONFIG.timings.digitFlash;
+      const triangle = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+
+      for (let i = 0; i < 3; i++) {
+        if (i < displayQueue.length) {
+          const x = startX + i * (sideSquareSize + sideSquareGap) + sideSquareSize / 2;
+          const y = topRowY + sideSquareSize / 2;
+
+          if (i === 0) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${triangle})`;
+          } else {
+            ctx.fillStyle = '#fff';
+          }
+          ctx.fillText(displayQueue[i].toString(), x, y);
+        }
+      }
+
+      const arrowY = topRowY + sideSquareSize + 4;
+      const n = displayQueue.length;
+      ctx.font = `bold ${fontSizeSmall}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (n > 0) {
+        const cycleLength = n * CONFIG.timings.arrowFlash;
+        const cycleTime = now % cycleLength;
+        const activeLocalIndex = Math.floor(cycleTime / CONFIG.timings.arrowFlash);
+        const timeInPhase = cycleTime % CONFIG.timings.arrowFlash;
+        const localPhase = timeInPhase / CONFIG.timings.arrowFlash;
+        const localTriangle = localPhase < 0.5 ? localPhase * 2 : (1 - localPhase) * 2;
+
+        for (let i = 0; i < n; i++) {
+          const x = startX + i * (sideSquareSize + sideSquareGap) + sideSquareSize / 2;
+          let alpha;
+          if (i === n - 1 - activeLocalIndex) {
+            alpha = 0.3 + 0.7 * localTriangle;
+          } else {
+            alpha = 0.3;
+          }
+          ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+          ctx.fillText('←', x, arrowY);
+        }
+      }
+
+      const totalRemaining = queue.length + remainingDigits.length;
+      const counterX = Math.min(startX + totalTopWidth + 10, displayWidth - 20);
+      ctx.fillStyle = '#fff';
+      ctx.font = `bold ${fontSizeSmall}px Arial`;
+      ctx.textAlign = 'left';
+      ctx.fillText(totalRemaining.toString().padStart(2, '0'), counterX, topRowY + sideSquareSize / 2);
+
+      const canvasCenterY = displayHeight / 2;
+      const verticalOffsetCanvas = (CONFIG.ui.verticalGap * baseUnit) * (displayHeight / (CONFIG.ui.canvasHeight * baseUnit));
+
+      const leftX = 10;
+      const rightX = displayWidth - sideSquareSize - 10;
+
+      const topY = canvasCenterY - verticalOffsetCanvas;
+      const bottomY = canvasCenterY + verticalOffsetCanvas;
+
+      const squares = [
+        { id: '1', x: leftX, y: topY },
+        { id: '2', x: leftX, y: bottomY },
+        { id: '3', x: rightX, y: topY },
+        { id: '4', x: rightX, y: bottomY }
+      ];
+
+      squares.forEach(square => {
+        if (activeButtons.has(square.id)) {
+          ctx.fillStyle = 'rgba(102, 102, 102, 0.5)';
+        } else {
+          ctx.fillStyle = '#666';
+        }
+        ctx.fillRect(square.x, square.y - sideSquareSize / 2, sideSquareSize, sideSquareSize);
+
+        ctx.fillStyle = '#fff';
+        ctx.font = `bold ${fontSizeSmall}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(square.id, square.x + sideSquareSize / 2, square.y);
+      });
+
+      const yellowX = (displayWidth - playerSize) / 2;
+      const yellowY = displayHeight - playerSize;
+
+      if (playerImage.complete && playerImage.naturalHeight > 0) {
+        ctx.drawImage(playerImage, yellowX, yellowY, playerSize, playerSize);
+      } else {
+        ctx.fillStyle = '#ff0';
+        ctx.fillRect(yellowX, yellowY, playerSize, playerSize);
+      }
+
+      if (whiteSquareDigit !== null) {
+        const scale = baseUnit / 40;
+        const whiteSquareSize = 50 * scale;
+        const bottomOffset = 155 * scale;
+
+        const whiteX = (displayWidth - whiteSquareSize) / 2;
+        const whiteY = displayHeight - bottomOffset;
+
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(whiteX, whiteY, whiteSquareSize, whiteSquareSize);
+
+        ctx.fillStyle = '#000';
+        const digitFontSize = whiteSquareSize * 0.6;
+        ctx.font = `bold ${digitFontSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(whiteSquareDigit.toString(), whiteX + whiteSquareSize / 2, whiteY + whiteSquareSize / 2);
+      }
+    }
+
+    function resize() {
+      const useWidth = window.innerWidth;
+      const useHeight = window.innerHeight;
+
+      const maxWidth = 640;
+      const maxHeight = 360;
+
+      const scaleX = useWidth / maxWidth;
+      const scaleY = useHeight / maxHeight;
+      // ✅ ВЕРНУЛ ОГРАНИЧЕНИЕ: масштаб НЕ БОЛЬШЕ 1
+      const scale = Math.min(scaleX, scaleY, 1);
+
+      const containerWidth = maxWidth * scale;
+      const containerHeight = maxHeight * scale;
+
+      container.style.width = containerWidth + 'px';
+      container.style.height = containerHeight + 'px';
+
+      baseUnit = 40 * scale;
+
+      const unit = baseUnit;
+      const canvasWidthPx2 = CONFIG.ui.canvasWidth * unit;
+      const canvasHeightPx2 = CONFIG.ui.canvasHeight * unit;
+
+      const canvasLeft = (containerWidth - canvasWidthPx2) / 2;
+      const canvasTop = (containerHeight - canvasHeightPx2) / 2;
+
+      gameCanvas.style.width = canvasWidthPx2 + 'px';
+      gameCanvas.style.height = canvasHeightPx2 + 'px';
+      gameCanvas.style.left = canvasLeft + 'px';
+      gameCanvas.style.top = canvasTop + 'px';
+
+      canvasCSSWidth = canvasWidthPx2;
+      canvasCSSHeight = canvasHeightPx2;
+
+      const dpr = window.devicePixelRatio || 1;
+      gameCanvas.width = canvasWidthPx2 * dpr;
+      gameCanvas.height = canvasHeightPx2 * dpr;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+
+      const buttonSize = CONFIG.ui.buttonSize * unit;
+      const padX = CONFIG.ui.padX * unit;
+      const verticalOffset = CONFIG.ui.verticalGap * unit;
+      const centerY = containerHeight / 2;
+
+      [btnLeft2, btnLeft, btnRight, btnUp].forEach(btn => {
+        btn.style.width = buttonSize + 'px';
+        btn.style.height = buttonSize + 'px';
+        btn.style.position = 'absolute';
+        btn.style.top = (centerY - buttonSize / 2) + 'px';
+        btn.style.transform = 'translateY(0)';
+      });
+
+      btnLeft2.style.left = padX + 'px';
+      btnLeft2.style.transform = `translateY(${-verticalOffset}px)`;
+      btnLeft2.style.display = 'block';
+
+      btnLeft.style.left = padX + 'px';
+      btnLeft.style.transform = `translateY(${verticalOffset}px)`;
+      btnLeft.style.display = 'block';
+
+      btnRight.style.right = padX + 'px';
+      btnRight.style.transform = `translateY(${-verticalOffset}px)`;
+      btnRight.style.display = 'block';
+
+      btnUp.style.right = padX + 'px';
+      btnUp.style.transform = `translateY(${verticalOffset}px)`;
+      btnUp.style.display = 'block';
+
+      drawUI();
+    }
+
+    function handleCanvasClick(x, y) {
+      if (gameState === 'start') {
+        const btn = window.startButtonRect || {};
+        if (x >= btn.x && x <= btn.x + btn.width && y >= btn.y && y <= btn.y + btn.height) {
+          startRound(0);
+        }
+      } else if (['roundEnd', 'finalRoundEnd', 'gameEnd'].includes(gameState)) {
+        const btn = window.actionButtonRect || {};
+        if (x >= btn.x && x <= btn.x + btn.width && y >= btn.y && y <= btn.y + btn.height) {
+          if (gameState === 'gameEnd') {
+            resetGame();
+          } else if (gameState === 'finalRoundEnd') {
+            gameState = 'gameEnd';
+            drawUI();
+          } else {
+            startRound(currentRound + 1);
+          }
+        }
+      }
+    }
+
+    gameCanvas.addEventListener('pointerdown', (e) => {
+      const rect = gameCanvas.getBoundingClientRect();
+      const scaleX = canvasCSSWidth / rect.width;
+      const scaleY = canvasCSSHeight / rect.height;
+      const x = (e.clientX - rect.left) * scaleX;
+      const y = (e.clientY - rect.top) * scaleY;
+      handleCanvasClick(x, y);
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key >= '1' && e.key <= '4') {
+        e.preventDefault();
+        const key = e.key;
+        const btn = keyToButton[key];
+        if (!btn || gameState !== 'playing' || roundDisplayActive) return;
+
+        if (!activeButtons.has(key)) {
+          activeButtons.add(key);
+          btn.classList.add('pressed');
+          if (whiteSquareDigit !== null) {
+            handleInput(btn);
+          }
+          drawUI();
+        }
+      }
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key >= '1' && e.key <= '4') {
+        const key = e.key;
+        const btn = keyToButton[key];
+        if (btn) {
+          activeButtons.delete(key);
+          btn.classList.remove('pressed');
+          drawUI();
+        }
+      }
+    });
+
+    [btnLeft2, btnLeft, btnRight, btnUp].forEach(btn => {
+      const id = buttonMap.get(btn);
+
+      btn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        if (!activeButtons.has(id)) {
+          activeButtons.add(id);
+          btn.classList.add('pressed');
+          if (gameState === 'playing' && !roundDisplayActive && whiteSquareDigit !== null) {
+            handleInput(btn);
+          }
+          drawUI();
+        }
+      });
+
+      const releaseHandler = () => {
+        activeButtons.delete(id);
+        btn.classList.remove('pressed');
+        drawUI();
+      };
+
+      btn.addEventListener('pointerup', releaseHandler);
+      btn.addEventListener('pointercancel', releaseHandler);
+    });
+
+    setInterval(drawUI, 30);
+    window.addEventListener('resize', resize);
+    window.addEventListener('orientationchange', resize);
+    resize();
+  </script>
+</body>
+</html>
